@@ -6,10 +6,6 @@ import { getLastDump } from './utils/backup-storage';
 import { minioClient } from './utils/backup-storage/s3/connection';
 import { expressListRoutes } from './utils/list-routes';
 import fetch from 'node-fetch';
-import FormData from 'form-data';
-import path from 'path';
-
-const PREFIXED_API_URL = `${process.env.IMAGE_SERVICE}${process.env.API_PREFIX ? process.env.API_PREFIX : ''}`;
 
 const port = parseInt(process.env.PORT, 10) || 3001;
 
@@ -52,39 +48,6 @@ const connectToRedisWithRetry = async (maxRetries, delay) => {
     }
 };
 
-const uploadDefaultImage = async (fileFolder, filename) => {
-    const defaultImage = fs.readFileSync(path.join(fileFolder, filename));
-
-    const defaultForm = new FormData();
-    defaultForm.append('namespace', 'DEV');
-    defaultForm.append('file', defaultImage, {
-        filename: filename,
-        contentType: 'image/webp'
-    });
-
-    const uploadDefault = await fetch(`${PREFIXED_API_URL}/file`, {
-        method: 'POST',
-        body: defaultForm
-    });
-
-    if (uploadDefault.status === 200) {
-        logger.info(`Upload ${filename} successfully 🌄`);
-    } else {
-        logger.error(`Upload ${filename} failed: ${JSON.stringify(await uploadDefault.json())}`);
-    }
-};
-
-const uploadDefaultAndErrorImages = async () => {
-    for (const filename of ['default.webp', 'error.webp']) {
-        const checkImage = await fetch(`${PREFIXED_API_URL}/assets/media/original/${process.env.DEV_ENV ? 'DEV/' : ''}${filename}`);
-        if (checkImage.status !== 200) {
-            await uploadDefaultImage(process.env.TMP_FILES_PATH || '/tmp/images/', filename);
-        } else {
-            logger.info(`Default image ${filename} already exists 🐥`);
-        }
-    }
-};
-
 (async () => {
     try {
         await checkAccessToBackup();
@@ -101,7 +64,6 @@ const uploadDefaultAndErrorImages = async () => {
         app.listen(port, async () => {
             logger.info(`\n✨  Connected to Redis, server running => http://localhost:${port}\n`);
             expressListRoutes(app, {});
-            await uploadDefaultAndErrorImages();
         });
     } catch (err) {
         logger.error(`Error starting app => ${err}`);
