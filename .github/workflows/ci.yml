@@ -9,7 +9,7 @@ on:
             - main
 
 env:
-    IMAGE_NAME: transform-and-deliver-assets
+    IMAGE_NAME: amelieloulou/transform-and-deliver-assets
     CHART_PATH: ./opensource
 
 jobs:
@@ -34,10 +34,4 @@ jobs:
               with:
                   context: ./src/api
                   push: true
-                  tags: api/${{ env.IMAGE_NAME }}:latest
-            -   name: Build and push Docker image Job
-                uses: docker/build-push-action@v5
-                with:
-                    context: ./src
-                    push: true
-                    tags: job/${{ env.IMAGE_NAME }}:latest
+                  tags: ${{ env.IMAGE_NAME }}:latest
