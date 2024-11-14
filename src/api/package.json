@@ -1,7 +1,7 @@
 {
     "name": "images-provider",
     "version": "0.1.0",
-    "description": "",
+    "description": "description",
     "main": "app.js",
     "scripts": {
         "dev": "npm run decrypt-env && export NODE_TLS_REJECT_UNAUTHORIZED='0' && export PORT=3001 && ts-node server.ts",
