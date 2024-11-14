@@ -7,8 +7,6 @@ import { timeoutMiddleware } from '../middleware/timeoutMiddleware';
 
 const router = Router();
 
-router.use(validatorHeaders);
-
 router.get(`/assets/media/:format/*`, [timeoutMiddleware, validatorGetAsset], getAsset);
 
 router.post(`/file`, [validatorHeaders, validatorFile, validatorFileFilter, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog], postAsset);

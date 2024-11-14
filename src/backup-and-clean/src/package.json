@@ -9,10 +9,11 @@
     "dependencies": {
         "dotenv": "^16.4.5",
         "node-fetch": "^2.7.0",
-        "typescript": "^5"
+        "typescript": "^5",
+        "winston": "^3.17.0"
     },
     "devDependencies": {
-        "ts-node": "^10.6.0",
-        "@types/node": "^20.11.2"
+        "@types/node": "^20.11.2",
+        "ts-node": "^10.6.0"
     }
 }
