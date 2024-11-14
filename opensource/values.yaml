@@ -37,7 +37,7 @@ s3:
 
 mediaProvider:
     useStripMetadata: true
-    imageName: 'localhost:5001/media-api'
+    imageName: 'amelieloulou/transform-and-deliver-assets'
     imageVersion: 'latest'
     pvPathImage: '/images'
     service: 'http://media-service'
@@ -76,8 +76,8 @@ mediaProvider:
             requests:
                 storage: 500Mi
     backupAndCleanJob:
-        imageName: 'localhost:5001/jobs-api'
-        imageVersion: 'latest'
+        imageName: 'amelieloulou/transform-and-deliver-assets'
+        imageVersion: 'job-latest'
 
 rateLimit:
     windowMs: 30000
