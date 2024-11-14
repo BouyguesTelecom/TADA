@@ -1,0 +1,39 @@
+meta {
+  name: 8️⃣- DELETE FILES
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{URL_API}}{{URL_API_PREFIX}}/files
+  body: json
+  auth: none
+}
+
+body:json {
+  [{
+    "namespace": "DEV",
+    "uuid": "{{PDF_ID}}"
+  },
+  {
+    "namespace": "DEV",
+    "uuid": "{{SVG_ID}}"
+  },{
+    "namespace": "DEV",
+    "uuid": "{{PNG_ID}}"
+  },
+  {
+    "namespace": "DEV",
+    "uuid": "{{JPG_ID}}"
+  },
+  {
+    "namespace": "DEV",
+    "uuid": "{{WEBP_ID}}"
+  }]
+}
+
+assert {
+  res.status: eq 200
+  res.body.data: length 5
+  res.body.errors: length 0
+}

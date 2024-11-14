@@ -1,0 +1,20 @@
+meta {
+  name: 5️⃣- GET FILE EXPIRED - default image
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{IMAGE_URL}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: in [404,200]
+  CONTENTLENGTH: neq res.headers["content-length"]
+}
+
+script:pre-request {
+  return new Promise(resolve => setTimeout(resolve, 2000));
+}

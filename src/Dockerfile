@@ -1,0 +1,30 @@
+FROM node:18-alpine AS builder
+
+COPY backup-and-clean/src /src
+COPY api/utils /src/utils
+WORKDIR /src
+RUN npm install --strict-ssl=false
+RUN npm run build
+
+FROM node:18-alpine
+
+WORKDIR /src
+COPY --from=builder /src/package*.json /src/
+COPY --from=builder /src/dist /src/dist
+COPY --from=builder /src/node_modules /src/node_modules
+
+CMD ["node", "/src/dist/server.js"]
+
+
+
+
+
+# FROM node:18-alpine
+
+# COPY backup-and-clean/src /src
+# COPY api/utils /src/utils
+# WORKDIR /src
+# RUN npm install --strict-ssl=false
+# RUN npm run build
+
+# CMD ["node" ,"/src/dist/server.js"]

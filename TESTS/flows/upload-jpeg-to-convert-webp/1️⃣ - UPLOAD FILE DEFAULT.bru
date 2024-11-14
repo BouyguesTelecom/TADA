@@ -1,0 +1,75 @@
+meta {
+  name: 1️⃣ - UPLOAD FILE DEFAULT
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{URL_API}}{{URL_API_PREFIX}}/file
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  namespace: DEV
+  destination: tests
+  filename: supertest.jpg
+  file: @file(/tmp/images/jpg.jpg)
+}
+
+vars:post-response {
+  IMAGE_URL: "{{URL_API}}" + res.body?.data[0]?.base_url + "/full"+'/image'+res.body?.data[0]?.unique_name
+  IMAGE_ID: res.body?.data[0]?.uuid
+  IMAGE_UNIQUE_NAME: res.body?.data[0]?.unique_name
+  IMAGE_SIZE: res.body?.data[0]?.size
+  IMAGE_VERSION: res.body?.data[0]?.version
+  DESTINATION: res.body?.data[0]?.destination
+  FILENAME: res.body?.data[0]?.filename
+  NAMESPACE: res.body?.data[0]?.namespace
+}
+
+assert {
+  res.status: eq 200
+  res.body.data[0].original_mimetype: eq image/jpeg
+  res.body.data[0].mimetype: eq image/webp
+}
+
+script:pre-request {
+  const fs = require('fs');
+  const path = require('path');
+  
+  const srcDir = path.resolve(__dirname, '../local/images');
+  const destDir = '/tmp/images';
+  
+  const copyFiles = (src, dest) => {
+    fs.readdir(src, (err, files) => {
+      files.forEach(file => {
+        const srcFile = path.join(src, file);
+        const destFile = path.join(dest, file);
+  
+        fs.copyFile(srcFile, destFile, err => {
+          if (err) {
+            console.error('Error copying file:', err);
+          } else {
+            console.log(`Copied ${srcFile} to ${destFile}`);
+          }
+        });
+      });
+    });
+  };
+  
+  const ensureDirExists = (dir, cb) => {
+    fs.mkdir(dir, { recursive: true }, err => {
+      if (err) {
+        console.error('Error creating directory:', err);
+        return;
+      }
+      cb();
+    });
+  };
+  
+  ensureDirExists(destDir, () => {
+    copyFiles(srcDir, destDir);
+  });
+  
+}

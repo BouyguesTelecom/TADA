@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: media-service
+    labels:
+        app: media
+spec:
+    type: NodePort
+    ports:
+        - protocol: TCP
+          name: http
+          targetPort: 3001
+          port: 80
+    selector:
+        app: media

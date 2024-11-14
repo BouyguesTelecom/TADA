@@ -1,0 +1,94 @@
+local: true
+
+redis:
+    service: redis-service
+    dumpFolderPath: '/dumps'
+    storage:
+        storageClassName: hostpath
+        resources:
+            requests:
+                storage: 500Mi
+
+delegatedStorage:
+    rateLimitWindow: 30000
+    rateLimit: 5
+    connect: true
+    host: 'http://minio:9000'
+    routes:
+        readinessCheck: '/minio/health/live'
+        get: ''
+        post: ''
+        put: ''
+        delete: ''
+    accessToken: 'NinjaDesIles'
+    storageMethod: 'S3'
+
+s3:
+    endpoint: 'minio'
+    port: '9000'
+    accessKey: 'minioadmin'
+    secretKey: 'minioadmin'
+    bucketName: 'media'
+    storage:
+        storageClassName: hostpath
+        resources:
+            requests:
+                storage: 500Mi
+
+mediaProvider:
+    useStripMetadata: true
+    imageName: 'localhost:5001/media-api'
+    imageVersion: 'latest'
+    pvPathImage: '/images'
+    service: 'http://media-service'
+    nginx:
+        service: 'http://nginx'
+    thumbor:
+        service: 'http://thumbor-service'
+    routes:
+        healthcheck:
+            get: '/readiness-check'
+        file:
+            get: '/assets/media/'
+            post: '/upload'
+            patch: ''
+            delete: ''
+        files:
+            post: '/uploads'
+            patch: ''
+            delete: ''
+        catalog:
+            get: '/catalog'
+        delegatedStorage:
+            get: '/backup'
+            post: '/backup'
+            patch: '/backup'
+            delete: '/backup'
+    payloadMaxSize: '10mb'
+    rateLimit:
+        windowMs: 30000
+        limit: 5
+    originsAllowed: 'localhost,*'
+    methodsAllowed: 'GET,POST'
+    storage:
+        storageClassName: hostpath
+        resources:
+            requests:
+                storage: 500Mi
+    backupAndCleanJob:
+        imageName: 'localhost:5001/jobs-api'
+        imageVersion: 'latest'
+
+rateLimit:
+    windowMs: 30000
+    limit: 5
+
+hpa:
+    replicaCountMin: 1
+    replicaCountMax: 1
+
+protocol: 'http'
+env: 'media-service'
+domain: '.media'
+NAMESPACES_ALLOWED: 'DEV'
+version: '1.0.6'

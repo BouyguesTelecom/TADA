@@ -1,0 +1,33 @@
+{{- if and .Values.local }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redisinsight-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redisinsight
+  template:
+    metadata:
+      labels:
+        app: redisinsight
+    spec:
+      containers:
+        - name: redisinsight
+          image: redis/redisinsight:latest
+          ports:
+            - containerPort: 5540
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redisinsight-service
+spec:
+  selector:
+    app: redisinsight
+  ports:
+    - protocol: TCP
+      port: 5540
+      targetPort: 5540
+{{- end }}

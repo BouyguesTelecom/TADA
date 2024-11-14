@@ -1,0 +1,24 @@
+[
+    {
+        "compressor": "NONE",
+        "id": "cb1a621a-47f0-487f-8d0f-8e364fe5fdac",
+        "host": "host.docker.internal",
+        "port": 6379,
+        "name": "MEDIA",
+        "db": 0,
+        "username": null,
+        "password": null,
+        "connectionType": "STANDALONE",
+        "nameFromProvider": null,
+        "provider": "REDIS_COMMUNITY_EDITION",
+        "lastConnection": "2024-08-06T08:09:07.194Z",
+        "modules": [],
+        "tls": null,
+        "tlsServername": null,
+        "verifyServerCert": null,
+        "caCert": null,
+        "clientCert": null,
+        "ssh": null,
+        "sshOptions": null
+    }
+]

@@ -1,0 +1,9 @@
+.idea/
+node_modules/
+dist/
+.DS_Store
+tmp
+.env
+context.txt
+local/redis/dumps/DEV
+*.log

@@ -1,0 +1,18 @@
+{
+    "name": "backup-and-clean",
+    "version": "1.0.0",
+    "main": "server.js",
+    "scripts": {
+        "start": "ts-node server.ts",
+        "build": "tsc"
+    },
+    "dependencies": {
+        "dotenv": "^16.4.5",
+        "node-fetch": "^2.7.0",
+        "typescript": "^5"
+    },
+    "devDependencies": {
+        "ts-node": "^10.6.0",
+        "@types/node": "^20.11.2"
+    }
+}

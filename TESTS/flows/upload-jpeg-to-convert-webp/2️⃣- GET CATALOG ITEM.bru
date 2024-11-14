@@ -1,0 +1,41 @@
+meta {
+  name: 2️⃣- GET CATALOG ITEM
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{URL_API}}{{URL_API_PREFIX}}{{CATALOG_ROUTE}}/{{IMAGE_ID}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.data[0].unique_name: eq {{IMAGE_UNIQUE_NAME}}
+  res.body.data[0].filename: isDefined
+  res.body.data[0].namespace: isDefined
+  res.body.data[0].namespace: eq DEV
+  res.body.data[0].expiration_date: isNull
+  res.body.data[0].expired: isFalsy
+  res.body.data[0].external_id: isNull
+  res.body.data[0].uuid: isDefined
+  res.body.data[0].unique_name: isDefined
+  res.body.data[0].unique_name: eq "/{{NAMESPACE}}/{{DESTINATION}}/{{FILENAME}}"
+  res.body.data[0].version: isDefined
+  res.body.data[0].version: eq 1
+  res.body.data[0].public_url: isDefined
+  res.body.data[0].public_url: eq "{{URL_NGINX}}{{URL_API_PREFIX}}/assets/media/full/image/{{NAMESPACE}}/{{DESTINATION}}/{{FILENAME}}"
+  res.body.data[0].original_filename: isDefined
+  res.body.data[0].base_url: isDefined
+  res.body.data[0].information: isNull
+  res.body.data[0].destination: isDefined
+  res.body.data[0].destination: eq tests
+  res.body.data[0].original_mimetype: isDefined
+  res.body.data[0].original_mimetype: eq image/jpeg
+  res.body.data[0].mimetype: isDefined
+  res.body.data[0].mimetype: eq image/webp
+  res.body.data[0].signature: isDefined
+  res.body.data[0].size: isDefined
+  res.body.data[0].size: isNumber
+}

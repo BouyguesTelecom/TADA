@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: nginx-purge
+    labels:
+        app: nginx-purge
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: nginx-purge
+    template:
+        metadata:
+            labels:
+                app: nginx-purge
+        spec:
+            containers:
+                -   name: nginx-purge
+                    image: emcniece/nginx-cache-purge:1.13-alpine
+                    ports:
+                        -   containerPort: 8081
+                    volumeMounts:
+                        -   name: nginx-purge-cache
+                            mountPath: /var/cache/nginx
+                        -   name: nginx-config-volume
+                            mountPath: /etc/nginx/nginx.conf
+                            subPath: nginx.conf
+            volumes:
+                -   name: nginx-purge-cache
+                    emptyDir: {}
+                -   name: nginx-config-volume
+                    configMap:
+                        name: nginx-purge-configmap
+                        items:
+                            -   key: nginx.conf
+                                path: nginx.conf

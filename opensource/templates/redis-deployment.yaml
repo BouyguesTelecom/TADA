@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: redis-deployment
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: redis
+    template:
+        metadata:
+            labels:
+                app: redis
+        spec:
+            containers:
+                - name: redis
+                  image: bitnami/redis:7.0.15-debian-12-r20
+                  command:
+                      - 'redis-server'
+                      - '--protected-mode'
+                      - 'no'
+                      - '--dir'
+                      - '/dumps'
+                  ports:
+                      - containerPort: 6379
+                  volumeMounts:
+                      - name: redis-storage
+                        mountPath: /dumps
+            volumes:
+                - name: redis-storage
+                  persistentVolumeClaim:
+                      claimName: redis-pv-claim

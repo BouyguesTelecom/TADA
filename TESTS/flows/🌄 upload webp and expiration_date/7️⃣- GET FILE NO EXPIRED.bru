@@ -1,0 +1,16 @@
+meta {
+  name: 7️⃣- GET FILE NO EXPIRED
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{IMAGE_URL}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: in [404,200]
+  res.headers["content-length"]: in [undefined, text/html; charset=UTF-8,"{{CONTENTLENGTH}}"]
+}

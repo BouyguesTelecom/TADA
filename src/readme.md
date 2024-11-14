@@ -1,0 +1,6 @@
+![img.png](./readme/global.png)
+![img.png](./readme/GET.png)
+![img.png](./readme/POST.png)
+![img.png](./readme/PATCH.png)
+![img.png](./readme/PATCH_INFO.png)
+![img.png](./readme/DELETE.png)

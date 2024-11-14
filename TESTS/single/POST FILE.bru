@@ -1,0 +1,27 @@
+meta {
+  name: POST FILE
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{URL_API}}{{URL_API_PREFIX}}/file
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  namespace: DEV
+  file: @file(/tmp/images/jpg.jpg)
+  destination: testsd
+  ~expired: true
+}
+
+vars:post-response {
+  IMAGE_URL: res.body.data[0].public_url
+  IMAGE_ID: res.body.data[0].uuid
+}
+
+assert {
+  res.status: eq 200
+}

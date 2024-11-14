@@ -1,0 +1,15 @@
+meta {
+  name: 🔟- GET CATALOG ITEM DELETED
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{URL_API}}{{URL_API_PREFIX}}{{CATALOG_ROUTE}}/{{IMAGE_ID}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}

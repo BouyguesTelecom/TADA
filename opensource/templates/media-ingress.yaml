@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+    name: api-ingress
+    annotations:
+        nginx.ingress.kubernetes.io/default-backend: ingress-nginx-controller
+        nginx.ingress.kubernetes.io/use-regex: 'true'
+        nginx.ingress.kubernetes.io/proxy-body-size: '50m'
+spec:
+    ingressClassName: nginx
+    rules:
+        - host: '{{.Values.env}}.api{{.Values.domain}}'
+          http:
+              paths:
+                  - path: /
+                    pathType: ImplementationSpecific
+                    backend:
+                        service:
+                            name: media-service
+                            port:
+                                number: 80

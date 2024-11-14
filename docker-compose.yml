@@ -1,0 +1,120 @@
+x-environment-variables:
+  &default-environment
+    API_PREFIX: "/palpatine"
+
+services:
+    redis:
+        image: bitnami/redis:7.0.15-debian-12-r20
+        container_name: redis_server
+        command: redis-server --protected-mode no --dir /dumps
+        ports:
+            - '6379:6379'
+        volumes:
+            - ./local/redis/dumps:/dumps
+        networks:
+            - redis_net
+    redisinsight:
+        image: redis/redisinsight:latest
+        container_name: redisinsight
+        ports:
+            - '5540:5540'
+        networks:
+            - redis_net
+        depends_on:
+            - redis
+
+    minio:
+        image: minio/minio
+        ports:
+            - 9000:9000
+            - 8900:8900
+        environment:
+            MINIO_ROOT_USER: 'minioadmin'
+            MINIO_ROOT_PASSWORD: 'minioadmin'
+        command: 'minio server /data/minio --console-address ":8900"'
+        volumes:
+            - pv-minio:/data/minio
+        networks:
+            - media_network
+
+    images-provider:
+        build:
+            context: src/api
+            dockerfile: Dockerfile.dev
+        ports:
+            - 3001:3001
+        networks:
+            - media_network
+            - redis_net
+        volumes:
+            - ./local/redis/dumps:/dumps
+            - ./local/logs:/logs
+        environment:
+            <<: *default-environment
+            THUMBOR_SERVICE: http://thumbor:8888
+            NGINX_SERVICE: http://nginx:8080
+            IMAGE_SERVICE: http://images-provider:3001
+            NGINX_INGRESS: http://localhost:8080
+            DELEGATED_STORAGE_HOST: http://minio:9000
+            REDIS_SERVICE: redis
+            S3_ENDPOINT: minio
+        healthcheck:
+            test: ["CMD-SHELL", "wget --spider --quiet http://images-provider:3001$$API_PREFIX/readiness-check || exit 1"]
+            interval: 10s
+            timeout: 7s
+            retries: 5
+    nginx-purge:
+        image: emcniece/nginx-cache-purge:1.13-alpine
+        ports:
+            - 8081:8081
+        volumes:
+            - ./local/nginx/nginx-purge.conf:/etc/nginx/nginx.conf
+        networks:
+            - media_network
+        depends_on:
+            - images-provider
+    nginx:
+        image: bitnami/nginx:latest
+        ports:
+            - 8080:8080
+        volumes:
+            - ./local/nginx/nginx.conf:/opt/bitnami/nginx/conf/nginx.conf
+        networks:
+            - media_network
+        depends_on:
+            - images-provider
+    job:
+        build:
+            context: src/
+            dockerfile: Dockerfile.dev
+        ports:
+            - 3006:3006
+        networks:
+            - media_network
+        volumes:
+            - ./local/logs:/logs
+        depends_on:
+            images-provider:
+                condition: service_healthy
+        env_file:
+            - ./src/api/.env
+        environment:
+            IMAGE_SERVICE: http://images-provider:3001
+            API_SERVICE: http://images-provider:3001
+            API_PREFIX: /palpatine
+            DEV_ENV: true
+            CATALOG_ROUTE: '/catalog'
+            GET_ROUTE: '/assets/media/'
+
+volumes:
+    pv-minio:
+    minio:
+        driver: local
+    caddy_data:
+    caddy_config:
+
+networks:
+    redis_net:
+        driver: bridge
+    media_network:
+        driver: bridge

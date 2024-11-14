@@ -1,0 +1,22 @@
+meta {
+  name: DELETE FILES
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{URL_API}}{{URL_API_PREFIX}}/files
+  body: json
+  auth: none
+}
+
+body:json {
+  [{
+    "namespace": "DEV",
+    "uuid": "lol"
+  },
+  {
+    "namespace": "DEV",
+    "uuid": "d97a79c5-d69b-45e5-9682-fa714152c7e9"
+  }]
+}

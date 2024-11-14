@@ -1,0 +1,42 @@
+{{- if .Values.local }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-pv-redis
+  labels:
+    type: redis
+spec:
+  capacity:
+    storage: 5G
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: hostpath
+  local:
+    path: "/tmp"
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - docker-desktop
+                - orbstack
+---
+{{- end }}
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pv-claim
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: "{{.Values.mediaProvider.storage.resources.requests.storage}}"
+  storageClassName: "{{.Values.mediaProvider.storage.storageClassName}}"
+  selector:
+    matchLabels:
+      type: redis

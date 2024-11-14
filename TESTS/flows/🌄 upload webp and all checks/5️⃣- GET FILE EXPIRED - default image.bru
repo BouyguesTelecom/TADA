@@ -1,0 +1,16 @@
+meta {
+  name: 5️⃣- GET FILE EXPIRED - default image
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{PATCH_PUBLIC_URL}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: in [200,404]
+  res.headers['content-type']: in [undefined, text/html; charset=UTF-8,image/webp]
+}

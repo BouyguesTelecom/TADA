@@ -1,0 +1,17 @@
+meta {
+  name: UPLOAD FILES
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{URL_API}}{{URL_API_PREFIX}}/files
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  namespace: DEV
+  ~toWebp: false
+  files: @file(/tmp/images/test.pdf|/tmp/images/test.svg)
+}

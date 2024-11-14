@@ -1,0 +1,17 @@
+meta {
+  name: PATCH FILE with FILE
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{URL_API}}{{URL_API_PREFIX}}/file/{{IMAGE_ID}}
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  namespace: DEV
+  file: @file(/tmp/images/error.webp)
+  toWebp: false
+}
