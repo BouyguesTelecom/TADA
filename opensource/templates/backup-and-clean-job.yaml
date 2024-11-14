@@ -10,8 +10,6 @@ spec:
     spec:
       template:
         spec:
-          imagePullSecrets:
-            - name: {{ .Values.imagePullSecrets.name }}
           containers:
             - name: remove-expired-files-cronjob
               image: '{{ .Values.mediaProvider.backupAndCleanJob.imageName }}:{{ .Values.mediaProvider.backupAndCleanJob.imageVersion }}'
