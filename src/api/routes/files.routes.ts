@@ -3,14 +3,16 @@ import { validatorCatalog, validatorFiles, validatorFilesBody, validatorFilesFil
 import { Router } from 'express';
 import { postAssets, patchAssets, deleteAssets } from '../controllers/files.controller';
 import { validatorNamespace } from '../middleware/validators/oneFileValidators';
+import { authMiddleware } from '../middleware/auth';
+
 const router = Router();
 
 router.use(validatorHeaders);
 
-router.post(`/files`, [validatorFiles, validatorFilesFilter, validatorFilesSize, validatorNamespace, validatorFilesBody], postAssets);
+router.post(`/files`, [authMiddleware, validatorFiles, validatorFilesFilter, validatorFilesSize, validatorNamespace, validatorFilesBody], postAssets);
 
-router.patch(`/files`, [validatorFiles, validatorUUIds, validatorFilesFilter, validatorFilesSize, validatorCatalog, validatorFilesBody], patchAssets);
+router.patch(`/files`, [authMiddleware, validatorFiles, validatorUUIds, validatorFilesFilter, validatorFilesSize, validatorCatalog, validatorFilesBody], patchAssets);
 
-router.delete(`/files`, [validatorUUIds, validatorCatalog], deleteAssets);
+router.delete(`/files`, [authMiddleware, validatorUUIds, validatorCatalog], deleteAssets);
 
 export { router };

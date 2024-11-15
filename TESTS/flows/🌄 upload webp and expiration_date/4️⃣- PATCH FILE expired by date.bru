@@ -7,7 +7,11 @@ meta {
 patch {
   url: {{URL_API}}{{URL_API_PREFIX}}/file/{{IMAGE_ID}}
   body: json
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_TOKEN}}
 }
 
 body:json {
@@ -49,7 +53,7 @@ assert {
   res.body.data[0].version: isDefined
   res.body.data[0].version: eq 1
   res.body.data[0].public_url: isDefined
-  res.body.data[0].public_url: eq "{{URL_NGINX}}{{URL_API_PREFIX}}/assets/media/full/image/{{NAMESPACE}}/{{DESTINATION}}/{{FILENAME}}"
+  res.body.data[0].public_url: eq "{{URL_NGINX}}{{URL_API_PREFIX}}/assets/media/full/{{NAMESPACE}}/{{DESTINATION}}/{{FILENAME}}"
   res.body.data[0].original_filename: isDefined
   res.body.data[0].base_url: isDefined
   res.body.data[0].base_url: eq "{{URL_API_PREFIX}}/assets/media"
