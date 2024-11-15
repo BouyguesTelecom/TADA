@@ -22,6 +22,11 @@ jobs:
         with:
           install: true
 
+      - name: Create and use builder
+        run: |
+          docker buildx create --use --name mybuilder --driver docker-container
+          docker buildx inspect mybuilder --bootstrap
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
