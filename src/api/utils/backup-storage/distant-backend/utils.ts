@@ -28,7 +28,7 @@ interface ResponseBackup {
 export const headersUserAgentForBackup = (contentType: string | null = null) =>
     new Headers({
         ...(process.env.DELEGATED_STORAGE_TOKEN && {
-            Authorization: `${process.env.DELEGATED_STORAGE_TOKEN}`
+            Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
         }),
         ...(contentType && { 'Content-Type': contentType })
     });
