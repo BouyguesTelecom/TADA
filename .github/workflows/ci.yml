@@ -10,68 +10,56 @@ env:
   CHART_PATH: ./opensource
 
 jobs:
-  checkout:
+  build-and-push-docker:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-  setup-docker-buildx:
-    runs-on: ubuntu-latest
-    needs: [checkout]
-    steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
         with:
           install: true
 
-  docker-login:
-    runs-on: ubuntu-latest
-    needs: [setup-docker-buildx]
-    steps:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-  build-push-docker-api:
-    runs-on: ubuntu-latest
-    needs: [docker-login]
-    steps:
       - name: Build and push Docker image API
         run: |
           docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:latest ./src/api
 
-  build-push-docker-job:
-    runs-on: ubuntu-latest
-    needs: [docker-login]
-    steps:
       - name: Build and push Docker image Job
         run: |
           docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:job-latest ./src
-
-  setup-helm:
+  publish-helm-chart:
     runs-on: ubuntu-latest
-    needs: [build-push-docker-api, build-push-docker-job]
-    steps:
-      - name: Install Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: v3.11.1
+    needs: build-and-push-docker
 
-  package-helm-chart:
-    runs-on: ubuntu-latest
-    needs: [setup-helm]
     steps:
-      - name: Package Helm chart
-        run: |
-          helm package ${{ env.CHART_PATH }}
+      -   name: Checkout repository
+          uses: actions/checkout@v3
 
-  push-helm-chart:
-    runs-on: ubuntu-latest
-    needs: [package-helm-chart]
-    steps:
-      - name: Push Helm chart to Docker Hub
-        run: |
-          helm push $(ls *.tgz) oci://registry-1.docker.io/${{ env.IMAGE_NAME }}
+      -   name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v2
+
+      -   name: Log in to Docker Hub
+          uses: docker/login-action@v3
+          with:
+            username: ${{ secrets.DOCKER_USERNAME }}
+            password: ${{ secrets.DOCKER_PASSWORD }}
+      -   name: Install Helm
+          uses: azure/setup-helm@v3
+          with:
+            version: v3.11.1
+
+      -   name: Package Helm chart
+          run: |
+            helm package opensource
+
+      -   name: Push Helm chart to Docker Hub
+          run: |
+            helm push $(ls *.tgz) oci://registry-1.docker.io/amelieloulou
