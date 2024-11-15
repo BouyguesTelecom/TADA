@@ -3,7 +3,7 @@ name: CI Docker and Helm
 on:
   push:
     branches:
-      - main
+      - workflow/api-improve
 
 env:
   IMAGE_NAME: amelieloulou/transform-and-deliver-assets
