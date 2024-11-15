@@ -12,39 +12,36 @@ env:
 jobs:
   build-and-push-docker-api:
     uses: ./.github/workflows/setup-docker.yml
-    with:
-      steps:
-        - name: Build and push Docker image API
-          run: |
-            docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:latest ./src/api
+    steps:
+      - name: Build and push Docker image API
+        run: |
+          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:latest ./src/api
 
   build-and-push-docker-job:
     uses: ./.github/workflows/setup-docker.yml
-    with:
-      steps:
-        - name: Build and push Docker image Job
-          run: |
-            docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:job-latest ./src
+    steps:
+      - name: Build and push Docker image Job
+        run: |
+          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:job-latest ./src
 
   publish-helm-chart:
     needs:
       - build-and-push-docker-api
       - build-and-push-docker-job
     uses: ./.github/workflows/setup-docker.yml
-    with:
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-        - name: Install Helm
-          uses: azure/setup-helm@v3
-          with:
-            version: v3.11.1
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.11.1
 
-        - name: Package Helm chart
-          run: |
-            helm package opensource
+      - name: Package Helm chart
+        run: |
+          helm package opensource
 
-        - name: Push Helm chart to Docker Hub
-          run: |
-            helm push $(ls *.tgz) oci://registry-1.docker.io/amelieloulou
+      - name: Push Helm chart to Docker Hub
+        run: |
+          helm push $(ls *.tgz) oci://registry-1.docker.io/amelieloulou
