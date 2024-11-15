@@ -10,8 +10,9 @@ env:
   CHART_PATH: ./opensource
 
 jobs:
-  setup:
+  setup-docker:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -29,7 +30,7 @@ jobs:
 
   build-and-push-docker-api:
     runs-on: ubuntu-latest
-    needs: setup
+    needs: setup-docker
 
     steps:
       - name: Checkout repository
@@ -41,7 +42,7 @@ jobs:
 
   build-and-push-docker-job:
     runs-on: ubuntu-latest
-    needs: setup
+    needs: setup-docker
 
     steps:
       - name: Checkout repository
@@ -51,13 +52,24 @@ jobs:
         run: |
           docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:job-latest ./src
 
-  package-helm-chart:
+  publish-helm-chart:
     runs-on: ubuntu-latest
-    needs: setup
+    needs:
+      - build-and-push-docker-api
+      - build-and-push-docker-job
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Install Helm
         uses: azure/setup-helm@v3
@@ -66,21 +78,7 @@ jobs:
 
       - name: Package Helm chart
         run: |
-          helm package ${env.CHART_PATH}
-
-  push-helm-chart:
-    runs-on: ubuntu-latest
-    needs: package-helm-chart
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          helm package opensource
 
       - name: Push Helm chart to Docker Hub
         run: |
