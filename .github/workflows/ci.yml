@@ -12,9 +12,21 @@ env:
 jobs:
   build-and-push-docker-api:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Setup Docker
-        uses: ./.github/workflows/setup-docker.yml
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          install: true
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push Docker image API
         run: |
@@ -22,9 +34,21 @@ jobs:
 
   build-and-push-docker-job:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Setup Docker
-        uses: ./.github/workflows/setup-docker.yml
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          install: true
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push Docker image Job
         run: |
@@ -35,12 +59,19 @@ jobs:
     needs:
       - build-and-push-docker-api
       - build-and-push-docker-job
-    steps:
-      - name: Setup Docker
-        uses: ./.github/workflows/setup-docker.yml
 
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Install Helm
         uses: azure/setup-helm@v3
@@ -50,7 +81,6 @@ jobs:
       - name: Package Helm chart
         run: |
           helm package opensource
-
       - name: Push Helm chart to Docker Hub
         run: |
           helm push $(ls *.tgz) oci://registry-1.docker.io/amelieloulou
