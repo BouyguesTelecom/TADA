@@ -116,8 +116,8 @@ spec:
               value: "{{ default "" .Values.delegatedStorage.routes.get }}"
             - name: DELEGATED_STORAGE_POST_PATH
               value: "{{ default "" .Values.delegatedStorage.routes.post }}"
-            - name: DELEGATED_STORAGE_PUT_PATH
-              value: "{{ default "" .Values.delegatedStorage.routes.put }}"
+            - name: DELEGATED_STORAGE_PATCH_PATH
+              value: "{{ default "" .Values.delegatedStorage.routes.patch }}"
             - name: DELEGATED_STORAGE_DELETE_PATH
               value: "{{ default "" .Values.delegatedStorage.routes.delete }}"
             - name: DELEGATED_STORAGE_TOKEN
