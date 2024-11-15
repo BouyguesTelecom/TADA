@@ -8,8 +8,8 @@ export const purgeData = async (data) => {
     }
     if (data && data.length && typeof data[0] === 'object') {
         for (const file of data) {
-            await fetch(`${process.env.NGINX_SERVICE}/purge${process.env.API_PREFIX}/assets/media/original/image${file.unique_name}`);
-            await fetch(`${process.env.NGINX_SERVICE}/purge${process.env.API_PREFIX}/assets/media/full/image${file.unique_name}`);
+            await fetch(`${process.env.NGINX_SERVICE}/purge${process.env.API_PREFIX}/assets/media/original${file.unique_name}`);
+            await fetch(`${process.env.NGINX_SERVICE}/purge${process.env.API_PREFIX}/assets/media/full${file.unique_name}`);
         }
     }
 };

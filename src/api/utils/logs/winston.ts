@@ -80,7 +80,7 @@ export const logger = createLogger({
     transports: [
         new transports.Console({
             format: process.env.DEV_ENV ? consoleFormat : consoleJsonFormat
-        }), // Formatter en JSON pour stdout
+        }),
         new transports.File({
             filename: getLogFileName('job'),
             level: 'jobInfo',

@@ -17,8 +17,8 @@ push-image:
 	@docker push localhost:5001/jobs-api:latest
 
 helm-install:
-	@helm install media-release opensource/. -f opensource/values.local.yaml
-
+	@echo "Installing or upgrading Helm chart..."
+	@helm upgrade --install media-release opensource/. -f opensource/values.local.yaml
 install-nginx:
 	@nginx_existence=$$(kubectl get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx --ignore-not-found) && \
 	if [ -z "$$nginx_existence" ]; then \
@@ -105,7 +105,7 @@ run-tests:
 	fi
 	@echo "Running tests with bru..."
 	@sleep 5;
-	@cd "$(PROJECT_ROOT)/TESTS" && bru run flows/ --env K8S -r --bail; \
+	@cd "$(PROJECT_ROOT)/TESTS" && bru run flows/ --env K8S -r --bail;
 	TESTS_EXIT_CODE=$$?; \
 	if [ $$TESTS_EXIT_CODE -ne 0 ]; then \
 		echo "Tests failed. Aborting."; \

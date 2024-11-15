@@ -7,7 +7,11 @@ meta {
 post {
   url: {{URL_API}}{{URL_API_PREFIX}}/file
   body: multipartForm
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+    token: {{AUTH_TOKEN}}
 }
 
 body:multipart-form {
@@ -18,7 +22,7 @@ body:multipart-form {
 }
 
 vars:post-response {
-  IMAGE_URL: "{{URL_API}}" + res.body?.data[0]?.base_url + "/full"+'/image'+res.body?.data[0]?.unique_name
+  IMAGE_URL: "{{URL_API}}" + res.body?.data[0]?.base_url + "/full"+res.body?.data[0]?.unique_name
   IMAGE_ID: res.body?.data[0]?.uuid
   IMAGE_UNIQUE_NAME: res.body?.data[0]?.unique_name
   IMAGE_SIZE: res.body?.data[0]?.size

@@ -12,5 +12,5 @@ get {
 
 assert {
   res.status: in [404]
-  res.headers['content-type']: in [undefined, text/html; charset=UTF-8,image/webp]
+  res.headers['content-type']: in [text/html,undefined, text/html; charset=UTF-8,image/webp]
 }

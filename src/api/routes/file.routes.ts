@@ -4,15 +4,16 @@ import { validatorFile } from '../middleware/validators/oneFileValidators';
 import { Router } from 'express';
 import { deleteAsset, getAsset, patchAsset, postAsset } from '../controllers/file.controller';
 import { timeoutMiddleware } from '../middleware/timeoutMiddleware';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
 router.get(`/assets/media/:format/*`, [timeoutMiddleware, validatorGetAsset], getAsset);
 
-router.post(`/file`, [validatorHeaders, validatorFile, validatorFileFilter, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog], postAsset);
+router.post(`/file`, [authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog], postAsset);
 
-router.patch(`/file/:uuid`, [validatorHeaders, validatorFile, validatorFileFilter, validatorParams, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog], patchAsset);
+router.patch(`/file/:uuid`, [authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorParams, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog], patchAsset);
 
-router.delete(`/file/:uuid`, [validatorHeaders, validatorParams, validatorNamespace, validatorFileCatalog], deleteAsset);
+router.delete(`/file/:uuid`, [authMiddleware, validatorHeaders, validatorParams, validatorNamespace, validatorFileCatalog], deleteAsset);
 
 export { router };

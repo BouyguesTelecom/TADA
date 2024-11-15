@@ -7,7 +7,11 @@ meta {
 post {
   url: {{URL_API}}{{URL_API_PREFIX}}/files
   body: multipartForm
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_TOKEN}}
 }
 
 body:multipart-form {
