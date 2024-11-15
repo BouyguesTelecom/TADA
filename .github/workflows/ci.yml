@@ -14,11 +14,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Setup Docker Buildx and Login
-        uses: ./setup-docker
+      - name: Setup Docker
+        uses: ./.github/workflows/setup-docker.yml
 
       - name: Build and push Docker image API
         run: |
@@ -28,11 +25,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Setup Docker Buildx and Login
-        uses: ./setup-docker
+      - name: Setup Docker
+        uses: ./.github/workflows/setup-docker.yml
 
       - name: Build and push Docker image Job
         run: |
@@ -45,11 +39,11 @@ jobs:
       - build-and-push-docker-job
 
     steps:
+      - name: Setup Docker
+        uses: ./.github/workflows/setup-docker.yml
+
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Setup Docker Buildx and Login
-        uses: ./setup-docker
 
       - name: Install Helm
         uses: azure/setup-helm@v3
