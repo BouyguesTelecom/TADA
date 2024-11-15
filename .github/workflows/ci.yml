@@ -17,7 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Cache npm dependencies for API
+      - name: Cache npm dependencies for AP
         uses: actions/cache@v3
         with:
           path: src/api/node_modules
