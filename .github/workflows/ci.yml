@@ -27,8 +27,10 @@ jobs:
         id: get_version
         run: |
           current_version="0.0.0"
-          if git rev-list --tags --max-count=1; then
-            current_version=$(git describe --tags $(git rev-list --tags --max-count=1))
+          if [ $(git tag -l | wc -l) -ne 0 ]; then
+            latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
+            echo "Found latest tag: $latest_tag"
+            current_version=$latest_tag
           fi
           echo "current_version=$current_version" >> $GITHUB_ENV
           echo "Current version: $current_version"
@@ -38,9 +40,9 @@ jobs:
         run: |
           current_version=${{ env.current_version }}
           IFS='.' read -a version_parts <<< "$current_version"
-          major=${version_parts[0]}
-          minor=${version_parts[1]}
-          patch=${version_parts[2]}
+          major=${version_parts[0]:-0}
+          minor=${version_parts[1]:-0}
+          patch=${version_parts[2]:-0}
           patch=$((patch + 1))
           next_version="$major.$minor.$patch"
           echo "::set-output name=next_version::$next_version"
