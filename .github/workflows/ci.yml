@@ -140,12 +140,9 @@ jobs:
         with:
           version: v3.11.1
 
-      - name: Update Helm chart version
+      - name: Package Helm chart
         run: |
-          VERSION="${{ needs.determine-version.outputs.version }}"
-          sed -i "s/^version: .*/version: ${VERSION}/" ${{ env.CHART_PATH }}/Chart.yaml
-          helm package ${{ env.CHART_PATH }}
-
-      - name: Push Helm chart to Docker Hub
+            helm package opensource
+      - name: Push helm chart to Docker Hub
         run: |
           helm push $(ls *.tgz) oci://registry-1.docker.io/amelieloulou
