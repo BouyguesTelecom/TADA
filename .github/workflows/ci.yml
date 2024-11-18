@@ -16,7 +16,7 @@ jobs:
       new_version: ${{ steps.set_output.outputs.new_version }}
 
     steps:
-      - name: Checkout repositor
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Get the latest tag
@@ -62,6 +62,10 @@ jobs:
           echo "New version: $new_version"
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Update Helm chart version
+        run: |
+          sed -i "s/version:.*/version: ${{ steps.set_output.outputs.new_version }}/" ${{ env.CHART_PATH }}/Chart.yaml
 
       - name: Create and push new tag
         run: |
