@@ -21,7 +21,11 @@ jobs:
 
       - name: Get the latest tag
         id: get_latest_tag
-        run: echo "::set-output name=tag::$(git describe --tags --abbrev=0)"
+        run: |
+          git fetch --tags
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $latest_tag"
+          echo "::set-output name=tag::$latest_tag"
 
       - name: Determine next version
         id: set_output
@@ -36,11 +40,11 @@ jobs:
           patch=${version_parts[2]}
 
           # Determine the type of version bump
-          if [[ ${{ github.event.head_commit.message }} == *"major"* ]]; then
+          if [[ "${{ github.event.head_commit.message }}" == *"major"* ]]; then
             major=$((major + 1))
             minor=0
             patch=0
-          elif [[ ${{ github.event.head_commit.message }} == *"minor"* ]]; then
+          elif [[ "${{ github.event.head_commit.message }}" == *"minor"* ]]; then
             minor=$((minor + 1))
             patch=0
           else
