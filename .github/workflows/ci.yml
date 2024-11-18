@@ -166,4 +166,4 @@ jobs:
 
       - name: Push Helm chart to Docker Hub
         run: |
-          helm push $(ls *.tgz) oci://registry-1.docker.io/amelieloulou --version ${{ env.IMAGE_VERSION }}
+          helm push $(ls *.tgz) oci://registry-1.docker.io/amelieloulou ${{ env.IMAGE_VERSION }}
