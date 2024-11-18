@@ -19,7 +19,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Get the latest ta
+      - name: Get the latest tag
         id: get_latest_tag
         run: |
           git fetch --tags
