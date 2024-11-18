@@ -32,7 +32,7 @@ jobs:
         run: |
           latest_tag=${{ env.tag }}
           echo "Latest tag: $latest_tag"
-          
+
           # Extract the major, minor, and patch numbers from the tag
           IFS='.' read -r -a version_parts <<< "$latest_tag"
           major=${version_parts[0]}
@@ -50,13 +50,13 @@ jobs:
           else
             patch=$((patch + 1))
           fi
-          
+
           new_version="$major.$minor.$patch"
           echo "New version: $new_version"
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
-      - name: Update tag in the repository
+      - name: Create and push new tag
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
