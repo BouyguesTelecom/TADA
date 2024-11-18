@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:18-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm set strict-ssl false && npm install
@@ -7,7 +7,7 @@ RUN npm run build
 WORKDIR /images
 COPY ./images .
 
-FROM node:20-alpine
+FROM node:18-alpine
 WORKDIR /
 
 COPY --from=builder /app/package*.json ./
