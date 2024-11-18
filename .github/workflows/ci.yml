@@ -25,21 +25,20 @@ jobs:
           git fetch --tags
           latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
           echo "Latest tag: $latest_tag"
-          echo "::set-output name=tag::$latest_tag"
+          echo "tag=$latest_tag" >> $GITHUB_ENV
 
       - name: Determine next version
         id: set_output
         run: |
-          latest_tag=${{ steps.get_latest_tag.outputs.tag }}
+          latest_tag=${{ env.tag }}
           echo "Latest tag: $latest_tag"
           
-          # Extract the major, minor, and patch numbers from the tag
           IFS='.' read -r -a version_parts <<< "${latest_tag#v}"
           major=${version_parts[0]}
           minor=${version_parts[1]}
           patch=${version_parts[2]}
 
-          # Determine the type of version bump
+          # If the commit message contains "major" or "minor", increment the corresponding version part
           if [[ "${{ github.event.head_commit.message }}" == *"major"* ]]; then
             major=$((major + 1))
             minor=0
@@ -53,7 +52,8 @@ jobs:
           
           new_version="v$major.$minor.$patch"
           echo "New version: $new_version"
-          echo "::set-output name=new_version::$new_version"
+          echo "new_version=$new_version" >> $GITHUB_ENV
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
   build-and-push-docker-api:
     runs-on: ubuntu-latest
