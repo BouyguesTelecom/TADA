@@ -23,7 +23,7 @@ jobs:
         id: get_latest_tag
         run: |
           git fetch --tags
-          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
           echo "Latest tag: $latest_tag"
           echo "tag=$latest_tag" >> $GITHUB_ENV
 
@@ -33,12 +33,13 @@ jobs:
           latest_tag=${{ env.tag }}
           echo "Latest tag: $latest_tag"
           
-          IFS='.' read -r -a version_parts <<< "${latest_tag#v}"
+          # Extract the major, minor, and patch numbers from the tag
+          IFS='.' read -r -a version_parts <<< "$latest_tag"
           major=${version_parts[0]}
           minor=${version_parts[1]}
           patch=${version_parts[2]}
 
-          # If the commit message contains "major" or "minor", increment the corresponding version part
+          # Determine the type of version bump
           if [[ "${{ github.event.head_commit.message }}" == *"major"* ]]; then
             major=$((major + 1))
             minor=0
@@ -50,10 +51,17 @@ jobs:
             patch=$((patch + 1))
           fi
           
-          new_version="v$major.$minor.$patch"
+          new_version="$major.$minor.$patch"
           echo "New version: $new_version"
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Update tag in the repository
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git tag ${{ steps.set_output.outputs.new_version }}
+          git push origin ${{ steps.set_output.outputs.new_version }}
 
   build-and-push-docker-api:
     runs-on: ubuntu-latest
