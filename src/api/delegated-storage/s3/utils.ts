@@ -1,9 +1,9 @@
 import { minioClient } from './connection';
 import { FileProps } from '../types';
 import { promisify } from 'node:util';
-import { addMultipleFiles, getLastVersion } from '../../redis/operations';
-import { connectClient, disconnectClient } from '../../redis/connection';
-import app from '../../../app';
+import { addMultipleFiles, getLastVersion } from '../../utils/redis/operations';
+import { connectClient, disconnectClient } from '../../utils/redis/connection';
+import app from '../../app';
 
 export const getLastDump = async () => {
     const getObjectAsync = promisify(minioClient.getObject.bind(minioClient));

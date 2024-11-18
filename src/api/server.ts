@@ -2,8 +2,8 @@ import app from './app';
 import { logger } from './utils/logs/winston';
 import fs from 'fs';
 import { redisClient } from './utils/redis/connection';
-import { getLastDump } from './utils/backup-storage';
-import { minioClient } from './utils/backup-storage/s3/connection';
+import { getLastDump } from './delegated-storage/index';
+import { minioClient } from './delegated-storage/s3/connection';
 import { expressListRoutes } from './utils/list-routes';
 import fetch from 'node-fetch';
 
