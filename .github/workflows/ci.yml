@@ -23,7 +23,7 @@ jobs:
         id: get_latest_tag
         run: |
           git fetch --tags
-          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.1")
           echo "Latest tag: $latest_tag"
           echo "tag=$latest_tag" >> $GITHUB_ENV
 
