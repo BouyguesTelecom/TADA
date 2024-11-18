@@ -16,7 +16,7 @@ jobs:
       new_version: ${{ steps.set_output.outputs.new_version }}
 
     steps:
-      - name: Checkout repositor
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Get the latest tag
