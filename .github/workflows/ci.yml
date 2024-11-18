@@ -33,13 +33,11 @@ jobs:
           latest_tag=${{ env.tag }}
           echo "Latest tag: $latest_tag"
 
-          # Extract the major, minor, and patch numbers from the tag
           IFS='.' read -r -a version_parts <<< "$latest_tag"
           major=${version_parts[0]}
           minor=${version_parts[1]}
           patch=${version_parts[2]}
 
-          # Determine the type of version bump
           if [[ "${{ github.event.head_commit.message }}" == *"major"* ]]; then
             major=$((major + 1))
             minor=0
@@ -53,7 +51,6 @@ jobs:
 
           new_version="$major.$minor.$patch"
 
-          # Check if the new version tag already exists
           while git rev-parse "refs/tags/$new_version" >/dev/null 2>&1; do
             patch=$((patch + 1))
             new_version="$major.$minor.$patch"
@@ -103,9 +100,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          key: ${{ runner.os }}-buildx-${{ hashFiles('src/api/Dockerfile', 'src/api/.dockerignore') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-
+            ${{ runner.os }}-buildx-${{ hashFiles('src/api/Dockerfile', 'src/api/.dockerignore') }}-
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -134,9 +131,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          key: ${{ runner.os }}-buildx-${{ hashFiles('src/Dockerfile', 'src/.dockerignore') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-
+            ${{ runner.os }}-buildx-${{ hashFiles('src/Dockerfile', 'src/.dockerignore') }}-
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
