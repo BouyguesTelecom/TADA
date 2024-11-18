@@ -52,6 +52,13 @@ jobs:
           fi
 
           new_version="$major.$minor.$patch"
+
+          # Check if the new version tag already exists
+          while git rev-parse "refs/tags/$new_version" >/dev/null 2>&1; do
+            patch=$((patch + 1))
+            new_version="$major.$minor.$patch"
+          done
+
           echo "New version: $new_version"
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
