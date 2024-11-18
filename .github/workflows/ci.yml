@@ -21,7 +21,11 @@ jobs:
 
       - name: Get version from tag
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${VERSION//\//-}
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
       - name: Cache npm dependencies for API
         uses: actions/cache@v3
         with:
@@ -66,7 +70,10 @@ jobs:
 
       - name: Get version from tag
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${VERSION//\//-}
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -103,7 +110,10 @@ jobs:
 
       - name: Get version from tag
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${VERSION//\//-}
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
