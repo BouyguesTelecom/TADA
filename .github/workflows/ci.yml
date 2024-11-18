@@ -3,27 +3,60 @@ name: CI Docker and Helm
 on:
   push:
     branches:
-      - workflow/api-improve
+      - main
+      - '**'
 
 env:
-  IMAGE_NAME: amelieloulou/transform-and-deliver-assets
+  IMAGE_NAME_API: amelieloulou/transform-and-deliver-assets-api
+  IMAGE_NAME_JOB: amelieloulou/transform-and-deliver-assets-job
   CHART_PATH: ./opensource
 
 jobs:
+  determine-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.determine-version.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Determine version
+        id: determine-version
+        run: |
+          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            # Get the latest tag
+            LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1` || echo "1.0.0")
+            # Extract the version numbers
+            MAJOR=$(echo ${LATEST_TAG} | cut -d. -f1)
+            MINOR=$(echo ${LATEST_TAG} | cut -d. -f2)
+            PATCH=$(echo ${LATEST_TAG} | cut -d. -f3)
+            # Increment the version based on current
+            PATCH=$((PATCH+1))
+            NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+            echo "VERSION=${NEW_VERSION}" >> $GITHUB_ENV
+            echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          else
+            VERSION="0.0.2-development"
+            echo "VERSION=${VERSION}" >> $GITHUB_ENV
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          fi
+
   build-and-push-docker-api:
     runs-on: ubuntu-latest
+    needs: determine-version
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Cache npm dependencies for AP
+      - name: Cache npm dependencies for API
         uses: actions/cache@v3
         with:
           path: src/api/node_modules
           key: ${{ runner.os }}-api-node-modules-${{ hashFiles('src/api/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-api-node-modules-
+
       - name: Install npm dependencies for API
         working-directory: src/api
         run: npm install
@@ -40,6 +73,7 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -48,9 +82,12 @@ jobs:
 
       - name: Build and push Docker image API
         run: |
-          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:latest --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src/api
+          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME_API }}:${{ needs.determine-version.outputs.version }} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src/api
+
   build-and-push-docker-job:
     runs-on: ubuntu-latest
+    needs:
+      - determine-version
 
     steps:
       - name: Checkout repository
@@ -68,6 +105,7 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -76,7 +114,8 @@ jobs:
 
       - name: Build and push Docker image Job
         run: |
-          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:job-latest --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src
+          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME_JOB }}:${{ needs.determine-version.outputs.version }} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src
+
   publish-helm-chart:
     runs-on: ubuntu-latest
     needs:
@@ -101,9 +140,11 @@ jobs:
         with:
           version: v3.11.1
 
-      - name: Package Helm chart
+      - name: Update Helm chart version
         run: |
-          helm package opensource
+          sed -i 's/version:.*/version: ${{ needs.determine-version.outputs.version }}/' ${{ env.CHART_PATH }}/Chart.yaml
+          helm package ${{ env.CHART_PATH }}
+
       - name: Push Helm chart to Docker Hub
         run: |
           helm push $(ls *.tgz) oci://registry-1.docker.io/amelieloulou
