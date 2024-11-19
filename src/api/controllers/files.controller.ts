@@ -7,6 +7,7 @@ import { generateFileInfo } from '../middleware/validators/oneFileValidators';
 import app from '../app';
 import FormData from 'form-data';
 import fetch from 'node-fetch';
+import { createFolder, deleteFile, removeLastPartPath, writeFileInPV } from '../utils/standalone';
 
 export const postAssets = async (req: Request, res: Response) => {
     const { validFiles, invalidFiles } = res.locals;
@@ -32,23 +33,39 @@ export const postAssets = async (req: Request, res: Response) => {
                 if (status !== 200) {
                     errors.push(message);
                 }
-                if (catalogItem) {
+                if (process.env.STANDALONE) {
+                    const { status } = createFolder(removeLastPartPath(file.uniqueName));
+                    if (status !== 400) {
+                        if ( await writeFileInPV(file.uniqueName, upload) ) {
+
+                        } else {
+                            errors.push('Failed to write file in /tmp/standalone');
+                        }
+
+                    } else {
+                        errors.push('Failed to write file in /tmp/standalone');
+                    }
+                }
+                if (catalogItem && !process.env.STANDALONE) {
                     const form = new FormData();
                     form.append('file', upload, {
                         filename: file.uniqueName,
                         contentType: file.mimetype
                     });
 
-                    const postBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${newItem.unique_name}`, { method: 'POST', body: form });
+                    const postBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/backup?filepath=${ newItem.unique_name }`, {
+                        method: 'POST',
+                        body: form
+                    });
 
                     if (postBackupFile.status !== 200) {
                         await deleteFileFromCatalog(newItem.unique_name);
                         errors.push('Failed to upload in backup');
                     }
                 }
-                return { data: [...data, catalogItem], errors };
+                return { data: [ ...data, catalogItem ], errors };
             }
-            return { data, errors: [...errors, file] };
+            return { data, errors: [ ...errors, file ] };
         },
         Promise.resolve({ data: [], errors: invalidFiles })
     );
@@ -69,7 +86,7 @@ export const patchAssets = async (req: Request, res: Response) => {
                         filename: file.catalogItem.unique_name,
                         contentType: file.mimetype
                     });
-                    const patchBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${file.catalogItem.unique_name}`, {
+                    const patchBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/backup?filepath=${ file.catalogItem.unique_name }`, {
                         method: 'PATCH',
                         body: form
                     });
@@ -77,7 +94,7 @@ export const patchAssets = async (req: Request, res: Response) => {
                         await deleteFileFromCatalog(file.catalogItem.unique_name);
                         return {
                             data,
-                            errors: [...errors, 'Failed to upload in backup']
+                            errors: [ ...errors, 'Failed to upload in backup' ]
                         };
                     }
                     signature = calculateSHA256(upload);
@@ -90,13 +107,13 @@ export const patchAssets = async (req: Request, res: Response) => {
                 ...file.fileInfo,
                 ...fileInfo,
                 version,
-                ...(signature && { signature }),
-                ...(file && { size: file.size })
+                ...( signature && { signature } ),
+                ...( file && { size: file.size } )
             });
             if (updatedItem.data) {
-                return { data: [...data, updatedItem.data], errors };
+                return { data: [ ...data, updatedItem.data ], errors };
             }
-            return { data, errors: [...errors, updatedItem.error] };
+            return { data, errors: [ ...errors, updatedItem.error ] };
         },
         Promise.resolve({ data: [], errors: invalidFiles })
     );
@@ -122,8 +139,20 @@ export const deleteAssets = async (req: Request, res: Response) => {
                     ]
                 };
             }
-
-            const deleteBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${file.catalogItem.unique_name}`, { method: 'DELETE' });
+            if (process.env.STANDALONE) {
+                await deleteFile(`/tmp/standalone${file.catalogItem.unique_name}`);
+                return {
+                    data: [
+                        ...data,
+                        {
+                            ...file.catalogItem,
+                            message: 'Item deleted successfully.'
+                        }
+                    ],
+                    errors
+                };
+            }
+            const deleteBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/backup?filepath=${ file.catalogItem.unique_name }`, { method: 'DELETE' });
             if (deleteBackupFile.status !== 200) {
                 await deleteFileFromCatalog(file.catalogItem.unique_name);
                 return {

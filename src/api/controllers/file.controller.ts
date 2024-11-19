@@ -13,6 +13,8 @@ import { PassThrough } from 'stream';
 import { Readable } from 'node:stream';
 import app from '../app';
 import { randomUUID } from 'node:crypto';
+import fs from 'fs';
+import { createFolder, deleteFile, removeLastPartPath, writeFileInPV } from '../utils/standalone';
 
 const streamToBuffer = (stream: any): Promise<Buffer> => {
     return new Promise((resolve, reject) => {
@@ -28,7 +30,7 @@ const checkSignature = async (file: FileProps, stream: any): Promise<boolean> =>
         const buffer = await streamToBuffer(stream);
         const signature = calculateSHA256(buffer);
         return file.signature === signature;
-    } catch (error) {
+    } catch ( error ) {
         logger.error('Error checking signature:', error);
         return false;
     }
@@ -37,9 +39,21 @@ const checkSignature = async (file: FileProps, stream: any): Promise<boolean> =>
 export const getAsset = async (req: Request, res: Response) => {
     const { uniqueName, file } = res.locals;
     const fileIsExpired = isExpired(file);
-
+    console.log(fileIsExpired, 'FILE IS EXPIRED 🌈')
     if (!fileIsExpired) {
-        const getBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${uniqueName}&version=${file.version}&mimetype=${file.mimetype}`);
+        let getBackupFile;
+        if (process.env.STANDALONE) {
+            try {
+                const backupFilePath = `/tmp/standalone/${ uniqueName }`;
+                const fileContent = fs.readFileSync(backupFilePath);
+                getBackupFile = { status: 200, arrayBuffer: async () => Buffer.from(fileContent).buffer };
+            } catch ( error ) {
+                getBackupFile = { status: 500 };
+            }
+        } else {
+            getBackupFile =
+                await fetch(`${ app.locals.PREFIXED_API_URL }/backup?filepath=${ uniqueName }&version=${ file.version }&mimetype=${ file.mimetype }`);
+        }
 
         if (getBackupFile.status !== 200) {
             if (getBackupFile.status !== 429) {
@@ -47,6 +61,7 @@ export const getAsset = async (req: Request, res: Response) => {
             }
             return res.status(getBackupFile.status).end();
         }
+
         const bodyBuffer = await getBackupFile.arrayBuffer();
         const bodyStream = Readable.from(Buffer.from(bodyBuffer));
 
@@ -72,28 +87,25 @@ export const getAsset = async (req: Request, res: Response) => {
 
         if (req.url.includes('/original/')) {
             res.setHeader('Content-Type', file.mimetype);
-            res.setHeader('Content-Disposition', `inline; filename="${uniqueName}"`);
+            res.setHeader('Content-Disposition', `inline; filename="${ uniqueName }"`);
             return streamForResponse.pipe(res, { end: true });
-        }
-        if (req.url.includes('/full/')) {
+        } else if (req.url.includes('/full/')) {
             try {
                 const webpBuffer = await convertToWebpBuffer(Buffer.from(bodyBuffer));
                 res.setHeader('Content-Type', 'image/webp');
                 return res.send(webpBuffer);
-            } catch (error) {
+            } catch ( error ) {
                 console.error('Error during WebP conversion:', error);
                 return res.status(500).send('Internal Server Error');
             }
-        }
-        if (req.url.includes('/optimise/')) {
+        } else if (req.url.includes('/optimise/')) {
             const filePathRegex = /\/optimise\/(.*?)\//;
             const match = req.url.match(filePathRegex);
             if (match && match[1]) {
                 const extractedPart = match[1];
                 if (extractedPart.includes('x')) {
-                    const width = extractedPart.split('x')[0];
-                    const height = extractedPart.split('x')[1];
-                    const params = { width: Number(width), height: Number(height) };
+                    const [ width, height ] = extractedPart.split('x').map(Number);
+                    const params = { width, height };
                     const webpBuffer = await convertToWebpBuffer(Buffer.from(bodyBuffer), params);
                     res.setHeader('Content-Type', 'image/webp');
                     return res.send(webpBuffer);
@@ -117,13 +129,22 @@ export const postAsset = async (req: Request, res: Response) => {
 
         const { status, message, data } = await addFileInCatalog(newItem);
         if (status !== 200) {
-            return sendResponse({ res, status: 400, errors: [message] });
+            return sendResponse({ res, status: 400, errors: [ message ] });
+        }
+        if (process.env.STANDALONE) {
+            const { status } = createFolder(removeLastPartPath(uniqueName));
+            if (status !== 400) {
+                if (await writeFileInPV(uniqueName, upload)) {
+                    return sendResponse({ res, status: 200, data: [ newItem ] });
+                }
+                return sendResponse({ res, status: 400, data: [ 'Failed to write file in /tmp/standalone' ] });
+            }
         }
         if (data) {
             const form = new FormData();
             form.append('file', upload, { filename: uniqueName, contentType: file.mimetype });
             try {
-                const postBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${uniqueName}&version=1&mimetype=${file.mimetype}`, {
+                const postBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/backup?filepath=${ uniqueName }&version=1&mimetype=${ file.mimetype }`, {
                     method: 'POST',
                     body: form
                 });
@@ -132,17 +153,17 @@ export const postAsset = async (req: Request, res: Response) => {
                     return sendResponse({
                         res,
                         status: 400,
-                        data: ['Failed to upload in backup']
+                        data: [ 'Failed to upload in backup' ]
                     });
                 }
 
-                return sendResponse({ res, status: 200, data: [data], purge: 'catalog' });
-            } catch (error) {
+                return sendResponse({ res, status: 200, data: [ data ], purge: 'catalog' });
+            } catch ( error ) {
                 await deleteFileFromCatalog(uniqueName);
                 return sendResponse({
                     res,
                     status: 500,
-                    errors: ['Error during backup upload'],
+                    errors: [ 'Error during backup upload' ],
                     purge: 'catalog'
                 });
             }
@@ -151,48 +172,53 @@ export const postAsset = async (req: Request, res: Response) => {
     return sendResponse({
         res,
         status: 400,
-        errors: ['Failed to upload file']
+        errors: [ 'Failed to upload file' ]
     });
 };
 
 export const patchAsset = async (req: Request, res: Response) => {
     const { itemToUpdate, uuid, fileInfo, uniqueName, toWebp, file } = res.locals;
-    const upload = file && (await uploadFile(file, uniqueName, toWebp));
+    const upload = file && ( await uploadFile(file, uniqueName, toWebp) );
 
-    if ((file && upload) || !file) {
+    if (( file && upload ) || !file) {
         const signature = upload && calculateSHA256(upload);
         const { data: catalogData, error } = await updateFileInCatalog(uuid, {
             ...itemToUpdate,
             ...fileInfo,
             version: file ? itemToUpdate.version + 1 : itemToUpdate.version,
-            ...(signature && { signature }),
-            ...(file && { size: file.size })
+            ...( signature && { signature } ),
+            ...( file && { size: file.size } )
         });
 
-        const form = new FormData();
+
         if (upload) {
-            form.append('file', upload, {
-                filename: uniqueName,
-                contentType: file.mimetype
-            });
+            if (process.env.STANDALONE) {
+                await writeFileInPV(uniqueName, upload);
+            } else {
+                const form = new FormData();
+                form.append('file', upload, {
+                    filename: uniqueName,
+                    contentType: file.mimetype
+                });
 
-            const patchBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${itemToUpdate.unique_name}&version=${itemToUpdate.version}&mimetype=${itemToUpdate.mimetype}`, {
-                method: 'PATCH',
-                body: form
-            });
+                const patchBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/backup?filepath=${ itemToUpdate.unique_name }&version=${ itemToUpdate.version }&mimetype=${ itemToUpdate.mimetype }`, {
+                    method: 'PATCH',
+                    body: form
+                });
 
-            if (patchBackupFile.status !== 200) {
-                await deleteFileFromCatalog(uniqueName);
+                if (patchBackupFile.status !== 200) {
+                    await deleteFileFromCatalog(uniqueName);
+                }
             }
         }
-        const data = catalogData ? [catalogData] : null;
-        const errors = error ? [error] : null;
+        const data = catalogData ? [ catalogData ] : null;
+        const errors = error ? [ error ] : null;
         return sendResponse({ res, status: 200, data, errors, purge: 'true' });
     }
     return sendResponse({
         res,
         status: 400,
-        errors: ['Failed to upload file in backup']
+        errors: [ 'Failed to upload file in backup' ]
     });
 };
 
@@ -205,11 +231,18 @@ export const deleteAsset = async (req: Request, res: Response) => {
         return sendResponse({
             res,
             status: 500,
-            errors: [`Failed to remove file from catalog : ${message}`]
+            errors: [ `Failed to remove file from catalog : ${ message }` ]
         });
     }
-
-    const deleteBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${itemToUpdate.unique_name}&version=${itemToUpdate.version}&mimetype=${itemToUpdate.mimetype}`, {
+    if (process.env.STANDALONE) {
+        await deleteFile(`/tmp/standalone${itemToUpdate.unique_name}`);
+        return sendResponse({
+            res,
+            status: 200,
+            data: [ { message: `File removed successfully.` } ]
+        });
+    }
+    const deleteBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/backup?filepath=${ itemToUpdate.unique_name }&version=${ itemToUpdate.version }&mimetype=${ itemToUpdate.mimetype }`, {
         method: 'DELETE'
     });
 
@@ -217,14 +250,14 @@ export const deleteAsset = async (req: Request, res: Response) => {
         return sendResponse({
             res,
             status: 500,
-            data: [{ message: `File not removed from backup` }]
+            data: [ { message: `File not removed from backup` } ]
         });
     }
 
     return sendResponse({
         res,
         status: 200,
-        data: [{ message: `File removed successfully` }],
+        data: [ { message: `File removed successfully` } ],
         purge: 'true'
     });
 };

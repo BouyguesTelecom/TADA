@@ -155,6 +155,7 @@ export const validatorGetAsset = async (req: Request, res: Response, next: NextF
         .filter((item) => item.length > 0)
         .join('/');
     const file = await findFileInCatalog(`/${uniqueNameFinal}`, 'unique_name');
+    console.log(file, 'FILE ICIIIII')
     const namespace = file?.namespace || null;
 
     if (!allowedNamespaces?.includes(namespace) || !file) {

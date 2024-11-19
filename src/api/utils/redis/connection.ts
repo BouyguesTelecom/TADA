@@ -9,7 +9,7 @@ export const redisClient: RedisClientType = createClient({
 });
 
 redisClient.on('error', (err) => {
-    logger.error(`Redis Client Error: ${err.message}`);
+    logger.error(`Redis Client Error: ${ err.message }`);
 });
 
 redisClient.on('connect', () => {
@@ -17,18 +17,24 @@ redisClient.on('connect', () => {
 });
 
 export const connectClient = async () => {
+    if (process.env.STANDALONE) {
+        return;
+    }
     try {
         if (!redisClient.isOpen) {
             await redisClient.connect();
             logger.info('Connected to Redis and ready for operations.');
         }
-    } catch (err) {
-        logger.error(`Error connecting to Redis: ${err.message}`);
+    } catch ( err ) {
+        logger.error(`Error connecting to Redis: ${ err.message }`);
         throw new Error('Failed to connect to Redis');
     }
 };
 
 export const disconnectClient = async () => {
+    if (process.env.STANDALONE) {
+        return;
+    }
     if (redisClient.isOpen) {
         await redisClient.disconnect();
         logger.info('Connection to Redis closed.');

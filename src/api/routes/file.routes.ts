@@ -8,16 +8,12 @@ import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
-router.get(`/assets/media/:format/*`, [timeoutMiddleware, validatorGetAsset], getAsset);
+router.get(`/assets/media/:format/*`, [ timeoutMiddleware, validatorGetAsset ], getAsset);
 
-router.post(`/file`, [authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog], postAsset);
+router.post(`/file`, [ authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog ], postAsset);
 
-router.patch(
-    `/file/:uuid`,
-    [authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorParams, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog],
-    patchAsset
-);
+router.patch(`/file/:uuid`, [ authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorParams, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog ], patchAsset);
 
-router.delete(`/file/:uuid`, [authMiddleware, validatorHeaders, validatorParams, validatorNamespace, validatorFileCatalog], deleteAsset);
+router.delete(`/file/:uuid`, [ authMiddleware, validatorHeaders, validatorParams, validatorNamespace, validatorFileCatalog ], deleteAsset);
 
 export { router };

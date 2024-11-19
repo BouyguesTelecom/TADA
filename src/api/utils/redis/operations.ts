@@ -5,8 +5,10 @@ import { logger } from '../logs/winston';
 import { connectClient, disconnectClient } from './connection';
 import { redisClient } from './connection';
 import app from '../../app';
+import fs from 'fs';
+
 const parseDateVersion = (name: string): Date => {
-    const prefix = `${app.locals.PREFIXED_CATALOG}/`;
+    const prefix = `${ app.locals.PREFIXED_CATALOG }/`;
     const suffix = '.json';
 
     if (!name.startsWith(prefix) || !name.endsWith(suffix)) {
@@ -37,8 +39,8 @@ export const getOneFile = async (id: string) => {
             data: file ? JSON.parse(file) : null,
             errors: null
         };
-    } catch (err) {
-        logger.error(`Error getting file: ${err}`);
+    } catch ( err ) {
+        logger.error(`Error getting file: ${ err }`);
         return {
             data: null,
             errors: err
@@ -47,12 +49,15 @@ export const getOneFile = async (id: string) => {
 };
 
 export const getAllFiles = async () => {
+    if (process.env.STANDALONE) {
+        return JSON.parse(fs.readFileSync('/tmp/standalone/catalog.json', 'utf-8')).data;
+    }
     try {
         const ids = await redisClient.keys('*');
         const files = [];
 
         if (ids && ids.length) {
-            for (let id of ids) {
+            for ( let id of ids ) {
                 const file = await redisClient.get(id);
                 if (file) {
                     files.push(JSON.parse(file));
@@ -63,8 +68,8 @@ export const getAllFiles = async () => {
             data: files,
             errors: null
         };
-    } catch (err) {
-        logger.error(`Error listing items: ${err}`);
+    } catch ( err ) {
+        logger.error(`Error listing items: ${ err }`);
         return {
             data: null,
             errors: err
@@ -74,10 +79,10 @@ export const getAllFiles = async () => {
 
 export const addOneFile = async (file: FileProps) => {
     try {
-        if (!(await filePathIsUnique(file))) {
+        if (!( await filePathIsUnique(file) )) {
             return {
                 data: null,
-                errors: `${file.filename} already exists in namespace ${file.namespace}`
+                errors: `${ file.filename } already exists in namespace ${ file.namespace }`
             };
         }
         const errorValidation = validateOneFile(file);
@@ -93,15 +98,15 @@ export const addOneFile = async (file: FileProps) => {
             }
             return {
                 data: null,
-                errors: [`Unable to retrieve file with id ${uuid} after adding it...`]
+                errors: [ `Unable to retrieve file with id ${ uuid } after adding it...` ]
             };
         }
         return {
             data: null,
-            errors: [`File for catalog not valid : ${JSON.stringify(errorValidation)}`]
+            errors: [ `File for catalog not valid : ${ JSON.stringify(errorValidation) }` ]
         };
-    } catch (err) {
-        logger.error(`Error adding item: ${err}`);
+    } catch ( err ) {
+        logger.error(`Error adding item: ${ err }`);
         return {
             data: null,
             errors: err
@@ -116,7 +121,7 @@ export const addMultipleFiles = async (files: FileProps[]) => {
             await connectClient();
             const successfulUploadFiles: FileProps[] = [];
             const failedUploadFiles: string[] = [];
-            for (let file of files) {
+            for ( let file of files ) {
                 const response = await addOneFile(file);
                 if (response.data && !response.errors) {
                     successfulUploadFiles.push(response.data);
@@ -132,10 +137,10 @@ export const addMultipleFiles = async (files: FileProps[]) => {
         }
         return {
             data: null,
-            errors: [`Files for catalog not valid : ${JSON.stringify(errorValidation)}`]
+            errors: [ `Files for catalog not valid : ${ JSON.stringify(errorValidation) }` ]
         };
-    } catch (err) {
-        logger.error(`Error adding items: ${err}`);
+    } catch ( err ) {
+        logger.error(`Error adding items: ${ err }`);
         return {
             data: null,
             errors: err
@@ -147,7 +152,7 @@ export const updateOneFile = async (fileId: string, updateData: Partial<FileProp
     try {
         const existingFile = await redisClient.get(fileId);
         if (!existingFile) {
-            return { errors: [`File with id ${fileId} does not exist`] };
+            return { errors: [ `File with id ${ fileId } does not exist` ] };
         }
 
         const parsedExistingFile = JSON.parse(existingFile);
@@ -157,8 +162,8 @@ export const updateOneFile = async (fileId: string, updateData: Partial<FileProp
         await redisClient.set(fileId, JSON.stringify(updatedFile));
 
         return { data: updatedFile };
-    } catch (err) {
-        return { errors: [err.message] };
+    } catch ( err ) {
+        return { errors: [ err.message ] };
     }
 };
 
@@ -169,7 +174,7 @@ export const deleteOneFile = async (namespace: string, identifier: string): Prom
         let existingFileKey = null;
 
         const item = catalog.data.find((entry) => {
-            if ((entry.uuid === identifier || entry.filename === identifier) && entry.namespace === namespace) {
+            if (( entry.uuid === identifier || entry.filename === identifier ) && entry.namespace === namespace) {
                 existingFileKey = entry.uuid;
                 return true;
             }
@@ -179,14 +184,14 @@ export const deleteOneFile = async (namespace: string, identifier: string): Prom
         if (!item) {
             return {
                 status: 404,
-                errors: [`File with id or name ${identifier} does not exist in namespace ${namespace}`]
+                errors: [ `File with id or name ${ identifier } does not exist in namespace ${ namespace }` ]
             };
         }
 
         await redisClient.del(existingFileKey);
         return { status: 200 };
-    } catch (err) {
-        return { status: 500, errors: [err.message] };
+    } catch ( err ) {
+        return { status: 500, errors: [ err.message ] };
     }
 };
 
@@ -200,7 +205,9 @@ export const getLastVersion = (list) => {
 
 export const getCatalog = async () => {
     await connectClient();
-    const catalog = await getAllFiles();
+    const catalog = process.env.STANDALONE ?
+        JSON.parse(fs.readFileSync('/tmp/standalone/catalog.json', 'utf-8')) :
+        await getAllFiles();
     await disconnectClient();
     return catalog || { data: null };
 };

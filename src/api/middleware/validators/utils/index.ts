@@ -15,7 +15,7 @@ export const purgeData = async (data) => {
 };
 
 export const sendResponse = async ({ res, status, data = null, errors = null, purge = 'false' }) => {
-    if (purge) {
+    if (purge && !process.env.STANDALONE) {
         await purgeData(purge === 'catalog' ? 'catalog' : data);
     }
     return res.status(status).json({ data, errors }).end();
