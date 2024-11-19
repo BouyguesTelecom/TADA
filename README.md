@@ -1,5 +1,7 @@
 <a id="readme-top"></a>
+
 # Transform And Deliver Assets - TADA 🎉
+
 <details>
   <summary>Table of Contents</summary>
   <ol>
@@ -31,27 +33,30 @@
 </details>
 
 ## Discover TADA
+
 ### Context
 
 The image service allows any utils service to send files to be publicly hosted. Through an utils interface, such as
-Directus  for example, a user can utils an image and obtain a public URL to use to access their file.
+Directus for example, a user can utils an image and obtain a public URL to use to access their file.
 The user can either use the original image via a specific URL or process the image through Thumbor for optimization.
 
 ### Project structure and architecture
 
 The image service (more generally files) consists of a first Nginx server whose configuration contains 3 types of locations:
-- /catalog 
-- /assets/media/*
-- /purge/assets/media/*
+
+-   /catalog
+-   /assets/media/\*
+-   /purge/assets/media/\*
 
 This first web server is caching resource 1m,
-then proxy pass to the nginx purge server that contains the same locations but configured with proxy_purge_module. 
+then proxy pass to the nginx purge server that contains the same locations but configured with proxy_purge_module.
 This server caching 30d and can invalidate cache with purge location.
 
-To retrieve an uploaded file, 3 ways : 
--  /assets/media/**original**/`image_name.extension` : no processing on the image
--  /assets/media/**full**/`image_name.extension` : transform to webp and serve as webp
--  /assets/media/**optimise**/200x0/`image_name.extension` : resizing to with 200 and transform to webp and serve as webp
+To retrieve an uploaded file, 3 ways :
+
+-   /assets/media/**original**/`image_name.extension` : no processing on the image
+-   /assets/media/**full**/`image_name.extension` : transform to webp and serve as webp
+-   /assets/media/**optimise**/200x0/`image_name.extension` : resizing to with 200 and transform to webp and serve as webp
 
 And finally an Express Node API whose roles are:
 
@@ -62,6 +67,7 @@ And finally an Express Node API whose roles are:
 An important point is also the notion of catalog. The catalog serves as a reference & truth for the express API, the image can be accessible on glutton, or in the PV but contains information indicating not to serve it (either it has been deleted from the catalog, or it has expired for example).
 
 ### Global flow architecture
+
 ![global.png](readme/global.png)
 
 ### Use cases
@@ -79,42 +85,42 @@ structure:
 
 ```json
 [
-  {
-    "uuid": "e080a953-5300-427b-bd39-6e235d8238a2",
-    "version": 1,
-    "namespace": "DEV",
-    "public_url": "http://localhost:8080/palpatine/assets/media/full/image/DEV/default.webp",
-    "unique_name": "/DEV/default.webp",
-    "filename": "default.webp",
-    "original_filename": "default.webp",
-    "base_url": "http://localhost:8080/palpatine/assets/media",
-    "external_id": null,
-    "expired": false,
-    "expiration_date": null,
-    "information": null,
-    "original_mimetype": "image/webp",
-    "mimetype": "image/webp",
-    "signature": "ca71754acda70e41cb23e465fbb5ecc683186cf779a2bae2cbf290527b1f6671",
-    "size": 16730
-  },
-  {
-    "uuid": "d26a191f-1087-4169-b6cd-3db96f38ece4",
-    "version": 1,
-    "namespace": "DEV",
-    "public_url": "http://localhost:8080/palpatine/assets/media/full/image/DEV/error.webp",
-    "unique_name": "/DEV/error.webp",
-    "filename": "error.webp",
-    "original_filename": "error.webp",
-    "base_url": "http://localhost:8080/palpatine/assets/media",
-    "external_id": null,
-    "expired": false,
-    "expiration_date": null,
-    "information": null,
-    "original_mimetype": "image/webp",
-    "mimetype": "image/webp",
-    "signature": "368ba95afb311edfe0cb7f3b4a221e8b2a3edeb4e16fc5683762791f9619b28a",
-    "size": 10614
-  }
+    {
+        "uuid": "e080a953-5300-427b-bd39-6e235d8238a2",
+        "version": 1,
+        "namespace": "DEV",
+        "public_url": "http://localhost:8080/palpatine/assets/media/full/image/DEV/default.webp",
+        "unique_name": "/DEV/default.webp",
+        "filename": "default.webp",
+        "original_filename": "default.webp",
+        "base_url": "http://localhost:8080/palpatine/assets/media",
+        "external_id": null,
+        "expired": false,
+        "expiration_date": null,
+        "information": null,
+        "original_mimetype": "image/webp",
+        "mimetype": "image/webp",
+        "signature": "ca71754acda70e41cb23e465fbb5ecc683186cf779a2bae2cbf290527b1f6671",
+        "size": 16730
+    },
+    {
+        "uuid": "d26a191f-1087-4169-b6cd-3db96f38ece4",
+        "version": 1,
+        "namespace": "DEV",
+        "public_url": "http://localhost:8080/palpatine/assets/media/full/image/DEV/error.webp",
+        "unique_name": "/DEV/error.webp",
+        "filename": "error.webp",
+        "original_filename": "error.webp",
+        "base_url": "http://localhost:8080/palpatine/assets/media",
+        "external_id": null,
+        "expired": false,
+        "expiration_date": null,
+        "information": null,
+        "original_mimetype": "image/webp",
+        "mimetype": "image/webp",
+        "signature": "368ba95afb311edfe0cb7f3b4a221e8b2a3edeb4e16fc5683762791f9619b28a",
+        "size": 10614
+    }
 ]
 ```
 
@@ -126,6 +132,7 @@ structure:
 -   a catalog publication job on your delegated storage: the status of the catalog once a day is published on your storage which allows you to retrieve the most up-to-date list in the event of a new API instance.
 
 <!-- GETTING STARTED -->
+
 ## Getting Started
 
 This is an example of how you may give instructions on setting up your project locally.
@@ -134,10 +141,11 @@ To get a local copy up and running follow these simple example steps.
 ### Prerequisites
 
 This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
+
+-   npm
+    ```sh
+    npm install npm@latest -g
+    ```
 
 ### Installation
 
@@ -145,52 +153,49 @@ _Below is an example of how you can instruct your audience on installing and set
 
 1. Get a free API Key at [https://example.com](https://example.com)
 2. Clone the repo
-   ```sh
-   git clone https://github.com/github_username/repo_name.git
-   ```
+    ```sh
+    git clone https://github.com/github_username/repo_name.git
+    ```
 3. Install NPM packages
-   ```sh
-   npm install
-   ```
+    ```sh
+    npm install
+    ```
 4. Enter your API in `config.js`
-   ```js
-   const API_KEY = 'ENTER YOUR API';
-   ```
+    ```js
+    const API_KEY = 'ENTER YOUR API';
+    ```
 5. Change git remote url to avoid accidental pushes to base project
-   ```sh
-   git remote set-url origin github_username/repo_name
-   git remote -v # confirm the changes
-   ```
+    ```sh
+    git remote set-url origin github_username/repo_name
+    git remote -v # confirm the changes
+    ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- USAGE EXAMPLES -->
+
 ## Usage
 
-Use this space to show useful examples of how a project can be used. 
+Use this space to show useful examples of how a project can be used.
 
 _For more examples, please refer to the [Documentation](https://example.com)_
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- ROADMAP -->
+
 ## Roadmap
 
-- [x] Add Changelog
-- [x] Add waza
-- [ ] Add waza 2
+-   [x] Add Changelog
+-   [x] Add waza
+-   [ ] Add waza 2
 
 See the [open issues]() for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- CONTRIBUTING -->
+
 ## Contributing
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
@@ -206,18 +211,16 @@ Don't forget to give the project a star! Thanks again!
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- LICENSE -->
+
 ## License
 
 Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- CONTACT -->
+
 ## Contact
 
 Maintainer name - email@example.com
@@ -226,20 +229,19 @@ Project Link: [https://github.com/](https://github.com/)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- ACKNOWLEDGMENTS -->
+
 ## Acknowledgments
 
 Use this space to list resources you find helpful and would like to give credit to. I've included a few of my favorites to kick things off!
 
-* [Choose an Open Source License](https://choosealicense.com)
-* [GitHub Emoji Cheat Sheet](https://www.webpagefx.com/tools/emoji-cheat-sheet)
-* [Malven's Flexbox Cheatsheet](https://flexbox.malven.co/)
-* [Malven's Grid Cheatsheet](https://grid.malven.co/)
-* [Img Shields](https://shields.io)
-* [GitHub Pages](https://pages.github.com)
-* [Font Awesome](https://fontawesome.com)
-* [React Icons](https://react-icons.github.io/react-icons/search)
+-   [Choose an Open Source License](https://choosealicense.com)
+-   [GitHub Emoji Cheat Sheet](https://www.webpagefx.com/tools/emoji-cheat-sheet)
+-   [Malven's Flexbox Cheatsheet](https://flexbox.malven.co/)
+-   [Malven's Grid Cheatsheet](https://grid.malven.co/)
+-   [Img Shields](https://shields.io)
+-   [GitHub Pages](https://pages.github.com)
+-   [Font Awesome](https://fontawesome.com)
+-   [React Icons](https://react-icons.github.io/react-icons/search)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

@@ -144,12 +144,22 @@ export const validatorFileBody = async (req: Request, res: Response, next: NextF
 export const validatorGetAsset = async (req: Request, res: Response, next: NextFunction) => {
     const allowedNamespaces = process.env.NAMESPACES?.split(',');
     const uniqueName = getUniqueName(req.url, `/${req.params.format}`);
-    const file = await findFileInCatalog(uniqueName, 'unique_name');
+    let cleanUniqueName = uniqueName;
+
+    if (req.params.format === 'optimise') {
+        cleanUniqueName = uniqueName.replace(/\/[^/]+\//, '/');
+    }
+
+    const uniqueNameFinal = cleanUniqueName
+        .split('/')
+        .filter((item) => item.length > 0)
+        .join('/');
+    const file = await findFileInCatalog(`/${uniqueNameFinal}`, 'unique_name');
     const namespace = file?.namespace || null;
 
     if (!allowedNamespaces?.includes(namespace) || !file) {
         return res.status(404).end();
     }
-    res.locals = { ...res.locals, uniqueName, file };
+    res.locals = { ...res.locals, uniqueName: `/${uniqueNameFinal}`, file };
     next();
 };
