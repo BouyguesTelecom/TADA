@@ -65,7 +65,7 @@ jobs:
 
       - name: Update Helm chart version
         run: |
-          sed -i "s/version:.*/version: ${{ steps.set_output.outputs.new_version }}/" ${{ env.CHART_PATH }}/Chart.yaml
+          sed -i "s/^version:.*/version: ${{ steps.set_output.outputs.new_version }}/" ${{ env.CHART_PATH }}/Chart.yaml
 
       - name: Create and push new tag
         run: |
@@ -178,4 +178,4 @@ jobs:
 
       - name: Push Helm chart to Docker Hub
         run: |
-          helm push $(ls *.tgz) oci://registry-1.docker.io/amelieloulou-${{ needs.determine-version.outputs.new_version }}
+          helm push $(ls *.tgz) oci://registry-1.docker.io/amelieloulou
