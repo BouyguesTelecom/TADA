@@ -158,7 +158,7 @@ jobs:
         with:
           version: v3.11.1
 
-      - name: Package Helm char
+      - name: Package Helm chart
         run: |
           helm package opensource
       - name: Push Helm chart to Docker Hub
