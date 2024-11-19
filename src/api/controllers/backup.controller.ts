@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getLastDump, deleteFileBackup, getFileBackup, updateFileBackup, uploadFileBackup } from '../utils/backup-storage';
+import { getLastDump, deleteFileBackup, getFileBackup, updateFileBackup, uploadFileBackup } from '../delegated-storage/index';
 import fs from 'fs';
 import { BackupProps } from '../props/backup';
 

@@ -1,6 +1,6 @@
 import * as distantBackend from './distant-backend/utils';
 import * as s3 from './s3/utils';
-import { logger } from '../logs/winston';
+import { logger } from '../utils/logs/winston';
 
 export interface FilePathProps {
     filepath: string;
