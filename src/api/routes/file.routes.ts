@@ -12,7 +12,11 @@ router.get(`/assets/media/:format/*`, [timeoutMiddleware, validatorGetAsset], ge
 
 router.post(`/file`, [authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog], postAsset);
 
-router.patch(`/file/:uuid`, [authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorParams, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog], patchAsset);
+router.patch(
+    `/file/:uuid`,
+    [authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorParams, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog],
+    patchAsset
+);
 
 router.delete(`/file/:uuid`, [authMiddleware, validatorHeaders, validatorParams, validatorNamespace, validatorFileCatalog], deleteAsset);
 

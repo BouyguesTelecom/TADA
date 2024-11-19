@@ -1,0 +1,15 @@
+meta {
+  name: 7️⃣- GET FILE NO EXPIRED original
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{PATCH_PUBLIC_URL_NO_EXPIRED_ORIGINAL}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}

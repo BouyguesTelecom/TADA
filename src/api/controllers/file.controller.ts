@@ -34,13 +34,9 @@ const checkSignature = async (file: FileProps, stream: any): Promise<boolean> =>
     }
 };
 
-export const getAsset = async (req: Request, res: Response, next) => {
+export const getAsset = async (req: Request, res: Response) => {
     const { uniqueName, file } = res.locals;
     const fileIsExpired = isExpired(file);
-
-    const NGINX_SERVICE = process.env.NGINX_SERVICE;
-    const API_PREFIX = process.env.API_PREFIX;
-    const ASSETS_URL = `${NGINX_SERVICE}${API_PREFIX}/assets/media`;
 
     if (!fileIsExpired) {
         const getBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${uniqueName}&version=${file.version}&mimetype=${file.mimetype}`);
@@ -90,7 +86,7 @@ export const getAsset = async (req: Request, res: Response, next) => {
             }
         }
         if (req.url.includes('/optimise/')) {
-            const filePathRegex = /\/optimise\/(.*?)\/image\//;
+            const filePathRegex = /\/optimise\/(.*?)\//;
             const match = req.url.match(filePathRegex);
             if (match && match[1]) {
                 const extractedPart = match[1];
