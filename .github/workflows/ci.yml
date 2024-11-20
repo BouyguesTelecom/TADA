@@ -24,7 +24,7 @@ jobs:
             compose-file: "./docker-compose.yml"
       -   name: Copy tmp/images for tests
           run: |
-            cp local/images /tmp/images
+            cp -r local/images /tmp/images
           continue-on-error: false
       -   name: Run Tests
           run: |
