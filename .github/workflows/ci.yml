@@ -160,7 +160,7 @@ jobs:
 
       - name: Package Helm chart
         run: |
-          helm package opensource --version ${{ needs.determine-version.outputs.new_version }}
+          helm package opensource --version "${{ needs.determine-version.outputs.new_version }}"
       - name: Push Helm chart to Docker Hub
         run: |
           helm push $(ls *.tgz) oci://registry-1.docker.io/amelieloulou
