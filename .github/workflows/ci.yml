@@ -161,7 +161,7 @@ jobs:
         with:
           version: v3.11.1
 
-      - name: Package Helm chart
+      - name: Package Helm char
         run: |
           new_version="${{ needs.determine-version.outputs.new_version }}"
           echo "Packaging Helm chart with version $new_version"
