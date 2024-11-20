@@ -10,7 +10,6 @@ env:
   CHART_PATH: ./opensource
 
 jobs:
-
   determine-version:
     runs-on: ubuntu-latest
     outputs:
@@ -61,16 +60,16 @@ jobs:
 
       - name: Update Helm chart version
         run: |
-          sed -i "s/^version:.*/version: ${{ steps.set_output.outputs.new_version }}/" ${{ env.CHART_PATH }}/Chart.yaml
-          sed -i "s/^appVersion:.*/appVersion: '${{ steps.set_output.outputs.new_version }}'/" ${{ env.CHART_PATH }}/Chart.yaml
+          sed -i "s/^version:.*/version: ${{ needs.determine-version.outputs.new_version }}/" ${{ env.CHART_PATH }}/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: '${{ needs.determine-version.outputs.new_version }}'/" ${{ env.CHART_PATH }}/Chart.yaml
 
-      - name: Create and push new tag
+      - name: Commit updated Helm chart version
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git add ${{ env.CHART_PATH }}/Chart.yaml
-          git commit -m "Update Helm chart version to ${{ steps.set_output.outputs.new_version }}"
-          git tag ${{ steps.set_output.outputs.new_version }}
+          git commit -m "Update Helm chart version to ${{ needs.determine-version.outputs.new_version }}"
+          git tag ${{ needs.determine-version.outputs.new_version }}
           git push origin HEAD --tags
 
   build-and-push-docker-api:
@@ -175,7 +174,7 @@ jobs:
         run: |
           new_version=${{ needs.determine-version.outputs.new_version }}
           echo "Packaging Helm chart with version $new_version"
-          helm package ${{ env.CHART_PATH }} --version $new_version 
+          helm package ${{ env.CHART_PATH }} --version $new_version
 
       - name: Push Helm chart to Docker Hub
         run: |
