@@ -22,6 +22,10 @@ jobs:
           uses: hoverkraft-tech/compose-action@v2.0.1
           with:
             compose-file: "./docker-compose.yml"
+      -   name: Copy tmp/images for tests
+          run: |
+            cp local/images /tmp/images
+          continue-on-error: false
       -   name: Run Tests
           run: |
             cd ${{ github.workspace }}/TESTS
@@ -34,6 +38,7 @@ jobs:
       -   name: Report test results
           if: failure()
           run: echo "Tests failed."
+
   determine-version:
     runs-on: ubuntu-latest
     needs: tests
