@@ -45,8 +45,14 @@ jobs:
           elif [[ "${{ github.event.head_commit.message }}" == *"minor"* ]]; then
             minor=$((minor + 1))
             patch=0
-          else
+          elif [[ "${{ github.event.head_commit.message }}" == *"patch"* ]]; then
             patch=$((patch + 1))
+          else
+            branch_name=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
+            new_version="0.0.1-${branch_name}"
+            echo "new_version=$new_version" >> $GITHUB_ENV
+            echo "new_version=$new_version" >> $GITHUB_OUTPUT
+            exit 0
           fi
           new_version="$major.$minor.$patch"
           while git rev-parse "refs/tags/$new_version" >/dev/null 2>&1; do
