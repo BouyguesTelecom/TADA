@@ -173,7 +173,9 @@ jobs:
 
       - name: Package Helm chart
         run: |
-          helm package ${{ env.CHART_PATH }} --version ${{ needs.determine-version.outputs.new_version }}
+          new_version=${{ needs.determine-version.outputs.new_version }}
+          echo "Packaging Helm chart with version $new_version"
+          helm package ${{ env.CHART_PATH }} --version $new_version 
 
       - name: Push Helm chart to Docker Hub
         run: |
