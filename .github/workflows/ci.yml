@@ -25,7 +25,7 @@ jobs:
       -   name: Run Tests
           run: |
             cd ${{ github.workspace }}/TESTS
-            bru run flows/ --env Local -r --bail
+            bru run flows/ --env LOCAL -r --bail
           continue-on-error: false
 
       -   name: Clean up Docker Compose
