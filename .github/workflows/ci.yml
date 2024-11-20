@@ -161,6 +161,7 @@ jobs:
 
       - name: Package Helm chart
         run: |
+          version=$(cat ${{ env.CHART_PATH }}/Chart.yaml | version :  "${{ needs.determine-version.outputs.new_version }}" | version without quotes : ${{ needs.determine-version.outputs.new_version }})
           helm package opensource --version "${{ needs.determine-version.outputs.new_version }}"
       - name: Push Helm chart to Docker Hub
         run: |
