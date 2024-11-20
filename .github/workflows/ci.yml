@@ -29,6 +29,7 @@ jobs:
           fi
           echo "Latest tag: $latest_tag"
           echo "tag=$latest_tag" >> $GITHUB_ENV
+
       - name: Determine next version
         id: set_output
         run: |
@@ -48,7 +49,7 @@ jobs:
           elif [[ "${{ github.event.head_commit.message }}" == *"patch"* ]]; then
             patch=$((patch + 1))
           else
-            branch_name=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
+            branch_name=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///' | sed 's/\//-/g')
             new_version="0.0.1-${branch_name}"
             echo "new_version=$new_version" >> $GITHUB_ENV
             echo "new_version=$new_version" >> $GITHUB_OUTPUT
@@ -62,6 +63,7 @@ jobs:
           echo "New version: $new_version"
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
       - name: Create and push new tag
         run: |
           git config --global user.name 'github-actions'
@@ -84,6 +86,7 @@ jobs:
           key: ${{ runner.os }}-api-node-modules-${{ hashFiles('src/api/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-api-node-modules-
+
       - name: Install npm dependencies for API
         working-directory: src/api
         run: npm install
@@ -100,6 +103,7 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ hashFiles('src/api/Dockerfile', 'src/api/.dockerignore') }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-${{ hashFiles('src/api/Dockerfile', 'src/api/.dockerignore') }}-
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -110,7 +114,7 @@ jobs:
         run: |
           new_version=${{ needs.determine-version.outputs.new_version }}
           echo "Docker api with version $new_version"
-          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:api-${{ needs.determine-version.outputs.new_version }} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src/api
+          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:api-${new_version} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src/api
 
   build-and-push-docker-job:
     runs-on: ubuntu-latest
@@ -132,6 +136,7 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ hashFiles('src/Dockerfile', 'src/.dockerignore') }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-${{ hashFiles('src/Dockerfile', 'src/.dockerignore') }}-
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -142,7 +147,7 @@ jobs:
         run: |
           new_version=${{ needs.determine-version.outputs.new_version }}
           echo "Docker job with version $new_version"
-          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:job-${{ needs.determine-version.outputs.new_version }} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src
+          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:job-${new_version} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src
 
   publish-helm-chart:
     runs-on: ubuntu-latest
@@ -168,9 +173,10 @@ jobs:
         with:
           version: v3.11.1
 
-      - name: Package Helm char
+      - name: Package Helm chart
         run: |
           helm package opensource
+
       - name: Push Helm chart to Docker Hub
         run: |
           helm push $(ls *.tgz) oci://registry-1.docker.io/bouyguestelecomcharts
