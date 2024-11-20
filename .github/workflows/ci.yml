@@ -20,21 +20,6 @@ jobs:
           uses: hoverkraft-tech/compose-action@v2.0.1
           with:
             compose-file: "./docker-compose.yml"
-
-      -   name: Wait for services to be healthy
-          run: |
-            timeout=30
-            echo "Waiting for Docker services to be healthy..."
-            while ! ( docker-compose ps | grep -q "healthy" ) && [ $timeout -gt 0 ]; do
-              sleep 1
-              timeout=$((timeout-1))
-            done
-            if [ $timeout -eq 0 ]; then
-              echo "Services did not become healthy in time. Aborting."
-              docker-compose down
-              exit 1
-            fi
-
       -   name: Run Tests
           run: |
             cd ${{ github.workspace }}/TESTS
