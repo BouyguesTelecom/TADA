@@ -32,9 +32,6 @@ jobs:
             bru run flows/ --env LOCAL -r --bail
           continue-on-error: false
 
-      -   name: Clean up Docker Compose
-          run: docker-compose down
-
       -   name: Report test results
           if: failure()
           run: echo "Tests failed."
