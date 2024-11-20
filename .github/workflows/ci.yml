@@ -30,6 +30,7 @@ jobs:
           fi
           echo "Latest tag: $latest_tag"
           echo "tag=$latest_tag" >> $GITHUB_ENV
+
       - name: Determine next version
         id: set_output
         run: |
@@ -57,15 +58,21 @@ jobs:
           echo "New version: $new_version"
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
       - name: Update Helm chart version
         run: |
-          sed -i "s/version:.*/version: ${{ steps.set_output.outputs.new_version }}/" ${{ env.CHART_PATH }}/Chart.yaml
+          sed -i "s/^version:.*/version: ${{ steps.set_output.outputs.new_version }}/" ${{ env.CHART_PATH }}/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: '${{ steps.set_output.outputs.new_version }}'/" ${{ env.CHART_PATH }}/Chart.yaml
+
       - name: Create and push new tag
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
+          git add ${{ env.CHART_PATH }}/Chart.yaml
+          git commit -m "Update Helm chart version to ${{ steps.set_output.outputs.new_version }}"
           git tag ${{ steps.set_output.outputs.new_version }}
-          git push origin ${{ steps.set_output.outputs.new_version }}
+          git push origin HEAD --tags
+
   build-and-push-docker-api:
     runs-on: ubuntu-latest
     needs: determine-version
@@ -81,6 +88,7 @@ jobs:
           key: ${{ runner.os }}-api-node-modules-${{ hashFiles('src/api/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-api-node-modules-
+
       - name: Install npm dependencies for API
         working-directory: src/api
         run: npm install
@@ -97,6 +105,7 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ hashFiles('src/api/Dockerfile', 'src/api/.dockerignore') }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-${{ hashFiles('src/api/Dockerfile', 'src/api/.dockerignore') }}-
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -106,6 +115,7 @@ jobs:
       - name: Build and push Docker image API
         run: |
           docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:api-${{ needs.determine-version.outputs.new_version }} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src/api
+
   build-and-push-docker-job:
     runs-on: ubuntu-latest
     needs: determine-version
@@ -126,6 +136,7 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ hashFiles('src/Dockerfile', 'src/.dockerignore') }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-${{ hashFiles('src/Dockerfile', 'src/.dockerignore') }}-
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -135,6 +146,7 @@ jobs:
       - name: Build and push Docker image Job
         run: |
           docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:job-${{ needs.determine-version.outputs.new_version }} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src
+
   publish-helm-chart:
     runs-on: ubuntu-latest
     needs:
@@ -159,10 +171,10 @@ jobs:
         with:
           version: v3.11.1
 
-      - name: Package Helm char
+      - name: Package Helm chart
         run: |
-          version=$(cat ${{ env.CHART_PATH }}/Chart.yaml | version :  "${{ needs.determine-version.outputs.new_version }}" | version without quotes : ${{ needs.determine-version.outputs.new_version }})
-          helm package opensource --version "${{ needs.determine-version.outputs.new_version }}"
+          helm package ${{ env.CHART_PATH }} --version ${{ needs.determine-version.outputs.new_version }}
+
       - name: Push Helm chart to Docker Hub
         run: |
           helm push $(ls *.tgz) oci://registry-1.docker.io/bouyguestelecomcharts
