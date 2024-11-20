@@ -15,7 +15,9 @@ jobs:
     steps:
       -   name: Checkout repository
           uses: actions/checkout@v2
-
+      -   name: Install bru (Bruno)
+          run: |
+            npm install -g @usebruno/cli
       -   name: Run docker-compose
           uses: hoverkraft-tech/compose-action@v2.0.1
           with:
