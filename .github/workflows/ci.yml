@@ -169,11 +169,8 @@ jobs:
 
       - name: Package Helm chart
         run: |
-          new_version=${{ needs.determine-version.outputs.new_version }}
-          sed -i.bak 's/^version:.*/version: '"$new_version"'/g' ${{ env.CHART_PATH }}/Chart.yaml
-          helm package ${{ env.CHART_PATH }}
+          helm package opensource
 
       - name: Push Helm chart to Docker Hub
         run: |
-          new_version=${{ needs.determine-version.outputs.new_version }}
-          helm push $(ls *.tgz) oci://registry-1.docker.io/bouyguestelecomcharts --version "$new_version"
+          helm push $(ls *.tgz) oci://registry-1.docker.io/bouyguestelecomcharts
