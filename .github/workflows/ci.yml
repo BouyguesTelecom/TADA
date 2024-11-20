@@ -6,10 +6,11 @@ on:
       - workflow/api-improve
 
 env:
-  IMAGE_NAME: amelieloulou/transform-and-deliver-assets
+  IMAGE_NAME: bouyguestelecom/tada
   CHART_PATH: ./opensource
 
 jobs:
+
   determine-version:
     runs-on: ubuntu-latest
     outputs:
@@ -163,4 +164,4 @@ jobs:
           helm package opensource --version "${{ needs.determine-version.outputs.new_version }}"
       - name: Push Helm chart to Docker Hub
         run: |
-          helm push $(ls *.tgz) oci://registry-1.docker.io/amelieloulou
+          helm push $(ls *.tgz) oci://registry-1.docker.io/bouyguestelecom
