@@ -3,7 +3,7 @@ name: CI Docker and Helm
 on:
   push:
     branches:
-      - workflow/add-test
+      - workflow/api-improve
 
 env:
   IMAGE_NAME: bouyguestelecom/tada
@@ -131,6 +131,8 @@ jobs:
 
       - name: Build and push Docker image API
         run: |
+          new_version=${{ needs.determine-version.outputs.new_version }}
+          echo "Docker api with version $new_version"
           docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:api-${{ needs.determine-version.outputs.new_version }} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src/api
   build-and-push-docker-job:
     runs-on: ubuntu-latest
@@ -160,6 +162,8 @@ jobs:
 
       - name: Build and push Docker image Job
         run: |
+          new_version=${{ needs.determine-version.outputs.new_version }}
+          echo "Docker job with version $new_version"
           docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:job-${{ needs.determine-version.outputs.new_version }} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src
   publish-helm-chart:
     runs-on: ubuntu-latest
@@ -189,7 +193,7 @@ jobs:
         run: |
           new_version=${{ needs.determine-version.outputs.new_version }}
           echo "Packaging Helm chart with version $new_version"
-          helm package ${{ env.CHART_PATH }} --version $new_version
+          helm package opensource --version $new_version
       - name: Push Helm chart to Docker Hub
         run: |
           helm push $(ls *.tgz) oci://registry-1.docker.io/bouyguestelecomcharts
