@@ -1,8 +1,8 @@
 import fetch, { Headers } from 'node-fetch';
-import { BackupProps } from '../../../props/backup';
-import { connectClient, disconnectClient } from '../../redis/connection';
-import { addMultipleFiles } from '../../redis/operations';
-import { logger } from '../../logs/winston';
+import { BackupProps } from '../../props/backup';
+import { connectClient, disconnectClient } from '../../utils/redis/connection';
+import { addMultipleFiles } from '../../utils/redis/operations';
+import { logger } from '../../utils/logs/winston';
 
 interface UploadFileProps {
     filepath: string;
@@ -28,7 +28,7 @@ interface ResponseBackup {
 export const headersUserAgentForBackup = (contentType: string | null = null) =>
     new Headers({
         ...(process.env.DELEGATED_STORAGE_TOKEN && {
-            Authorization: `${process.env.DELEGATED_STORAGE_TOKEN}`
+            Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
         }),
         ...(contentType && { 'Content-Type': contentType })
     });
