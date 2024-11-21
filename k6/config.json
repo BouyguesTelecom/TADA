@@ -1,0 +1,54 @@
+{
+  "scenarios": {
+    "scenario_API": {
+      "executor": "per-vu-iterations",
+      "vus": "1",
+      "iterations": "15",
+      "exec": "updateFile",
+      "startTime": "0s",
+      "env": {
+        "REQUEST" : "/CMS/guide-pratique/visuel-de-mere-enfant-regardant-tablette-salon.jpg",
+        "URL_PUBLIC": "https://dev.www.apps.ocp-1.pin.prd.mlb.nbyt.fr/assets/media/full/image/CMS/guide-pratique/visuel-de-mere-enfant-regardant-tablette-salon.jpg",
+        "URL_API": "https://dev.media-api.www.apps.ocp-1.pin.prd.mlb.nbyt.fr"
+      },
+      "tags": {
+        "name": "Rate Limit Test"
+      }
+    },
+    "scenario_API_2": {
+      "executor": "per-vu-iterations",
+      "vus": "1",
+      "iterations": "15",
+      "exec": "updateFile",
+      "startTime": "0s",
+      "env": {
+        "REQUEST" : "/CMS/guide-pratique/no_exist.webp",
+        "URL_PUBLIC": "https://dev.www.apps.ocp-1.pin.prd.mlb.nbyt.fr/assets/media/full/image/CMS/guide-pratique/no_exist.webp",
+        "URL_API": "https://dev.media-api.www.apps.ocp-1.pin.prd.mlb.nbyt.fr"
+      },
+      "tags": {
+        "name": "Rate Limit Test"
+      }
+    },
+    "scenario_API_3": {
+      "executor": "per-vu-iterations",
+      "vus": "1",
+      "iterations": "15",
+      "exec": "updateFile",
+      "startTime": "0s",
+      "env": {
+        "REQUEST": "/CMS/guide-pratique/comment-fonctionne-la-fibre-optique.webp",
+        "URL_PUBLIC": "https://dev.www.apps.ocp-1.pin.prd.mlb.nbyt.fr/assets/media/full/image/CMS/guide-pratique/comment-fonctionne-la-fibre-optique.webp",
+        "URL_API": "https://dev.media-api.www.apps.ocp-1.pin.prd.mlb.nbyt.fr"
+      },
+      "tags": {
+        "name": "Rate Limit Test"
+      }
+    }
+  },
+  "thresholds": {
+    "http_req_duration{type:get_rate_limit}": [
+      { "threshold": "p(95) < 500" }
+    ]
+  }
+}
