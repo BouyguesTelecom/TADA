@@ -1,6 +1,6 @@
 apiVersion: v2
-name: transform-and-deliver-assets
+name: tada
 description: TADA 🎉 - Transform And Deliver Assets - Bouygues Telecom
 type: application
-version: 0.0.2-beta
-appVersion: '0.0.1'
+version: '0.1.1'
+appVersion: '0.1.1'

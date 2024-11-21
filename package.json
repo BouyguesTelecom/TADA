@@ -11,6 +11,7 @@
     },
     "scripts": {
         "update-local-bru": "node local/update-local-bru.js",
-        "format": "prettier --write ."
+        "format": "prettier --write .",
+        "build": "tsc"
     }
 }
