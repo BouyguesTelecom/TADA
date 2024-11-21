@@ -5,6 +5,7 @@ import { logger } from '../logs/winston';
 import { connectClient, disconnectClient } from './connection';
 import { redisClient } from './connection';
 import app from '../../app';
+import { catalogHandler } from '../../objects/catalog';
 const parseDateVersion = (name: string): Date => {
     const prefix = `${app.locals.PREFIXED_CATALOG}/`;
     const suffix = '.json';
@@ -82,9 +83,8 @@ export const addOneFile = async (file: FileProps) => {
         }
         const errorValidation = validateOneFile(file);
         if (!errorValidation) {
-            const uuid = uuidv4();
-            await redisClient.set(uuid, JSON.stringify({ ...file, uuid }));
-            const uploadedFile = await getOneFile(uuid);
+            await redisClient.set(file.uuid, JSON.stringify({ ...file }));
+            const uploadedFile = await getOneFile(file.uuid);
             if (uploadedFile.data) {
                 return {
                     data: uploadedFile.data,
@@ -93,7 +93,7 @@ export const addOneFile = async (file: FileProps) => {
             }
             return {
                 data: null,
-                errors: [`Unable to retrieve file with id ${uuid} after adding it...`]
+                errors: [`Unable to retrieve file with id ${file.uuid} after adding it...`]
             };
         }
         return {
@@ -164,7 +164,7 @@ export const updateOneFile = async (fileId: string, updateData: Partial<FileProp
 
 export const deleteOneFile = async (namespace: string, identifier: string): Promise<{ status?: number; errors?: string[] }> => {
     try {
-        const catalog = await getCatalog();
+        const catalog = await catalogHandler.getAll();
 
         let existingFileKey = null;
 
