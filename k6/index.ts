@@ -74,7 +74,7 @@ export function getAll(): void {
         headers: { 'Authorization': `Bearer ${__ENV.BEARER_TOKEN}`, 'Content-Type': 'application/json' }
     };
     const res = http.get('http://localhost:3001/catalog', params);
-    console.log('Response: ', res.body);
+    console.log('Get Catalog Response: ', res.body);
     errorRate.add(res.status >= 400);
 }
 
@@ -102,7 +102,7 @@ export function updateFile(): void {
     const url = `${__ENV.URL_API}/${fileUUID}`;
     const params = { headers: { 'Authorization': `Bearer ${__ENV.BEARER_TOKEN}`, 'Content-Type': 'application/json' } };
     const res = http.patch(url, payload, params);
-    console.log('Response: ', res.body);
+    console.log('Update File Response: ', res.body);
 }
 
 export function deleteFile(): void {
@@ -114,7 +114,7 @@ export function deleteFile(): void {
     const url = `${__ENV.URL_API}/${fileUUID}`;
     const params = { headers: { 'Authorization': `Bearer ${__ENV.BEARER_TOKEN}`, 'Content-Type': 'application/json' } };
     const res = http.del(url, null, params);
-    console.log('Response: ', res.body);
+    console.log('Delete File Response: ', res.body);
 }
 
 export function postFile(): void {
@@ -126,7 +126,7 @@ export function postFile(): void {
     const params = { headers: { 'Authorization': `Bearer ${__ENV.BEARER_TOKEN}`, 'Content-Type': 'application/json' } };
     const url = `${__ENV.URL_API}`;
     const res = http.post(url, payload, params);
-    console.log('Response: ', res.body);
+    console.log('Post File Response: ', res.body);
 
     const jsonResponse = JSON.parse(typeof res.body === 'string' ? res.body : '');
     if (jsonResponse.data && jsonResponse.data.length > 0) {
