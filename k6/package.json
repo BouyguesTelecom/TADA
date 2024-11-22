@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "k6:run": "tsc && k6 run build/index.js --config config.json"
+    "k6": "tsc && k6 run build/index.js --config config.json"
   },
   "keywords": [],
   "author": "",
