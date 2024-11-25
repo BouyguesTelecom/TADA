@@ -1,4 +1,3 @@
-import { getCatalog } from './redis/operations';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import path from 'path';

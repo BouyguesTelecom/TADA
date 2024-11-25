@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { uploadFile } from '../utils/file';
+import { generateStream } from '../utils/file';
 import { calculateSHA256, formatItemForCatalog } from '../utils/catalog';
 import { sendResponse } from '../middleware/validators/utils';
 import { generateFileInfo } from '../middleware/validators/oneFileValidators';
@@ -13,9 +13,9 @@ export const postAssets = async (req: Request, res: Response) => {
     const { data, errors } = await validFiles.reduce(
         async (accumulator, file) => {
             const { data, errors } = await accumulator;
-            const upload = await uploadFile(file, file.uniqueName, file.toWebp);
-            if (upload) {
-                const signature = calculateSHA256(upload);
+            const stream = await generateStream(file, file.uniqueName, file.toWebp);
+            if (stream) {
+                const signature = calculateSHA256(stream);
                 const newItem = await formatItemForCatalog(
                     file.fileInfo,
                     file.filename,
@@ -34,7 +34,7 @@ export const postAssets = async (req: Request, res: Response) => {
                 }
                 if (catalogItem) {
                     const form = new FormData();
-                    form.append('file', upload, {
+                    form.append('file', stream, {
                         filename: file.uniqueName,
                         contentType: file.mimetype
                     });
@@ -65,10 +65,10 @@ export const patchAssets = async (req: Request, res: Response) => {
             const { data, errors } = await accumulator;
             let signature;
             if (req.files) {
-                const upload = await uploadFile(file, file.catalogItem.unique_name, file.toWebp);
-                if (upload) {
+                const stream = await generateStream(file, file.catalogItem.unique_name, file.toWebp);
+                if (stream) {
                     const form = new FormData();
-                    form.append('file', upload, {
+                    form.append('file', stream, {
                         filename: file.catalogItem.unique_name,
                         contentType: file.mimetype
                     });
@@ -83,7 +83,7 @@ export const patchAssets = async (req: Request, res: Response) => {
                             errors: [ ...errors, 'Failed to upload in backup' ]
                         };
                     }
-                    signature = calculateSHA256(upload);
+                    signature = calculateSHA256(stream);
                 }
             }
             const fileInfo = generateFileInfo(req.body);

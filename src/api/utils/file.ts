@@ -167,7 +167,7 @@ export const deleteFile = (filePath): Promise<boolean> => {
         .catch(() => false);
 };
 
-export const uploadFile = async (file: any, uniqueName: string, toWebpConversion: boolean): Promise<any> => {
+export const generateStream = async (file: any, uniqueName: string, toWebpConversion: boolean): Promise<any> => {
     const toWebp = toWebpConversion && ['image/png', 'image/jpeg'].includes(file.mimetype);
     if (process.env.USE_STRIPMETADATA === 'true') {
         if (toWebp) {

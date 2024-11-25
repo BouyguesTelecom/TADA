@@ -1,13 +1,32 @@
-import { getCatalog, getOneFile } from '../utils/redis/operations';
+import { addOneFile, getAllFiles, getCatalog, getOneFile } from '../utils/redis/operations';
 import fs from 'fs';
 import { addFileInCatalog, deleteFileFromCatalog, updateFileInCatalog } from '../controllers/catalog.controller';
+import { connectClient, disconnectClient } from '../utils/redis/connection';
+import { purgeData } from '../middleware/validators/utils';
+import { logger } from '../utils/logs/winston';
 
 class CatalogHandler {
     async getAll() {
         if (process.env.STANDALONE) {
-            return JSON.parse(fs.readFileSync('/tmp/standalone/catalog.json', 'utf8'));
+            const catalog = JSON.parse(fs.readFileSync('/tmp/standalone/catalog.json', 'utf8'));
+            if (catalog) {
+                return { status: 200, data: catalog.data };
+            }
+            return { status: 400, errors: [ 'Failed to read catalog /tmp/standalone/catalog.json' ] };
         }
-        return await getCatalog();
+        try {
+            await connectClient();
+            const response = await getAllFiles();
+            if (response.data && ( !response.errors || response.errors.length === 0 )) {
+                return { status: 200, data: response.data };
+            }
+            return { status: 500, errors: response.errors };
+        } catch ( err: unknown ) {
+            logger.error(`Error getting files: ${ err }`);
+            return { status: 500, errors: [ `Error getting files: ${ err }` ] };
+        } finally {
+            await disconnectClient();
+        }
     }
 
     async getItem(uuid) {
@@ -15,11 +34,27 @@ class CatalogHandler {
             const catalog = JSON.parse(fs.readFileSync('/tmp/standalone/catalog.json', 'utf8')).data;
             const file = catalog.find((item) => item.uuid === uuid);
             return {
+                status: file ? 200 : 404,
                 data: file ?? null,
-                errors: null
+                errors: file ? null : [ `Failed to read item ${ uuid } in /tmp/standalone/catalog.json ` ]
             };
         }
-        return await getOneFile(uuid);
+        try {
+            await connectClient();
+            const response = await getOneFile(uuid);
+            if (response.data && ( !response.errors || response.errors.length === 0 )) {
+                return { status: 200, data: response.data };
+            }
+            return {
+                status: 404, data: null,
+                errors: [ `Unable to find file with id ${ uuid } => ${ response.errors?.join(', ') }` ]
+            };
+        } catch ( err: unknown ) {
+            logger.error(`Error getting file: ${ err }`);
+            return {status: 500, data: null, errors: [ `Error getting file: ${ err }` ] };
+        } finally {
+            await disconnectClient();
+        }
     }
 
     async addItem(item) {
@@ -32,7 +67,32 @@ class CatalogHandler {
                 data: [ item ]
             };
         }
-        return await addFileInCatalog(item);
+        try {
+            await connectClient();
+            const response = await addOneFile(item);
+            await purgeData('catalog');
+            if (response.data && ( !response.errors || response.errors.length === 0 )) {
+                return {
+                    status: 200,
+                    message: `Item added with uuid: ${ response.data.uuid }`,
+                    data: response.data
+                };
+            }
+            return {
+                status: 500,
+                message: response.errors?.join(', ') || 'Unknown error',
+                data: null
+            };
+        } catch ( err: unknown ) {
+            logger.error(`Error adding file: ${ err }`);
+            return {
+                status: 500,
+                message: `Error adding file: ${ err }`,
+                data: null
+            };
+        } finally {
+            await disconnectClient();
+        }
     }
 
     async updateItem(uuid, item) {
@@ -45,6 +105,7 @@ class CatalogHandler {
             fs.writeFileSync('/tmp/standalone/catalog.json', JSON.stringify({ data: updatedCatalog }));
             return item;
         }
+
         return await updateFileInCatalog(item.uuid, item);
     }
 

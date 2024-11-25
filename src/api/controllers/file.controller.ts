@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { calculateSHA256, formatItemForCatalog, isExpired } from '../utils/catalog';
-import { convertToWebpBuffer, uploadFile } from '../utils/file';
+import { convertToWebpBuffer, generateStream } from '../utils/file';
 import proxy from 'express-http-proxy';
 import { addFileInCatalog, deleteFileFromCatalog, updateFileInCatalog } from '../controllers/catalog.controller';
 import { sendResponse } from '../middleware/validators/utils';
@@ -111,37 +111,26 @@ export const getAsset = async (req: Request, res: Response) => {
 
 export const postAsset = async (req: Request, res: Response) => {
     const { uniqueName, fileInfo, toWebp, namespace, file } = res.locals;
-    const upload = await uploadFile(file, uniqueName, toWebp);
-    if (upload) {
-        const signature = calculateSHA256(upload);
+    const stream = await generateStream(file, uniqueName, toWebp);
+    if (stream) {
+        const signature = calculateSHA256(stream);
         const newItem = await formatItemForCatalog(fileInfo, file.filename, namespace, uniqueName, fileInfo?.destination || '', file.mimetype, toWebp, signature, file.size);
 
-        const { status, message, data } = await addFileInCatalog(newItem);
+        const { status, message, data } = await catalogHandler.addItem(newItem);
 
         if (status !== 200) {
             return sendResponse({ res, status: 400, errors: [ message ] });
         }
 
         if (data) {
-            const form = new FormData();
-            form.append('file', upload, { filename: uniqueName, contentType: file.mimetype });
             try {
-                const postBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/backup?filepath=${ uniqueName }&version=1&mimetype=${ file.mimetype }`, {
-                    method: 'POST',
-                    body: form
+                const { status, errors, purge } = await fileHandler.postFile(uniqueName, file, stream);
+                return sendResponse({
+                    res,
+                    status, ...( !errors && { data } ), ...( errors && { errors } ), ...( purge && { purge } )
                 });
-                if (postBackupFile.status !== 200) {
-                    await deleteFileFromCatalog(uniqueName);
-                    return sendResponse({
-                        res,
-                        status: 400,
-                        data: [ 'Failed to upload in backup' ]
-                    });
-                }
-
-                return sendResponse({ res, status: 200, data: [ data ], purge: 'catalog' });
             } catch ( error ) {
-                await deleteFileFromCatalog(uniqueName);
+                await catalogHandler.deleteItem(uniqueName);
                 return sendResponse({
                     res,
                     status: 500,
@@ -160,11 +149,11 @@ export const postAsset = async (req: Request, res: Response) => {
 
 export const patchAsset = async (req: Request, res: Response) => {
     const { itemToUpdate, uuid, fileInfo, uniqueName, toWebp, file } = res.locals;
-    const upload = file && ( await uploadFile(file, uniqueName, toWebp) );
+    const stream = file && ( await generateStream(file, uniqueName, toWebp) );
 
-    if (( file && upload ) || !file) {
-        const signature = upload && calculateSHA256(upload);
-        const { data: catalogData, error } = await updateFileInCatalog(uuid, {
+    if (( file && stream ) || !file) {
+        const signature = stream && calculateSHA256(stream);
+        const { data: catalogData, error } = await catalogHandler.updateItem(uuid, {
             ...itemToUpdate,
             ...fileInfo,
             version: file ? itemToUpdate.version + 1 : itemToUpdate.version,
@@ -172,22 +161,11 @@ export const patchAsset = async (req: Request, res: Response) => {
             ...( file && { size: file.size } )
         });
 
-        const form = new FormData();
-        if (upload) {
-            form.append('file', upload, {
-                filename: uniqueName,
-                contentType: file.mimetype
-            });
 
-            const patchBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/backup?filepath=${ itemToUpdate.unique_name }&version=${ itemToUpdate.version }&mimetype=${ itemToUpdate.mimetype }`, {
-                method: 'PATCH',
-                body: form
-            });
-
-            if (patchBackupFile.status !== 200) {
-                await deleteFileFromCatalog(uniqueName);
-            }
+        if (stream) {
+            fileHandler.patchFile(uniqueName, file, stream, itemToUpdate);
         }
+
         const data = catalogData ? [ catalogData ] : null;
         const errors = error ? [ error ] : null;
         return sendResponse({ res, status: 200, data, errors, purge: 'true' });
@@ -202,7 +180,7 @@ export const patchAsset = async (req: Request, res: Response) => {
 export const deleteAsset = async (req: Request, res: Response) => {
     const { itemToUpdate } = res.locals;
 
-    const { status, message } = await deleteFileFromCatalog(itemToUpdate.unique_name);
+    const { status, message } = await catalogHandler.deleteItem(itemToUpdate.unique_name);
 
     if (status !== 200) {
         return sendResponse({
@@ -212,22 +190,15 @@ export const deleteAsset = async (req: Request, res: Response) => {
         });
     }
 
-    const deleteBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/backup?filepath=${ itemToUpdate.unique_name }&version=${ itemToUpdate.version }&mimetype=${ itemToUpdate.mimetype }`, {
-        method: 'DELETE'
-    });
-
-    if (deleteBackupFile.status !== 200) {
-        return sendResponse({
-            res,
-            status: 500,
-            data: [ { message: `File not removed from backup` } ]
-        });
-    }
+    const { status: statusFile, errors } = await fileHandler.deleteFile(itemToUpdate.unique_name, itemToUpdate);
 
     return sendResponse({
         res,
-        status: 200,
-        data: [ { message: `File removed successfully` } ],
-        purge: 'true'
+        status: statusFile,
+        ...( !errors && {
+            data: [ { message: `File removed successfully` } ],
+            purge: 'true'
+        } ),
+        ...( errors && { errors } )
     });
 };

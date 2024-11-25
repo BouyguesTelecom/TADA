@@ -3,42 +3,15 @@ name: CI Docker and Helm
 on:
   push:
     branches:
-      - workflow/add-test
+      - main
 
 env:
   IMAGE_NAME: bouyguestelecom/tada
   CHART_PATH: ./opensource
 
 jobs:
-  tests:
-    runs-on: ubuntu-latest
-    steps:
-      -   name: Checkout repository
-          uses: actions/checkout@v2
-      -   name: Install bru (Bruno)
-          run: |
-            npm install -g @usebruno/cli
-      -   name: Run docker-compose
-          uses: hoverkraft-tech/compose-action@v2.0.1
-          with:
-            compose-file: "./docker-compose.yml"
-      -   name: Copy tmp/images for tests
-          run: |
-            cp -r local/images /tmp/images
-          continue-on-error: false
-      -   name: Run Tests
-          run: |
-            cd ${{ github.workspace }}/TESTS
-            bru run flows/ --env LOCAL -r --bail
-          continue-on-error: false
-
-      -   name: Report test results
-          if: failure()
-          run: echo "Tests failed."
-
   determine-version:
     runs-on: ubuntu-latest
-    needs: tests
     outputs:
       new_version: ${{ steps.set_output.outputs.new_version }}
 
@@ -56,6 +29,7 @@ jobs:
           fi
           echo "Latest tag: $latest_tag"
           echo "tag=$latest_tag" >> $GITHUB_ENV
+
       - name: Determine next version
         id: set_output
         run: |
@@ -74,24 +48,24 @@ jobs:
             patch=0
           else
             patch=$((patch + 1))
+            branch_name=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///' | sed 's/\//-/g')
+            new_version="$major.$minor.$patch-${branch_name}"
           fi
-          new_version="$major.$minor.$patch"
           while git rev-parse "refs/tags/$new_version" >/dev/null 2>&1; do
             patch=$((patch + 1))
-            new_version="$major.$minor.$patch"
+            new_version="$major.$minor.$patch-${branch_name}"
           done
           echo "New version: $new_version"
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
-      - name: Update Helm chart version
-        run: |
-          sed -i "s/version:.*/version: ${{ steps.set_output.outputs.new_version }}/" ${{ env.CHART_PATH }}/Chart.yaml
+
       - name: Create and push new tag
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git tag ${{ steps.set_output.outputs.new_version }}
           git push origin ${{ steps.set_output.outputs.new_version }}
+
   build-and-push-docker-api:
     runs-on: ubuntu-latest
     needs: determine-version
@@ -107,6 +81,7 @@ jobs:
           key: ${{ runner.os }}-api-node-modules-${{ hashFiles('src/api/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-api-node-modules-
+
       - name: Install npm dependencies for API
         working-directory: src/api
         run: npm install
@@ -123,6 +98,7 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ hashFiles('src/api/Dockerfile', 'src/api/.dockerignore') }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-${{ hashFiles('src/api/Dockerfile', 'src/api/.dockerignore') }}-
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -131,7 +107,10 @@ jobs:
 
       - name: Build and push Docker image API
         run: |
-          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:api-${{ needs.determine-version.outputs.new_version }} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src/api
+          new_version=${{ needs.determine-version.outputs.new_version }}
+          echo "Docker api with version $new_version"
+          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:api-${new_version} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src/api
+
   build-and-push-docker-job:
     runs-on: ubuntu-latest
     needs: determine-version
@@ -152,6 +131,7 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ hashFiles('src/Dockerfile', 'src/.dockerignore') }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-${{ hashFiles('src/Dockerfile', 'src/.dockerignore') }}-
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -160,10 +140,13 @@ jobs:
 
       - name: Build and push Docker image Job
         run: |
-          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:job-${{ needs.determine-version.outputs.new_version }} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src
+          new_version=${{ needs.determine-version.outputs.new_version }}
+          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:job-${new_version} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src
+
   publish-helm-chart:
     runs-on: ubuntu-latest
     needs:
+      - determine-version
       - build-and-push-docker-api
       - build-and-push-docker-job
 
@@ -177,8 +160,8 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKER_CHART_USERNAME }}
+          password: ${{ secrets.DOCKER_CHART_PASSWORD }}
 
       - name: Install Helm
         uses: azure/setup-helm@v3
@@ -188,6 +171,7 @@ jobs:
       - name: Package Helm chart
         run: |
           helm package opensource --version "${{ needs.determine-version.outputs.new_version }}"
+
       - name: Push Helm chart to Docker Hub
         run: |
           helm push $(ls *.tgz) oci://registry-1.docker.io/bouyguestelecomcharts

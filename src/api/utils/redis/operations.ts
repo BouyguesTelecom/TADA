@@ -162,31 +162,17 @@ export const updateOneFile = async (fileId: string, updateData: Partial<FileProp
     }
 };
 
-export const deleteOneFile = async (namespace: string, identifier: string): Promise<{ status?: number; errors?: string[] }> => {
+export const deleteOneFile = async (id: string): Promise<{ data?: string[]; errors?: string[] }> => {
     try {
-        const catalog = await catalogHandler.getAll();
-
-        let existingFileKey = null;
-
-        const item = catalog.data.find((entry) => {
-            if ((entry.uuid === identifier || entry.filename === identifier) && entry.namespace === namespace) {
-                existingFileKey = entry.uuid;
-                return true;
-            }
-            return false;
-        });
-
-        if (!item) {
-            return {
-                status: 404,
-                errors: [`File with id or name ${identifier} does not exist in namespace ${namespace}`]
-            };
+        const existingFile = await redisClient.get(id);
+        if (!existingFile) {
+            return { errors: [`File with id ${id} does not exist`] };
         }
+        await redisClient.del(id);
 
-        await redisClient.del(existingFileKey);
-        return { status: 200 };
+        return { data: [`File with id ${id} successfully deleted`] };
     } catch (err) {
-        return { status: 500, errors: [err.message] };
+        return { errors: [err.message] };
     }
 };
 

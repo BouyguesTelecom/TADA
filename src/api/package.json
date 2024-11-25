@@ -4,7 +4,7 @@
     "description": "description",
     "main": "app.js",
     "scripts": {
-        "dev": "npm run decrypt-env && export NODE_TLS_REJECT_UNAUTHORIZED='0' && export PORT=3001 && ts-node server.ts",
+        "dev": "npm run decrypt-env && export NODE_TLS_REJECT_UNAUTHORIZED='0' && export PORT=3001 && export STANDALONE=true && ts-node server.ts",
         "start": "node dist/server.js",
         "build": "tsc",
         "test": "jest",

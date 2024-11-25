@@ -76,7 +76,7 @@ export const uploads = async ({ filename, file }: FileProps) => {
     };
 };
 
-export const updateFile = async ({ filename, file }: FileProps) => {
+export const update = async ({ filename, file }: FileProps) => {
     try {
         const dataStream = await minioClient.putObject(process.env.S3_BUCKET_NAME, filename, file);
         return {

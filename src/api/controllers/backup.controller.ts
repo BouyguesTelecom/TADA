@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getLastDump, deleteFileBackup, getFileBackup, updateFileBackup, uploadFileBackup } from '../delegated-storage/index';
+import { getLastDump, deleteFileBackup, getFileBackup, updateFileBackup, generateStreamBackup } from '../delegated-storage/index';
 import fs from 'fs';
 import { BackupProps } from '../props/backup';
 
@@ -38,7 +38,7 @@ export const postBackup = async (req: Request, res: Response) => {
         mimetype: req.query.mimetype ? `${req.query.mimetype}` : null
     };
     const file: Buffer | string = req.file ? fs.readFileSync(req.file.path) : JSON.stringify(req.body);
-    const { status }: BackupProps = await uploadFileBackup({
+    const { status }: BackupProps = await generateStreamBackup({
         filepath: filePathToRead,
         file,
         ...params
