@@ -1,11 +1,12 @@
-import { createClient, RedisClientType } from '@redis/client';
-import { logger } from '../logs/winston';
+import { createClient } from '@redis/client';
+import { logger } from '../../utils/logs/winston';
 
-export const redisClient: RedisClientType = createClient({
+const redisClient = createClient({
     socket: {
         host: process.env.REDIS_SERVICE || 'localhost',
         port: 6379
-    }
+    },
+    legacyMode: false
 });
 
 redisClient.on('error', (err) => {
@@ -16,7 +17,7 @@ redisClient.on('connect', () => {
     logger.info('Redis client connected');
 });
 
-export const connectClient = async () => {
+const connectClient = async () => {
     try {
         if (!redisClient.isOpen) {
             await redisClient.connect();
@@ -28,9 +29,33 @@ export const connectClient = async () => {
     }
 };
 
-export const disconnectClient = async () => {
+const disconnectClient = async () => {
     if (redisClient.isOpen) {
         await redisClient.disconnect();
         logger.info('Connection to Redis closed.');
     }
+};
+
+const getAsync = async (key) => {
+    return await redisClient.get(key);
+};
+
+const setAsync = async (key, value) => {
+    return await redisClient.set(key, value);
+};
+
+const delAsync = async (key) => {
+    return await redisClient.del(key);
+};
+
+const keysAsync = async (pattern) => {
+    return await redisClient.keys(pattern);
+};
+export const redisHandler = {
+    connectClient,
+    disconnectClient,
+    getAsync,
+    setAsync,
+    delAsync,
+    keysAsync
 };

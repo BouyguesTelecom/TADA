@@ -1,13 +1,13 @@
 import app from './app';
 import { logger } from './utils/logs/winston';
 import fs from 'fs';
-import { redisClient } from './utils/redis/connection';
+import { redisHandler } from './catalog/redis/connection';
 import { getLastDump } from './delegated-storage/index';
 import { minioClient } from './delegated-storage/s3/connection';
-import { expressListRoutes } from './utils/list-routes';
 import fetch from 'node-fetch';
 
 const port = parseInt(process.env.PORT, 10) || 3001;
+const standalone = process.env.DELEGATED_STORAGE_METHOD === 'STANDALONE';
 
 const checkAccessToBackup = async () => {
     const backupUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.DELEGATED_STORAGE_READINESS_CHECK}`;
@@ -33,7 +33,7 @@ const connectToRedisWithRetry = async (maxRetries, delay) => {
     let attempts = 0;
     while (attempts < maxRetries) {
         try {
-            await redisClient.connect();
+            await redisHandler.connectClient();
             return;
         } catch (err) {
             attempts++;
@@ -48,22 +48,37 @@ const connectToRedisWithRetry = async (maxRetries, delay) => {
     }
 };
 
+const createStandaloneFolderAndCatalog = () => {
+    if (!fs.readdirSync('/tmp/standalone')) {
+        logger.info('Creating /tmp/standalone...');
+        fs.mkdirSync('/tmp/standalone');
+    }
+    if (!fs.existsSync('/tmp/standalone/catalog.json')) {
+        fs.writeFileSync('/tmp/standalone/catalog.json', JSON.stringify({ data: [] }));
+    }
+};
+
 (async () => {
     try {
-        await checkAccessToBackup();
-        await connectToRedisWithRetry(3, 10000);
-        await redisClient.disconnect();
-        const dbDump = fs.existsSync(`${process.env.DUMP_FOLDER_PATH}/dump.rdb`);
+        if (!standalone) {
+            await checkAccessToBackup();
+            await connectToRedisWithRetry(3, 10000);
+            await redisHandler.disconnectClient();
+            const dbDump = fs.existsSync(`${process.env.DUMP_FOLDER_PATH}/dump.rdb`);
 
-        if (!dbDump) {
-            logger.info("dump.rdb doesn't exists : getting latest dump from backup ✅");
-            await getLastDump();
-        } else {
-            logger.info('dump.rdb already exists : skipping getting latest dump from backup 🔆');
+            if (!dbDump) {
+                logger.info("dump.rdb doesn't exists : getting latest dump from backup ✅");
+                await getLastDump();
+            } else {
+                logger.info('dump.rdb already exists : skipping getting latest dump from backup 🔆');
+            }
+        }
+
+        if (standalone) {
+            createStandaloneFolderAndCatalog();
         }
         app.listen(port, async () => {
-            logger.info(`\n✨  Connected to Redis, server running => http://localhost:${port}\n`);
-            expressListRoutes(app, {});
+            logger.info(`\n✨  ${standalone ? 'Using fs in standalone mode' : 'Connected to Redis'}, server running => http://localhost:${port}\n`);
         });
     } catch (err) {
         logger.error(`Error starting app => ${err}`);

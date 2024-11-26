@@ -17,3 +17,15 @@ export interface FileProps {
     signature?: string;
     size?: number | string;
 }
+
+export interface ICatalogResponse {
+    status?: number;
+    datum: FileProps | null;
+    error: string | null;
+}
+
+export interface ICatalogResponseMulti {
+    status: number;
+    data: FileProps[] | null;
+    errors: string[] | null;
+}

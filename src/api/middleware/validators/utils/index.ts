@@ -1,6 +1,8 @@
 import { findFileInCatalog } from '../../../utils/catalog';
 import { MissingParamsProps, NamespaceProps } from './props';
 import fetch from 'node-fetch';
+import { logger } from '../../../utils/logs/winston';
+import { redisHandler } from '../../../catalog/redis/connection';
 
 export const purgeData = async (data) => {
     if (data === 'catalog') {
@@ -15,7 +17,7 @@ export const purgeData = async (data) => {
 };
 
 export const sendResponse = async ({ res, status, data = null, errors = null, purge = 'false' }) => {
-    if (purge) {
+    if (purge !== 'false' && process.env.DELEGATED_STORAGE_METHOD !== 'STANDALONE') {
         await purgeData(purge === 'catalog' ? 'catalog' : data);
     }
     return res.status(status).json({ data, errors }).end();

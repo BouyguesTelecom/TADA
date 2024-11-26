@@ -1,4 +1,7 @@
+import { Readable } from 'stream';
+
 export interface BackupProps {
     status: number;
-    stream?: any;
+    message?: string;
+    stream?: Readable;
 }

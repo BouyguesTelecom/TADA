@@ -1,22 +1,17 @@
 import fetch, { Headers } from 'node-fetch';
 import { BackupProps } from '../../props/backup';
-import { connectClient, disconnectClient } from '../../utils/redis/connection';
-import { addMultipleFiles } from '../../utils/redis/operations';
 import { logger } from '../../utils/logs/winston';
+import { addCatalogItems } from '../../catalog';
 
-interface UploadFileProps {
+interface FileProps {
     filepath: string;
-    file: Buffer | Blob | string;
-    version?: any;
+    version?: string;
     mimetype?: string;
     headers?: Record<string, string>;
 }
 
-interface FileProps {
-    filepath: string;
-    version?: any;
-    mimetype?: string;
-    headers?: Record<string, string>;
+interface UploadFileProps extends FileProps {
+    file: Buffer | Blob | string;
 }
 
 interface ResponseBackup {
@@ -57,9 +52,7 @@ export const getLastDump = async () => {
         }
         const files = await getBackupFileJson.json();
         if (files.length) {
-            await connectClient();
-            await addMultipleFiles(files);
-            await disconnectClient();
+            await addCatalogItems(files);
         }
         return { data: 'OK', errors: null };
     } catch (errMessage: any) {

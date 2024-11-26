@@ -5,6 +5,8 @@ import { deleteFile } from '../../utils/file';
 import { getUniqueName } from '../../utils';
 import { findFileInCatalog } from '../../utils/catalog';
 import { NextFunction, Request, Response } from 'express';
+import { logger } from '../../utils/logs/winston';
+import { redisHandler } from '../../catalog/redis/connection';
 
 export const validatorNamespace = async (req: Request, res: Response, next: NextFunction) => {
     const namespace = req.body.namespace;
@@ -73,7 +75,7 @@ export const validatorFile = multer({
 }).single('file');
 
 export const validatorFileFilter = async (req: Request, res: Response, next: NextFunction) => {
-    const fileFromMulter: any = req.file;
+    const fileFromMulter = req.file;
     if (fileFromMulter) {
         const allowedMimetypes = process.env.VALID_MIMETYPES?.split(',');
         const mimeTypeIsAllowed = allowedMimetypes.includes(fileFromMulter.mimetype);

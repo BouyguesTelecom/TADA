@@ -5,8 +5,11 @@ import { Router } from 'express';
 import { deleteAsset, getAsset, patchAsset, postAsset } from '../controllers/file.controller';
 import { timeoutMiddleware } from '../middleware/timeoutMiddleware';
 import { authMiddleware } from '../middleware/auth';
+import { redisConnectionMiddleware } from '../middleware/redisMiddleware';
 
 const router = Router();
+
+router.use(redisConnectionMiddleware);
 
 router.get(`/assets/media/:format/*`, [timeoutMiddleware, validatorGetAsset], getAsset);
 

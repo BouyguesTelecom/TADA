@@ -1,9 +1,11 @@
 import { minioClient } from './connection';
 import { FileProps } from '../types';
 import { promisify } from 'node:util';
-import { addMultipleFiles, getLastVersion } from '../../utils/redis/operations';
-import { connectClient, disconnectClient } from '../../utils/redis/connection';
+import { getLastVersion } from '../../catalog/redis/operations';
 import app from '../../app';
+import { addCatalogItems } from '../../catalog';
+import { PassThrough } from 'stream';
+import { createReadStream } from 'fs';
 
 export const getLastDump = async () => {
     const getObjectAsync = promisify(minioClient.getObject.bind(minioClient));
@@ -38,9 +40,7 @@ export const getLastDump = async () => {
     const files = JSON.parse(lastDump);
 
     if (files.length) {
-        await connectClient();
-        await addMultipleFiles(files);
-        await disconnectClient();
+        await addCatalogItems(files);
     }
     return { data: 'OK', errors: null };
 };
@@ -76,9 +76,10 @@ export const uploads = async ({ filename, file }: FileProps) => {
     };
 };
 
-export const updateFile = async ({ filename, file }: FileProps) => {
+export const update = async ({ filename, file }: FileProps) => {
     try {
-        const dataStream = await minioClient.putObject(process.env.S3_BUCKET_NAME, filename, file);
+        await minioClient.putObject(process.env.S3_BUCKET_NAME, filename, file);
+        const dataStream = await minioClient.getObject(process.env.S3_BUCKET_NAME, filename);
         return {
             status: 200,
             message: `Update image ${filename} from S3 bucket`,
@@ -101,11 +102,10 @@ export const updateFile = async ({ filename, file }: FileProps) => {
 
 export const deleteFile = async ({ filename }: any) => {
     try {
-        const dataStream = await minioClient.removeObject(process.env.S3_BUCKET_NAME, filename);
+        await minioClient.removeObject(process.env.S3_BUCKET_NAME, filename);
         return {
             status: 200,
-            message: `Delete image ${filename} from S3 bucket`,
-            stream: dataStream
+            message: `Delete image ${filename} from S3 bucket`
         };
     } catch (error) {
         if (error.code === 'NoSuchKey') {
