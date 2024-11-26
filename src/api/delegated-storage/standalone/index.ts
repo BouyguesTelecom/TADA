@@ -1,59 +1,48 @@
 import { BackupProps } from '../../props/backup';
-import { logger } from '../../utils/logs/winston';
+import fs from 'fs';
+import { createFolder, removeLastPartPath, writeFileInPV } from './utils';
+import { deleteFile as deleteFileFS } from './utils';
+import { createReadStream } from 'fs';
 
-export const getFile = async ({ filepath, version, mimetype }: FileProps): Promise<BackupProps> => {
+export const getFile = async ({ filepath }): Promise<BackupProps> => {
     try {
-        const backupGet: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype, 'GET'), generateOptions('GET', 'application/json'));
+        const backupFilePath = `/tmp/standalone${filepath}`;
+        const fileStream = createReadStream(backupFilePath);
+        fileStream.on('error', (error) => {
+            console.error('Stream error:', error);
+        });
 
-        if (backupGet.status === 200) {
-            const stream = filepath.includes('.json') ? await backupGet.json() : backupGet.body;
-            return { status: 200, stream };
-        }
-        return { status: backupGet.status, stream: null };
-    } catch (errorMessage: any) {
-        logger.error(`ERROR: ${errorMessage}`);
+        return { status: 200, stream: fileStream };
+    } catch (error) {
+        return null;
     }
-    return null;
 };
 
-export const uploads = async ({ filepath, file, version, mimetype }: UploadFileProps): Promise<BackupProps> => {
+export const uploads = async ({ filepath, file }): Promise<BackupProps> => {
     try {
-        const backupUpload: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype, 'POST'), generateOptions('POST', 'multipart/form-data', file));
-
-        if (backupUpload.status === 201 || backupUpload.status === 200) {
-            return { status: 200, stream: backupUpload.body };
-        }
-        return { status: backupUpload.status, stream: null };
-    } catch (errorMessage: any) {
-        logger.error(`ERROR: ${errorMessage}`);
+        await createFolder(removeLastPartPath(filepath));
+        await writeFileInPV(filepath, file);
+        return { status: 200 };
+    } catch (error) {
+        return { status: 400 };
     }
-    return null;
 };
 
-export const update = async ({ filepath, file, version, mimetype }: UploadFileProps): Promise<BackupProps> => {
+export const update = async ({ filepath, file }): Promise<BackupProps> => {
     try {
-        const backupUptade: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype, 'PATCH'), generateOptions('PUT', 'multipart/form-data', file));
-
-        if (backupUptade.status === 200) {
-            return { status: 200, stream: backupUptade.body };
-        }
-        return { status: backupUptade.status, stream: null };
-    } catch (errorMessage: any) {
-        logger.error(`ERROR: ${errorMessage}`);
+        await createFolder(removeLastPartPath(filepath));
+        await writeFileInPV(filepath, file);
+        return { status: 200 };
+    } catch (error) {
+        return { status: 400 };
     }
-    return null;
 };
 
-export const deleteFile = async ({ filepath, version, mimetype }: FileProps): Promise<BackupProps> => {
+export const deleteFile = async ({ filepath }): Promise<BackupProps> => {
     try {
-        const backupDelete: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype, 'DELETE'), generateOptions('DELETE', 'application/json'));
-
-        if (backupDelete.status === 200) {
-            return { status: 200 };
-        }
-        return { status: backupDelete.status };
-    } catch (errorMessage: any) {
-        logger.error(`ERROR: ${errorMessage}`);
+        const deletedFile = await deleteFileFS(`/tmp/standalone${filepath}`);
+        return { status: deletedFile ? 200 : 400 };
+    } catch (error) {
+        return { status: 400 };
     }
-    return null;
 };

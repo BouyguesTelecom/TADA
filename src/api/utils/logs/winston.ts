@@ -1,5 +1,4 @@
 import winston, { createLogger, format, transports } from 'winston';
-import path from 'path';
 require('dotenv').config();
 const customLevels = {
     levels: {
@@ -36,11 +35,6 @@ const customLevels = {
 
 winston.addColors(customLevels.colors);
 
-const getLogFileName = (level: string) => {
-    const date = new Date().toISOString().split('T')[0];
-    return path.join(`./logs/${level}-${date}.log`);
-};
-
 const consoleJsonFormat = format.combine(
     format.timestamp(),
     format((info) => {
@@ -50,6 +44,7 @@ const consoleJsonFormat = format.combine(
     format.json()
 );
 winston.addColors(customLevels.colors);
+
 const consoleFormat = format.combine(
     format((info) => {
         info.message = `${customLevels.emojis[info.level] || ''}   ${info.message}`;
@@ -60,65 +55,11 @@ const consoleFormat = format.combine(
     format.printf((info) => `${info.timestamp} ${info.level}: ${info.message}`)
 );
 
-const fileJsonFormat = format.combine(
-    format.timestamp(),
-    format((info) => {
-        info.emoji = customLevels.emojis[info.level] || '';
-        return info;
-    })(),
-    format.json()
-);
-
-const levelFilter = (level: string) => {
-    return format((info) => {
-        return info.level === level ? info : false;
-    })();
-};
-
 export const logger = createLogger({
     levels: customLevels.levels,
     transports: [
         new transports.Console({
             format: process.env.DEV_ENV ? consoleFormat : consoleJsonFormat
-        }),
-        new transports.File({
-            filename: getLogFileName('job'),
-            level: 'jobInfo',
-            format: format.combine(levelFilter('jobInfo'), fileJsonFormat)
-        }),
-        new transports.File({
-            filename: getLogFileName('job'),
-            level: 'jobWarning',
-            format: format.combine(levelFilter('jobWarning'), fileJsonFormat)
-        }),
-        new transports.File({
-            filename: getLogFileName('job'),
-            level: 'jobError',
-            format: format.combine(levelFilter('jobError'), fileJsonFormat)
-        }),
-        new transports.File({
-            filename: getLogFileName('error'),
-            level: 'error',
-            format: format.combine(levelFilter('error'), fileJsonFormat)
-        }),
-        new transports.File({
-            filename: getLogFileName('info'),
-            level: 'info',
-            format: format.combine(levelFilter('info'), fileJsonFormat)
-        }),
-        new transports.File({
-            filename: getLogFileName('warning'),
-            level: 'warning',
-            format: format.combine(levelFilter('warning'), fileJsonFormat)
-        }),
-        new transports.File({
-            filename: getLogFileName('debug'),
-            level: 'debug',
-            format: format.combine(levelFilter('debug'), fileJsonFormat)
-        }),
-        new transports.File({
-            filename: getLogFileName('combined'),
-            format: fileJsonFormat
         })
     ]
 });

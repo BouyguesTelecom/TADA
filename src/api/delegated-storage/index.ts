@@ -2,10 +2,11 @@ import * as distantBackend from './distant-backend/utils';
 import * as s3 from './s3/utils';
 import * as standalone from './standalone';
 import { logger } from '../utils/logs/winston';
+import { BackupProps } from '../props/backup';
 
 export interface FilePathProps {
     filepath: string;
-    version?: any;
+    version?: string;
     mimetype?: string;
     headers?: any;
 }
@@ -15,9 +16,9 @@ export interface FileProps extends FilePathProps {
 }
 
 export const getLastDump = async () => {
-    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'DISTANT_BACKEND';
-    logger.info(`GET DUMP from backup storage using ${ backupStorageMethod } method...`);
-    switch ( backupStorageMethod ) {
+    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    logger.info(`GET DUMP from backup storage using ${backupStorageMethod} method...`);
+    switch (backupStorageMethod) {
         case 'DISTANT_BACKEND':
             return await distantBackend.getLastDump();
         case 'S3':
@@ -27,12 +28,10 @@ export const getLastDump = async () => {
     }
 };
 
-export const getFileBackup = async ({ filepath, version, mimetype }: FilePathProps) => {
-    const backupStorageMethod = process.env.STANDALONE ?
-        'STANDALONE' :
-        process.env.DELEGATED_STORAGE_METHOD ?? 'DISTANT_BACKEND';
-    logger.info(`GET file from backup storage using ${ backupStorageMethod } method...`);
-    switch ( backupStorageMethod ) {
+export const getFileBackup = async ({ filepath, version, mimetype }: FilePathProps): Promise<BackupProps> => {
+    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    logger.info(`GET file from backup storage using ${backupStorageMethod} method...`);
+    switch (backupStorageMethod) {
         case 'DISTANT_BACKEND':
             return await distantBackend.getFile({
                 filepath,
@@ -42,11 +41,7 @@ export const getFileBackup = async ({ filepath, version, mimetype }: FilePathPro
         case 'S3':
             return await s3.getFile({ filename: filepath, version, mimetype });
         case 'STANDALONE':
-            return await standalone.getFile({
-                filepath,
-                version,
-                mimetype
-            });
+            return await standalone.getFile({ filepath });
         default:
             return await distantBackend.getFile({
                 filepath,
@@ -56,12 +51,10 @@ export const getFileBackup = async ({ filepath, version, mimetype }: FilePathPro
     }
 };
 
-export const generateStreamBackup = async ({ filepath, file, version, mimetype, headers = {} }: FileProps) => {
-    const backupStorageMethod = process.env.STANDALONE ?
-        'STANDALONE' :
-        process.env.DELEGATED_STORAGE_METHOD ?? 'DISTANT_BACKEND';
-    logger.info(`Uploading file to backup storage using ${ backupStorageMethod } method...`);
-    switch ( backupStorageMethod ) {
+export const generateStreamBackup = async ({ filepath, file, version, mimetype, headers = null }: FileProps) => {
+    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    logger.info(`Uploading file to backup storage using ${backupStorageMethod} method...`);
+    switch (backupStorageMethod) {
         case 'DISTANT_BACKEND':
             return await distantBackend.uploads({
                 filepath,
@@ -73,11 +66,7 @@ export const generateStreamBackup = async ({ filepath, file, version, mimetype, 
         case 'S3':
             return await s3.uploads({ filename: filepath, file });
         case 'STANDALONE':
-            return await standalone.uploads({
-                filepath,
-                version,
-                mimetype
-            });
+            return await standalone.uploads({ filepath, file });
         default:
             return await distantBackend.uploads({
                 filepath,
@@ -89,12 +78,10 @@ export const generateStreamBackup = async ({ filepath, file, version, mimetype, 
     }
 };
 
-export const updateFileBackup = async ({ filepath, file, version, mimetype, headers = {} }: FileProps) => {
-    const backupStorageMethod = process.env.STANDALONE ?
-        'STANDALONE' :
-        process.env.DELEGATED_STORAGE_METHOD ?? 'DISTANT_BACKEND';
-    logger.info(`Updating file from backup storage using ${ backupStorageMethod } method...`);
-    switch ( backupStorageMethod ) {
+export const updateFileBackup = async ({ filepath, file, version, mimetype, headers = {} }: FileProps): Promise<BackupProps> => {
+    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    logger.info(`Updating file from backup storage using ${backupStorageMethod} method...`);
+    switch (backupStorageMethod) {
         case 'DISTANT_BACKEND':
             return await distantBackend.update({
                 filepath,
@@ -106,11 +93,7 @@ export const updateFileBackup = async ({ filepath, file, version, mimetype, head
         case 'S3':
             return await s3.update({ filename: filepath, file });
         case 'STANDALONE':
-            return await standalone.update({
-                filepath,
-                version,
-                mimetype
-            });
+            return await standalone.update({ filepath, file });
         default:
             return await distantBackend.update({
                 filepath,
@@ -122,12 +105,10 @@ export const updateFileBackup = async ({ filepath, file, version, mimetype, head
     }
 };
 
-export const deleteFileBackup = async ({ filepath, version, mimetype, headers = {} }: FilePathProps) => {
-    const backupStorageMethod = process.env.STANDALONE ?
-        'STANDALONE' :
-        process.env.DELEGATED_STORAGE_METHOD ?? 'DISTANT_BACKEND';
+export const deleteFileBackup = async ({ filepath, version, mimetype, headers = {} }: FilePathProps): Promise<BackupProps> => {
+    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
     logger.info(`Delete file from backup storage using ${backupStorageMethod} method...`);
-    switch ( backupStorageMethod ) {
+    switch (backupStorageMethod) {
         case 'DISTANT_BACKEND':
             return await distantBackend.deleteFile({
                 filepath,
@@ -138,11 +119,7 @@ export const deleteFileBackup = async ({ filepath, version, mimetype, headers = 
         case 'S3':
             return await s3.deleteFile({ filename: filepath });
         case 'STANDALONE':
-            return await standalone.deleteFile({
-                filepath,
-                version,
-                mimetype
-            });
+            return await standalone.deleteFile({ filepath });
         default:
             return await distantBackend.deleteFile({
                 filepath,

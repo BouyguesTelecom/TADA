@@ -6,7 +6,7 @@ import { generateFileInfo } from '../middleware/validators/oneFileValidators';
 import app from '../app';
 import FormData from 'form-data';
 import fetch from 'node-fetch';
-import { catalogHandler } from '../objects/catalog';
+import { addCatalogItem, deleteCatalogItem, updateCatalogItem } from '../catalog';
 
 export const postAssets = async (req: Request, res: Response) => {
     const { validFiles, invalidFiles } = res.locals;
@@ -28,9 +28,9 @@ export const postAssets = async (req: Request, res: Response) => {
                     file.size
                 );
 
-                const { status, message, data: catalogItem } = await catalogHandler.addItem(newItem);
+                const { status, error: errorCatalog, datum: catalogItem } = await addCatalogItem(newItem);
                 if (status !== 200) {
-                    errors.push(message);
+                    errors.push(errorCatalog);
                 }
                 if (catalogItem) {
                     const form = new FormData();
@@ -39,19 +39,19 @@ export const postAssets = async (req: Request, res: Response) => {
                         contentType: file.mimetype
                     });
 
-                    const postBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/backup?filepath=${ newItem.unique_name }`, {
+                    const postBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${newItem.unique_name}`, {
                         method: 'POST',
                         body: form
                     });
 
                     if (postBackupFile.status !== 200) {
-                        await catalogHandler.deleteItem(newItem.unique_name);
+                        await deleteCatalogItem(newItem.unique_name);
                         errors.push('Failed to upload in backup');
                     }
                 }
-                return { data: [ ...data, catalogItem ], errors };
+                return { data: [...data, catalogItem], errors };
             }
-            return { data, errors: [ ...errors, file ] };
+            return { data, errors: [...errors, file] };
         },
         Promise.resolve({ data: [], errors: invalidFiles })
     );
@@ -72,15 +72,15 @@ export const patchAssets = async (req: Request, res: Response) => {
                         filename: file.catalogItem.unique_name,
                         contentType: file.mimetype
                     });
-                    const patchBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/backup?filepath=${ file.catalogItem.unique_name }`, {
+                    const patchBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${file.catalogItem.unique_name}`, {
                         method: 'PATCH',
                         body: form
                     });
                     if (patchBackupFile.status !== 200) {
-                        await catalogHandler.deleteItem(file.catalogItem.unique_name);
+                        await deleteCatalogItem(file.catalogItem.unique_name);
                         return {
                             data,
-                            errors: [ ...errors, 'Failed to upload in backup' ]
+                            errors: [...errors, 'Failed to upload in backup']
                         };
                     }
                     signature = calculateSHA256(stream);
@@ -88,18 +88,18 @@ export const patchAssets = async (req: Request, res: Response) => {
             }
             const fileInfo = generateFileInfo(req.body);
             const version = req.files ? file.catalogItem.version + 1 : file.catalogItem.version;
-            const updatedItem = await catalogHandler.updateItem(file.uuid, {
+            const updatedItem = await updateCatalogItem(file.uuid, {
                 ...file.catalogItem,
                 ...file.fileInfo,
                 ...fileInfo,
                 version,
-                ...( signature && { signature } ),
-                ...( file && { size: file.size } )
+                ...(signature && { signature }),
+                ...(file && { size: file.size })
             });
-            if (updatedItem.data) {
-                return { data: [ ...data, updatedItem.data ], errors };
+            if (updatedItem.datum) {
+                return { data: [...data, updatedItem.datum], errors };
             }
-            return { data, errors: [ ...errors, updatedItem.error ] };
+            return { data, errors: [...errors, updatedItem.error] };
         },
         Promise.resolve({ data: [], errors: invalidFiles })
     );
@@ -112,7 +112,7 @@ export const deleteAssets = async (req: Request, res: Response) => {
     const { data, errors } = await validFiles.reduce(
         async (accumulator, file) => {
             const { data, errors } = await accumulator;
-            const { status } = await catalogHandler.deleteItem(file.catalogItem.unique_name);
+            const { status } = await deleteCatalogItem(file.catalogItem.unique_name);
             if (status !== 200) {
                 return {
                     data,
@@ -126,9 +126,9 @@ export const deleteAssets = async (req: Request, res: Response) => {
                 };
             }
 
-            const deleteBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/backup?filepath=${ file.catalogItem.unique_name }`, { method: 'DELETE' });
+            const deleteBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${file.catalogItem.unique_name}`, { method: 'DELETE' });
             if (deleteBackupFile.status !== 200) {
-                await catalogHandler.deleteItem(file.catalogItem.unique_name);
+                await deleteCatalogItem(file.catalogItem.unique_name);
                 return {
                     data,
                     errors: [

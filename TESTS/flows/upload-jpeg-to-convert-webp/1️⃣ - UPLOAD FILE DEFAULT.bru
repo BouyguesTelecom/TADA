@@ -51,13 +51,7 @@ script:pre-request {
         const srcFile = path.join(src, file);
         const destFile = path.join(dest, file);
   
-        fs.copyFile(srcFile, destFile, err => {
-          if (err) {
-            console.error('Error copying file:', err);
-          } else {
-            console.log(`Copied ${srcFile} to ${destFile}`);
-          }
-        });
+        fs.copyFile(srcFile, destFile, ()=>{});
       });
     });
   };

@@ -1,11 +1,9 @@
-import { FileProps } from './types';
-import { v4 as uuidv4 } from 'uuid';
-import { filePathIsUnique, validateMultipleFile, validateOneFile } from './validators';
-import { logger } from '../logs/winston';
-import { connectClient, disconnectClient } from './connection';
-import { redisClient } from './connection';
+import { FileProps, ICatalogResponse } from '../../props/catalog';
+import { filePathIsUnique, validateMultipleFile, validateOneFile } from '../validators';
+import { logger } from '../../utils/logs/winston';
+import { redisHandler } from './connection';
 import app from '../../app';
-import { catalogHandler } from '../../objects/catalog';
+
 const parseDateVersion = (name: string): Date => {
     const prefix = `${app.locals.PREFIXED_CATALOG}/`;
     const suffix = '.json';
@@ -33,28 +31,28 @@ const parseDateVersion = (name: string): Date => {
 
 export const getOneFile = async (id: string) => {
     try {
-        const file = await redisClient.get(id);
+        const file = await redisHandler.getAsync(id);
         return {
-            data: file ? JSON.parse(file) : null,
-            errors: null
+            datum: file ? JSON.parse(file) : null,
+            error: null
         };
     } catch (err) {
         logger.error(`Error getting file: ${err}`);
         return {
-            data: null,
-            errors: err
+            datum: null,
+            error: err
         };
     }
 };
 
 export const getAllFiles = async () => {
     try {
-        const ids = await redisClient.keys('*');
+        const ids = await redisHandler.keysAsync('*');
         const files = [];
 
         if (ids && ids.length) {
             for (let id of ids) {
-                const file = await redisClient.get(id);
+                const file = await redisHandler.getAsync(id);
                 if (file) {
                     files.push(JSON.parse(file));
                 }
@@ -68,7 +66,7 @@ export const getAllFiles = async () => {
         logger.error(`Error listing items: ${err}`);
         return {
             data: null,
-            errors: err
+            errors: [err]
         };
     }
 };
@@ -77,34 +75,34 @@ export const addOneFile = async (file: FileProps) => {
     try {
         if (!(await filePathIsUnique(file))) {
             return {
-                data: null,
-                errors: `${file.filename} already exists in namespace ${file.namespace}`
+                datum: null,
+                error: `${file.filename} already exists in namespace ${file.namespace}`
             };
         }
         const errorValidation = validateOneFile(file);
         if (!errorValidation) {
-            await redisClient.set(file.uuid, JSON.stringify({ ...file }));
+            await redisHandler.setAsync(file.uuid, JSON.stringify({ ...file }));
             const uploadedFile = await getOneFile(file.uuid);
-            if (uploadedFile.data) {
+            if (uploadedFile.datum) {
                 return {
-                    data: uploadedFile.data,
-                    errors: ''
+                    datum: uploadedFile.datum,
+                    error: ''
                 };
             }
             return {
-                data: null,
-                errors: [`Unable to retrieve file with id ${file.uuid} after adding it...`]
+                datum: null,
+                error: `Unable to retrieve file with id ${file.uuid} after adding it...`
             };
         }
         return {
-            data: null,
-            errors: [`File for catalog not valid : ${JSON.stringify(errorValidation)}`]
+            datum: null,
+            error: `File for catalog not valid : ${JSON.stringify(errorValidation)}`
         };
     } catch (err) {
         logger.error(`Error adding item: ${err}`);
         return {
-            data: null,
-            errors: err
+            datum: null,
+            error: err
         };
     }
 };
@@ -113,18 +111,16 @@ export const addMultipleFiles = async (files: FileProps[]) => {
     try {
         const errorValidation = validateMultipleFile(files);
         if (!errorValidation) {
-            await connectClient();
             const successfulUploadFiles: FileProps[] = [];
             const failedUploadFiles: string[] = [];
             for (let file of files) {
                 const response = await addOneFile(file);
-                if (response.data && !response.errors) {
-                    successfulUploadFiles.push(response.data);
+                if (response.datum && !response.error) {
+                    successfulUploadFiles.push(response.datum);
                 } else {
-                    failedUploadFiles.push(response.errors);
+                    failedUploadFiles.push(response.error);
                 }
             }
-            await disconnectClient();
             return {
                 data: successfulUploadFiles,
                 errors: failedUploadFiles.length ? failedUploadFiles : null
@@ -138,37 +134,37 @@ export const addMultipleFiles = async (files: FileProps[]) => {
         logger.error(`Error adding items: ${err}`);
         return {
             data: null,
-            errors: err
+            errors: [err]
         };
     }
 };
 
-export const updateOneFile = async (fileId: string, updateData: Partial<FileProps>): Promise<{ data?: FileProps; errors?: string[] }> => {
+export const updateOneFile = async (fileId: string, updateData: Partial<FileProps>): Promise<ICatalogResponse> => {
     try {
-        const existingFile = await redisClient.get(fileId);
+        const existingFile = await redisHandler.getAsync(fileId);
         if (!existingFile) {
-            return { errors: [`File with id ${fileId} does not exist`] };
+            return { error: `File with id ${fileId} does not exist`, datum: null };
         }
 
         const parsedExistingFile = JSON.parse(existingFile);
 
         const updatedFile = { ...parsedExistingFile, ...updateData };
 
-        await redisClient.set(fileId, JSON.stringify(updatedFile));
+        await redisHandler.setAsync(`${fileId}`, JSON.stringify(updatedFile));
 
-        return { data: updatedFile };
+        return { datum: updatedFile, error: null };
     } catch (err) {
-        return { errors: [err.message] };
+        return { error: err.message, datum: null };
     }
 };
 
 export const deleteOneFile = async (id: string): Promise<{ data?: string[]; errors?: string[] }> => {
     try {
-        const existingFile = await redisClient.get(id);
+        const existingFile = await redisHandler.getAsync(id);
         if (!existingFile) {
             return { errors: [`File with id ${id} does not exist`] };
         }
-        await redisClient.del(id);
+        await redisHandler.delAsync(id);
 
         return { data: [`File with id ${id} successfully deleted`] };
     } catch (err) {
@@ -185,8 +181,6 @@ export const getLastVersion = (list) => {
 };
 
 export const getCatalog = async () => {
-    await connectClient();
     const catalog = await getAllFiles();
-    await disconnectClient();
     return catalog || { data: null };
 };

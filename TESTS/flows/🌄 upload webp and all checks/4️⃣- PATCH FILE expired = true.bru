@@ -30,7 +30,7 @@ body:multipart-form {
 }
 
 vars:post-response {
-  PATCH_PUBLIC_URL: res.body?.data[0]?.public_url
+  PATCH_PUBLIC_URL: "{{URL_API}}" + res.body?.data[0]?.base_url + '/full'+res.body?.data[0]?.unique_name
 }
 
 assert {

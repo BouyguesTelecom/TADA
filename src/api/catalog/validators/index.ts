@@ -1,8 +1,7 @@
 import * as Joi from 'joi';
-import { FileProps } from './types';
-import { logger } from '../logs/winston';
-
-import { getAllFiles } from './operations';
+import { FileProps } from '../../props/catalog';
+import { logger } from '../../utils/logs/winston';
+import { getCatalog } from '../index';
 
 const fileSchema = Joi.object({
     filename: Joi.string().required(),
@@ -27,26 +26,42 @@ const fileSchema = Joi.object({
 
 interface ValidateSchemaProps {
     schema: Joi.ObjectSchema | Joi.ArraySchema;
-    body: any;
+    body: unknown;
 }
 
-const _validateSchema = ({ schema, body }: ValidateSchemaProps) => {
+interface ValidationErrorDetail {
+    message: string;
+    path: (string | number)[];
+    type: string;
+    context?: {
+        key?: string;
+        label?: string;
+        [key: string]: any;
+    };
+}
+
+const validateSchema = ({ schema, body }: ValidateSchemaProps) => {
     return schema.validate(body, { abortEarly: false });
 };
 
-export const validateOneFile = (body: any) => {
-    const { error } = _validateSchema({ schema: fileSchema, body });
+export const validateOneFile = (body: unknown): ValidationErrorDetail[] | null => {
+    const { error } = validateSchema({ schema: fileSchema, body });
     return error ? error.details : null;
 };
 
-export const validateMultipleFile = (body: any) => {
+export const validateMultipleFile = (body: unknown): ValidationErrorDetail[] | null => {
     const filesArraySchema = Joi.array().items(fileSchema);
-    const { error } = _validateSchema({ schema: filesArraySchema, body });
+    const { error } = validateSchema({ schema: filesArraySchema, body });
     return error ? error.details : null;
 };
 
-export const filePathIsUnique = async (file: FileProps) => {
-    const response = await getAllFiles();
+interface CatalogResponse {
+    data: FileProps[] | null;
+    errors: string[] | null;
+}
+
+export const filePathIsUnique = async (file: FileProps): Promise<boolean> => {
+    const response: CatalogResponse = await getCatalog();
     if (response.data && !response.errors) {
         const allFilesInNamespace: FileProps[] = response.data.filter((f: FileProps) => f.namespace === file.namespace);
         const fileExists = allFilesInNamespace.find((f: FileProps) => f.unique_name === file.unique_name);
