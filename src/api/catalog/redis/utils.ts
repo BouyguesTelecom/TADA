@@ -142,7 +142,7 @@ export const createDump = async (): Promise<{ status: number; data: string[]; er
         };
     }
     if (fileVersion) {
-        const postBackupFileJson = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${filePath}`, {
+        const postBackupFileJson = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${filePath}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(catalog)

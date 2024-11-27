@@ -1,18 +1,18 @@
 import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { Router } from 'express';
-import { getBackup, patchBackup, postBackup, deleteBackup, getBackupDump } from '../controllers/backup.controller';
+import { getBackup, patchBackup, postBackup, deleteBackup, getBackupDump } from '../controllers/delegated-storage.controller';
 import { validatorFile } from '../middleware/validators/oneFileValidators';
 
 const router = Router();
 
-router.get(`/backup/get-last-dump`, rateLimitMiddleware, getBackupDump);
+router.get(`/delegated-storage/get-last-dump`, rateLimitMiddleware, getBackupDump);
 
-router.get(`/backup`, rateLimitMiddleware, getBackup);
+router.get(`/delegated-storage`, rateLimitMiddleware, getBackup);
 
-router.post(`/backup`, [rateLimitMiddleware, validatorFile], postBackup);
+router.post(`/delegated-storage`, [rateLimitMiddleware, validatorFile], postBackup);
 
-router.patch(`/backup`, [rateLimitMiddleware, validatorFile], patchBackup);
+router.patch(`/delegated-storage`, [rateLimitMiddleware, validatorFile], patchBackup);
 
-router.delete(`/backup`, rateLimitMiddleware, deleteBackup);
+router.delete(`/delegated-storage`, rateLimitMiddleware, deleteBackup);
 
 export { router };

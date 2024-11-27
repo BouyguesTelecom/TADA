@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { getLastDump, deleteFileBackup, getFileBackup, updateFileBackup, generateStreamBackup } from '../delegated-storage/index';
 import fs from 'fs';
-import { BackupProps } from '../props/backup';
+import { BackupProps } from '../props/delegated-storage';
 
 const filePath = (filePath) => {
     return filePath.includes('.json') && filePath.includes('catalog/') ? `${process.env.DUMP_FOLDER_PATH}/${filePath}` : `/${filePath}`;

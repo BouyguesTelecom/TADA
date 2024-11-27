@@ -1,5 +1,5 @@
 import fetch, { Headers } from 'node-fetch';
-import { BackupProps } from '../../props/backup';
+import { BackupProps } from '../../props/delegated-storage';
 import { logger } from '../../utils/logs/winston';
 import { addCatalogItems } from '../../catalog';
 

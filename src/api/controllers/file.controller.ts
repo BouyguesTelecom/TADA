@@ -42,7 +42,7 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
     const fileIsExpired = isExpired(file);
 
     if (!fileIsExpired) {
-        const getBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${uniqueName}&version=${file.version}&mimetype=${file.mimetype}`);
+        const getBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${uniqueName}&version=${file.version}&mimetype=${file.mimetype}`);
 
         if (getBackupFile.status !== 200) {
             if (getBackupFile.status !== 429) {
@@ -132,7 +132,7 @@ export const postAsset = async (req: Request, res: Response) => {
             const form = new FormData();
             form.append('file', stream, { filename: uniqueName, contentType: file.mimetype });
             try {
-                const postBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${uniqueName}&version=1&mimetype=${file.mimetype}`, {
+                const postBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${uniqueName}&version=1&mimetype=${file.mimetype}`, {
                     method: 'POST',
                     body: form
                 });
@@ -184,7 +184,7 @@ export const patchAsset = async (req: Request, res: Response) => {
                 contentType: file.mimetype
             });
 
-            const patchBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${itemToUpdate.unique_name}&version=${itemToUpdate.version}&mimetype=${itemToUpdate.mimetype}`, {
+            const patchBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${itemToUpdate.unique_name}&version=${itemToUpdate.version}&mimetype=${itemToUpdate.mimetype}`, {
                 method: 'PATCH',
                 body: form
             });
@@ -217,7 +217,7 @@ export const deleteAsset = async (req: Request, res: Response) => {
         });
     }
 
-    const deleteBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${itemToUpdate.unique_name}&version=${itemToUpdate.version}&mimetype=${itemToUpdate.mimetype}`, {
+    const deleteBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${itemToUpdate.unique_name}&version=${itemToUpdate.version}&mimetype=${itemToUpdate.mimetype}`, {
         method: 'DELETE'
     });
 
