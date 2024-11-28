@@ -105,7 +105,7 @@ run-tests:
 	fi
 	@echo "Running tests with bru..."
 	@sleep 5;
-	@cd "$(PROJECT_ROOT)/TESTS" && bru run flows/ --env K8S -r --bail;
+	@cd "$(PROJECT_ROOT)/tests" && bru run flows/ --env K8S -r --bail;
 	TESTS_EXIT_CODE=$$?; \
 	if [ $$TESTS_EXIT_CODE -ne 0 ]; then \
 		echo "Tests failed. Aborting."; \

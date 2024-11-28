@@ -1,6 +1,6 @@
 {
     "version": "1",
-    "name": "TESTS",
+    "name": "tests",
     "type": "collection",
     "ignore": ["node_modules", ".git"],
     "scripts": {
