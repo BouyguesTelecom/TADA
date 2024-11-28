@@ -19,7 +19,7 @@ export const validatorFilesFilter = async (req: Request, res: Response, next: Ne
                 const { validFiles, invalidFiles } = acc;
                 const uuid = uuids && uuids.split(',')[index];
 
-                const mimeTypeIsAllowed = allowedMimetypes.includes(file.mimetype);
+                const mimeTypeIsAllowed = allowedMimetypes.length ? allowedMimetypes.includes(file.mimetype) : true;
                 const errorFileName = isFileNameInvalid(file);
 
                 if (errorFileName || !mimeTypeIsAllowed) {

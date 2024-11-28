@@ -9,7 +9,7 @@ require('dotenv').config();
 
 const corsOptions: cors.CorsOptions = {
     origin: '*',
-    methods: process.env.METHODS_ALLOWED.split(',')
+    methods: process.env.METHODS_ALLOWED ? process.env.METHODS_ALLOWED.split(',') : '*'
 };
 
 const app = express();

@@ -24,16 +24,3 @@ export const isFileNameInvalid = (file) => {
     if (!allowedCharsRegex.test(fileNameSplitted[0])) return 'Filename contains forbidden chars.';
     return false;
 };
-
-export const fileFilter = (_req, file, callback) => {
-    const allowedMimetypes = process.env.VALID_MIMETYPES?.split(',');
-    const mimeTypeIsAllowed = allowedMimetypes.includes(file.mimetype);
-    const errorFileName = isFileNameInvalid(file);
-
-    if (mimeTypeIsAllowed && !errorFileName) {
-        callback(null, true);
-    } else {
-        file.message = mimeTypeIsAllowed ? errorFileName : `File type ${file.mimetype} unauthorized.`;
-        callback(null, true);
-    }
-};

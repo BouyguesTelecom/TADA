@@ -14,16 +14,7 @@ x-environment-variables:
 
     DEV_ENV: true
   
-  # GLOUTON API:
-  # DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
-  # DELEGATED_STORAGE_READINESS_CHECK: /readiness-check
-  # DELEGATED_STORAGE_GET_PATH: 
-  # DELEGATED_STORAGE_POST_PATH: 
-  # DELEGATED_STORAGE_PUT_PATH: 
-  # DELEGATED_STORAGE_DELETE_PATH: 
-  # DELEGATED_STORAGE_TOKEN: NinjaDesIles
-  
-  # S3 BACKUP :
+    # S3 BACKUP :
     DELEGATED_STORAGE_READINESS_CHECK: /minio/health/live
     DELEGATED_STORAGE_HOST: http://localhost:9000
 
@@ -96,7 +87,6 @@ services:
             - redis_net
         volumes:
             - ./local/redis/dumps:/dumps
-            - ./local/logs:/logs
         environment:
             <<: *default-environment
             THUMBOR_SERVICE: http://thumbor:8888
@@ -139,8 +129,6 @@ services:
             - 3006:3006
         networks:
             - media_network
-        volumes:
-            - ./local/logs:/logs
         depends_on:
             images-provider:
                 condition: service_healthy
@@ -157,8 +145,6 @@ volumes:
     pv-minio:
     minio:
         driver: local
-    caddy_data:
-    caddy_config:
 
 networks:
     redis_net:

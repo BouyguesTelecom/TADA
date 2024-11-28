@@ -78,7 +78,7 @@ export const validatorFileFilter = async (req: Request, res: Response, next: Nex
     const fileFromMulter = req.file;
     if (fileFromMulter) {
         const allowedMimetypes = process.env.VALID_MIMETYPES?.split(',');
-        const mimeTypeIsAllowed = allowedMimetypes.includes(fileFromMulter.mimetype);
+        const mimeTypeIsAllowed = allowedMimetypes.length ? allowedMimetypes.includes(fileFromMulter.mimetype) : true;
         const errorFileName = isFileNameInvalid(fileFromMulter);
 
         if (errorFileName || !mimeTypeIsAllowed) {
