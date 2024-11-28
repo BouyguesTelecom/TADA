@@ -1,0 +1,16 @@
+meta {
+  name: 3 - GET FILE
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{IMAGE_URL}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: in [200,404]
+  res.headers['content-type']: in [undefined, text/html; charset=UTF-8,image/webp]
+}

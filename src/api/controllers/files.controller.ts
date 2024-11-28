@@ -39,7 +39,7 @@ export const postAssets = async (req: Request, res: Response) => {
                         contentType: file.mimetype
                     });
 
-                    const postBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${newItem.unique_name}`, {
+                    const postBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${newItem.unique_name}`, {
                         method: 'POST',
                         body: form
                     });
@@ -72,7 +72,7 @@ export const patchAssets = async (req: Request, res: Response) => {
                         filename: file.catalogItem.unique_name,
                         contentType: file.mimetype
                     });
-                    const patchBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${file.catalogItem.unique_name}`, {
+                    const patchBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${file.catalogItem.unique_name}`, {
                         method: 'PATCH',
                         body: form
                     });
@@ -126,7 +126,7 @@ export const deleteAssets = async (req: Request, res: Response) => {
                 };
             }
 
-            const deleteBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/backup?filepath=${file.catalogItem.unique_name}`, { method: 'DELETE' });
+            const deleteBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${file.catalogItem.unique_name}`, { method: 'DELETE' });
             if (deleteBackupFile.status !== 200) {
                 await deleteCatalogItem(file.catalogItem.unique_name);
                 return {

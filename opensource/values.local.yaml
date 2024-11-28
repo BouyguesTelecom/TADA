@@ -60,10 +60,10 @@ mediaProvider:
         catalog:
             get: '/catalog'
         delegatedStorage:
-            get: '/backup'
-            post: '/backup'
-            patch: '/backup'
-            delete: '/backup'
+            get: '/delegated-storage'
+            post: '/delegated-storage'
+            patch: '/delegated-storage'
+            delete: '/delegated-storage'
     payloadMaxSize: '10mb'
     rateLimit:
         windowMs: 30000

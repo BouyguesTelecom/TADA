@@ -1,4 +1,4 @@
-import { BackupProps } from '../../props/backup';
+import { BackupProps } from '../../props/delegated-storage';
 import fs from 'fs';
 import { createFolder, removeLastPartPath, writeFileInPV } from './utils';
 import { deleteFile as deleteFileFS } from './utils';

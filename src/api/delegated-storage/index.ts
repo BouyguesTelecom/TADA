@@ -2,7 +2,7 @@ import * as distantBackend from './distant-backend/utils';
 import * as s3 from './s3/utils';
 import * as standalone from './standalone';
 import { logger } from '../utils/logs/winston';
-import { BackupProps } from '../props/backup';
+import { BackupProps } from '../props/delegated-storage';
 
 export interface FilePathProps {
     filepath: string;
