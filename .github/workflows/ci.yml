@@ -21,14 +21,14 @@ jobs:
       -   name: Run docker-compose
           uses: hoverkraft-tech/compose-action@v2.0.1
           with:
-            compose-file: "./docker-compose.yml"
+            compose-file: "./docker-compose.dev.yml"
       -   name: Copy tmp/images for tests
           run: |
             cp -r local/images /tmp/images
           continue-on-error: false
       -   name: Run Tests
           run: |
-            cd ${{ github.workspace }}/TESTS
+            cd ${{ github.workspace }}/tests
             bru run flows/ --env LOCAL -r --bail
           continue-on-error: false
 

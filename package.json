@@ -1,17 +1,11 @@
 {
-    "devDependencies": {
-        "@types/crypto-js": "^4.2.2",
-        "@types/jest": "^29.5.13",
-        "@types/supertest": "^6.0.2"
+    "scripts": {
+        "format": "prettier --write .",
+        "dev:api": "cd src/api && npm run dev",
+        "docker:dev": "docker compose -f docker-compose.dev.yml up --build -d",
+        "docker": "docker compose up --build -d"
     },
     "dependencies": {
-        "crypto-js": "^4.2.0",
-        "dotenv": "^16.4.5",
-        "prettier": "^3.3.3"
-    },
-    "scripts": {
-        "update-local-bru": "node local/update-local-bru.js",
-        "format": "prettier --write .",
-        "build": "tsc"
+        "prettier": "^3.4.1"
     }
 }
