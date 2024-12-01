@@ -25,9 +25,6 @@ jobs:
           run: |
             cp -r local/images /tmp/images
           continue-on-error: false
-      -   name: Cleanup Catalog
-          run: |
-            curl -X DELETE "http://localhost:3001/palpatine/catalog"
       -   name: Run Tests
           run: |
             cd ${{ github.workspace }}/tests
