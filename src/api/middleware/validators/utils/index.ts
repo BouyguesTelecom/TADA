@@ -5,13 +5,25 @@ import { logger } from '../../../utils/logs/winston';
 import { redisHandler } from '../../../catalog/redis/connection';
 
 export const purgeData = async (data) => {
+    const safeFetch = async (url) => {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                console.warn(`Warning: Fetch to ${ url } responded with status: ${ response.status }`);
+            }
+        } catch ( error ) {
+            console.warn(`Warning: Fetch to ${ url } failed: ${ error.message }`);
+        }
+    };
+
     if (data === 'catalog') {
-        await fetch(`${process.env.NGINX_SERVICE}/purge${process.env.API_PREFIX}/catalog`);
+        await safeFetch(`${ process.env.NGINX_SERVICE }/purge${ process.env.API_PREFIX }/catalog`);
     }
+
     if (data && data.length && typeof data[0] === 'object') {
-        for (const file of data) {
-            await fetch(`${process.env.NGINX_SERVICE}/purge${process.env.API_PREFIX}/assets/media/original${file.unique_name}`);
-            await fetch(`${process.env.NGINX_SERVICE}/purge${process.env.API_PREFIX}/assets/media/full${file.unique_name}`);
+        for ( const file of data ) {
+            await safeFetch(`${ process.env.NGINX_SERVICE }/purge${ process.env.API_PREFIX }/assets/media/original${ file.unique_name }`);
+            await safeFetch(`${ process.env.NGINX_SERVICE }/purge${ process.env.API_PREFIX }/assets/media/full${ file.unique_name }`);
         }
     }
 };
@@ -20,7 +32,7 @@ export const sendResponse = async ({ res, status, data = null, errors = null, pu
     if (purge !== 'false' && process.env.DELEGATED_STORAGE_METHOD !== 'STANDALONE') {
         await purgeData(purge === 'catalog' ? 'catalog' : data);
     }
-    console.debug('Sending response:', data, errors)
+    console.debug('Sending response:', data, errors);
     return res.status(status).json({ data, errors }).end();
 };
 
@@ -33,9 +45,9 @@ export const checkNamespace = ({ namespace }: NamespaceProps): boolean => {
 
 export const checkMissingParam = ({ requiredParams, params }: MissingParamsProps) => {
     const errors = [];
-    for (const param of requiredParams) {
+    for ( const param of requiredParams ) {
         if (!params.hasOwnProperty(param)) {
-            errors.push(`${param} is required`);
+            errors.push(`${ param } is required`);
         }
     }
     return errors;
@@ -44,7 +56,11 @@ export const checkMissingParam = ({ requiredParams, params }: MissingParamsProps
 export const generateUniqueName = (file, body, namespace, toWebp) => {
     return (
         file &&
-        `/${namespace}/${body.destination ? `${body.destination}/` : ''}${toWebp && ['image/jpeg', 'image/png'].includes(file.mimetype) ? file.filename.split('.')[0] + '.webp' : file.filename}`
+        `/${ namespace }/${ body.destination ?
+            `${ body.destination }/` :
+            '' }${ toWebp && [ 'image/jpeg', 'image/png' ].includes(file.mimetype) ?
+            file.filename.split('.')[0] + '.webp' :
+            file.filename }`
     );
 };
 
@@ -52,7 +68,7 @@ export const fileIsTooLarge = async (file, params, method = 'POST') => {
     const { uuid, namespace } = params;
     if (file) {
         if (file.size > 10000000) {
-            const itemFound = method === 'PATCH' && (await findFileInCatalog(uuid, 'uuid'));
+            const itemFound = method === 'PATCH' && ( await findFileInCatalog(uuid, 'uuid') );
             return {
                 filename: file.filename,
                 size: file.size,
