@@ -32,7 +32,6 @@ export const sendResponse = async ({ res, status, data = null, errors = null, pu
     if (purge !== 'false' && process.env.DELEGATED_STORAGE_METHOD !== 'STANDALONE') {
         await purgeData(purge === 'catalog' ? 'catalog' : data);
     }
-    console.debug('Sending response:', data, errors);
     return res.status(status).json({ data, errors }).end();
 };
 

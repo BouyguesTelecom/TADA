@@ -60,7 +60,7 @@ const connectToRedisWithRetry = async (maxRetries, delay) => {
 const createStandaloneFolderAndCatalog = () => {
     if (!fs.readdirSync('/tmp/standalone')) {
         logger.info('Creating /tmp/standalone...');
-        fs.mkdirSync('/tmp/standalone');
+        fs.mkdirSync('/tmp/standalone', { recursive: true });
     }
     if (!fs.existsSync('/tmp/standalone/catalog.json')) {
         fs.writeFileSync('/tmp/standalone/catalog.json', JSON.stringify({ data: [] }));
