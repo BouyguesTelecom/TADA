@@ -7,7 +7,6 @@ on:
 
 env:
   IMAGE_NAME: bouyguestelecom/tada
-  CHART_PATH: ./opensource
 
 jobs:
   tests:
@@ -21,7 +20,7 @@ jobs:
       -   name: Run docker-compose
           uses: hoverkraft-tech/compose-action@v2.0.1
           with:
-            compose-file: "./docker-compose.yml"
+            compose-file: "./docker-compose.dev.yml"
       -   name: Copy tmp/images for tests
           run: |
             cp -r local/images /tmp/images
