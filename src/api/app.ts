@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { logger } from './utils/logs/winston';
 import { morganMiddleware } from './utils/logs/morgan';
+import { setupSwagger} from './swaggerConfig';
 
 require('dotenv').config();
 
@@ -19,6 +20,8 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: process.env.PAYLOAD_MAX_SIZE }));
 app.use(express.urlencoded({ limit: process.env.PAYLOAD_MAX_SIZE, extended: true }));
 app.use(morganMiddleware);
+
+setupSwagger(app);
 
 const API_PREFIX = process.env.API_PREFIX || '';
 
