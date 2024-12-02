@@ -5,6 +5,8 @@ import { deleteFile } from '../../utils/file';
 import { getUniqueName } from '../../utils';
 import { findFileInCatalog } from '../../utils/catalog';
 import { NextFunction, Request, Response } from 'express';
+import { logger } from '../../utils/logs/winston';
+import { redisHandler } from '../../catalog/redis/connection';
 
 export const validatorNamespace = async (req: Request, res: Response, next: NextFunction) => {
     const namespace = req.body.namespace;
@@ -73,10 +75,10 @@ export const validatorFile = multer({
 }).single('file');
 
 export const validatorFileFilter = async (req: Request, res: Response, next: NextFunction) => {
-    const fileFromMulter: any = req.file;
+    const fileFromMulter = req.file;
     if (fileFromMulter) {
         const allowedMimetypes = process.env.VALID_MIMETYPES?.split(',');
-        const mimeTypeIsAllowed = allowedMimetypes.includes(fileFromMulter.mimetype);
+        const mimeTypeIsAllowed = allowedMimetypes.length ? allowedMimetypes.includes(fileFromMulter.mimetype) : true;
         const errorFileName = isFileNameInvalid(fileFromMulter);
 
         if (errorFileName || !mimeTypeIsAllowed) {
@@ -144,12 +146,22 @@ export const validatorFileBody = async (req: Request, res: Response, next: NextF
 export const validatorGetAsset = async (req: Request, res: Response, next: NextFunction) => {
     const allowedNamespaces = process.env.NAMESPACES?.split(',');
     const uniqueName = getUniqueName(req.url, `/${req.params.format}`);
-    const file = await findFileInCatalog(uniqueName, 'unique_name');
+    let cleanUniqueName = uniqueName;
+
+    if (req.params.format === 'optimise') {
+        cleanUniqueName = uniqueName.replace(/\/[^/]+\//, '/');
+    }
+
+    const uniqueNameFinal = cleanUniqueName
+        .split('/')
+        .filter((item) => item.length > 0)
+        .join('/');
+    const file = await findFileInCatalog(`/${uniqueNameFinal}`, 'unique_name');
     const namespace = file?.namespace || null;
 
     if (!allowedNamespaces?.includes(namespace) || !file) {
         return res.status(404).end();
     }
-    res.locals = { ...res.locals, uniqueName, file };
+    res.locals = { ...res.locals, uniqueName: `/${uniqueNameFinal}`, file };
     next();
 };

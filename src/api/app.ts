@@ -9,7 +9,7 @@ require('dotenv').config();
 
 const corsOptions: cors.CorsOptions = {
     origin: '*',
-    methods: process.env.METHODS_ALLOWED.split(',')
+    methods: process.env.METHODS_ALLOWED ? process.env.METHODS_ALLOWED.split(',') : '*'
 };
 
 const app = express();
@@ -18,7 +18,7 @@ app.disable('x-powered-by');
 app.use(cors(corsOptions));
 app.use(express.json({ limit: process.env.PAYLOAD_MAX_SIZE }));
 app.use(express.urlencoded({ limit: process.env.PAYLOAD_MAX_SIZE, extended: true }));
-app.use(morganMiddleware)
+app.use(morganMiddleware);
 
 const API_PREFIX = process.env.API_PREFIX || '';
 

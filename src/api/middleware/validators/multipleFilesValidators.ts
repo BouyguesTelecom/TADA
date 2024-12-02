@@ -10,16 +10,16 @@ export const validatorFiles = multer({
 }).array('files');
 
 export const validatorFilesFilter = async (req: Request, res: Response, next: NextFunction) => {
-    const filesFromMulter: any = req.files;
+    const filesFromMulter = req.files;
     const { uuids } = res.locals;
     const allowedMimetypes = process.env.VALID_MIMETYPES?.split(',');
-    if (filesFromMulter) {
+    if (Array.isArray(filesFromMulter)) {
         const { validFiles, invalidFiles } = filesFromMulter.reduce(
             (acc, file, index) => {
                 const { validFiles, invalidFiles } = acc;
                 const uuid = uuids && uuids.split(',')[index];
 
-                const mimeTypeIsAllowed = allowedMimetypes.includes(file.mimetype);
+                const mimeTypeIsAllowed = allowedMimetypes.length ? allowedMimetypes.includes(file.mimetype) : true;
                 const errorFileName = isFileNameInvalid(file);
 
                 if (errorFileName || !mimeTypeIsAllowed) {
@@ -129,7 +129,7 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
                     ]
                 };
             }
-            const fileInfo: any = generateFileInfo(file, req.method);
+            const fileInfo: Object = generateFileInfo(file, req.method);
             if (!fileInfo && !req.files) {
                 return {
                     validFiles,

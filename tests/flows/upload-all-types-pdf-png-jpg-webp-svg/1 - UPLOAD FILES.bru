@@ -1,0 +1,36 @@
+meta {
+  name: 1 - UPLOAD FILES
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{URL_API}}{{URL_API_PREFIX}}/files
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_TOKEN}}
+}
+
+body:multipart-form {
+  namespace: DEV
+  destination: tests
+  files: @file(/tmp/images/test.pdf|/tmp/images/test.svg|/tmp/images/test.png|/tmp/images/jpg.jpg|/tmp/images/default.webp)
+  ~toWebp: false
+}
+
+vars:post-response {
+  PDF_ID: res.body.data[0].uuid
+  SVG_ID: res.body.data[1].uuid
+  PNG_ID: res.body.data[2].uuid
+  JPG_ID: res.body.data[3].uuid
+  WEBP_ID: res.body.data[4].uuid
+}
+
+assert {
+  res.body.data: length 5
+  res.body.errors: length 0
+  res.status: eq 200
+}

@@ -1,5 +1,5 @@
 {
-    "name": "backup-and-clean",
+    "name": "bouyguestelecom-backup-and-clean",
     "version": "1.0.0",
     "main": "server.js",
     "scripts": {
@@ -8,9 +8,8 @@
     },
     "dependencies": {
         "dotenv": "^16.4.5",
-        "node-fetch": "^2.7.0",
         "typescript": "^5",
-        "winston": "^3.17.0"
+        "winston": "^3.15.0"
     },
     "devDependencies": {
         "@types/node": "^20.11.2",

@@ -51,13 +51,13 @@ spec:
             - name: CATALOG_ROUTE
               value: "{{ default "/catalog" .Values.mediaProvider.routes.catalog.get }}"
             - name: DELEGATED_STORAGE_GET_ROUTE
-              value: "{{ default "/backup" .Values.mediaProvider.routes.delegatedStorage.get }}"
+              value: "{{ default "/delegated-storage" .Values.mediaProvider.routes.delegatedStorage.get }}"
             - name: DELEGATED_STORAGE_POST_ROUTE
-              value: "{{ default "/backup" .Values.mediaProvider.routes.delegatedStorage.post }}"
+              value: "{{ default "/delegated-storage" .Values.mediaProvider.routes.delegatedStorage.post }}"
             - name: DELEGATED_STORAGE_PATCH_ROUTE
-              value: "{{ default "/backup" .Values.mediaProvider.routes.delegatedStorage.patch }}"
+              value: "{{ default "/delegated-storage" .Values.mediaProvider.routes.delegatedStorage.patch }}"
             - name: DELEGATED_STORAGE_DELETE_ROUTE
-              value: "{{ default "/backup" .Values.mediaProvider.routes.delegatedStorage.delete }}"
+              value: "{{ default "/delegated-storage" .Values.mediaProvider.routes.delegatedStorage.delete }}"
 
             - name: PAYLOAD_MAX_SIZE
               value: "{{ default "10mb" .Values.mediaProvider.payloadMaxSize }}"
@@ -116,8 +116,8 @@ spec:
               value: "{{ default "" .Values.delegatedStorage.routes.get }}"
             - name: DELEGATED_STORAGE_POST_PATH
               value: "{{ default "" .Values.delegatedStorage.routes.post }}"
-            - name: DELEGATED_STORAGE_PUT_PATH
-              value: "{{ default "" .Values.delegatedStorage.routes.put }}"
+            - name: DELEGATED_STORAGE_PATCH_PATH
+              value: "{{ default "" .Values.delegatedStorage.routes.patch }}"
             - name: DELEGATED_STORAGE_DELETE_PATH
               value: "{{ default "" .Values.delegatedStorage.routes.delete }}"
             - name: DELEGATED_STORAGE_TOKEN

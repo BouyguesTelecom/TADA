@@ -1,0 +1,11 @@
+{
+    "version": "1",
+    "name": "tests",
+    "type": "collection",
+    "ignore": ["node_modules", ".git"],
+    "scripts": {
+        "filesystemAccess": {
+            "allow": true
+        }
+    }
+}

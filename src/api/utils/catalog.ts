@@ -1,8 +1,9 @@
-import { getCatalog } from './redis/operations';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import path from 'path';
 import app from '../app';
+import { getCatalog } from '../catalog';
+import { FileProps } from '../props/catalog';
 
 export const calculateSHA256 = (buffer: Buffer) => {
     return crypto.createHash('sha256').update(buffer).digest('hex');
@@ -22,10 +23,10 @@ export const getCurrentDateVersion = (): string => {
     return `${year}${month}${day}T${hours}${minutes}${seconds}`;
 };
 
-export const isExpired = (itemBody) => {
+export const isExpired = (itemBody: FileProps): boolean => {
     const currentDate = Date.now();
     const dateToCompare = itemBody.expiration_date && new Date(itemBody.expiration_date).getTime();
-    const expired = itemBody.expired === true || itemBody.expired === 'true' || (dateToCompare && !isNaN(dateToCompare) && dateToCompare <= currentDate);
+    const expired = itemBody.expired === true || (dateToCompare && !isNaN(dateToCompare) && dateToCompare <= currentDate);
     return expired;
 };
 
@@ -46,14 +47,14 @@ function getDestinationPath(finalPath, namespace) {
 }
 
 export const formatItemForCatalog = async (
-    fileInfo: any,
+    fileInfo: Object,
     resourceName: string,
     namespace: string,
     finalPath: string,
     folderPath: string | null,
     mimetype: string,
     toWebp: boolean,
-    signature: any,
+    signature: string,
     size: string
 ) => {
     const newUUID = await _generateUniqueUUIDcatalog();

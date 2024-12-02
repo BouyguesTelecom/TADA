@@ -1,6 +1,54 @@
 x-environment-variables:
   &default-environment
     API_PREFIX: "/palpatine"
+    DELEGATED_STORAGE_RATE_LIMIT: 5
+    DELEGATED_STORAGE_RATE_LIMIT_WINDOW: 30000
+    THUMBOR_SERVICE: http://localhost:8888
+    NGINX_SERVICE: http://host.docker.internal:8080
+    IMAGE_SERVICE: http://localhost:3001
+    NGINX_INGRESS: http://localhost:8080
+
+    VERSION: 0.0.1
+    NAMESPACES: CMS,FORMS,DEV
+    VALID_MIMETYPES: image/png,image/jpeg,application/pdf,image/jpg,image/webp,image/svg+xml
+
+    DEV_ENV: true
+  
+  # GLOUTON API:
+  # DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
+  # DELEGATED_STORAGE_READINESS_CHECK: /readiness-check
+  # DELEGATED_STORAGE_GET_PATH: 
+  # DELEGATED_STORAGE_POST_PATH: 
+  # DELEGATED_STORAGE_PUT_PATH: 
+  # DELEGATED_STORAGE_DELETE_PATH: 
+  # DELEGATED_STORAGE_TOKEN: NinjaDesIles
+  
+  # S3 BACKUP :
+    DELEGATED_STORAGE_READINESS_CHECK: /minio/health/live
+    DELEGATED_STORAGE_HOST: http://localhost:9000
+
+    DELEGATED_STORAGE_METHOD: S3
+
+    S3_ENDPOINT: localhost
+    S3_PORT: 9000
+    S3_ACCESS_KEY: minioadmin
+    S3_SECRET_KEY: minioadmin
+    S3_BUCKET_NAME: media
+
+    DUMP_FOLDER_PATH: /dumps
+    REDIS_SERVICE: localhost
+
+    HEALTHCHECK_ROUTE: /readiness-check
+
+    PAYLOAD_MAX_SIZE: "10mb"
+    BASE_TIMEOUT_MS: 1000
+
+    ORIGINS_ALLOWED: localhost,*
+    METHODS_ALLOWED: GET,POST
+
+    USE_STRIPMETADATA: true
+    TMP_FILES_PATH: './images'
+
 
 services:
     redis:
@@ -22,7 +70,6 @@ services:
             - redis_net
         depends_on:
             - redis
-
     minio:
         image: minio/minio
         ports:
@@ -36,11 +83,8 @@ services:
             - pv-minio:/data/minio
         networks:
             - media_network
-
     images-provider:
-        build:
-            context: src/api
-            dockerfile: Dockerfile.dev
+        image: bouyguestelecom/tada:api-1.2.6-main
         ports:
             - 3001:3001
         networks:
@@ -48,7 +92,6 @@ services:
             - redis_net
         volumes:
             - ./local/redis/dumps:/dumps
-            - ./local/logs:/logs
         environment:
             <<: *default-environment
             THUMBOR_SERVICE: http://thumbor:8888
@@ -86,19 +129,16 @@ services:
     job:
         build:
             context: src/
-            dockerfile: Dockerfile.dev
+            dockerfile: Dockerfile
         ports:
             - 3006:3006
         networks:
             - media_network
-        volumes:
-            - ./local/logs:/logs
         depends_on:
             images-provider:
                 condition: service_healthy
-        env_file:
-            - ./src/api/.env
         environment:
+            <<: *default-environment
             IMAGE_SERVICE: http://images-provider:3001
             API_SERVICE: http://images-provider:3001
             API_PREFIX: /palpatine
@@ -110,8 +150,6 @@ volumes:
     pv-minio:
     minio:
         driver: local
-    caddy_data:
-    caddy_config:
 
 networks:
     redis_net:

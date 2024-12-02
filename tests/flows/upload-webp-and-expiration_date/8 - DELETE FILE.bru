@@ -1,0 +1,25 @@
+meta {
+  name: 8 - DELETE FILE
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{URL_API}}{{URL_API_PREFIX}}/file/{{IMAGE_ID}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "namespace": "DEV"
+  }
+}
+
+assert {
+  res.status: eq 200
+}

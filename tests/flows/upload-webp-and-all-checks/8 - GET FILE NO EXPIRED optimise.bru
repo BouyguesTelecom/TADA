@@ -1,0 +1,15 @@
+meta {
+  name: 8 - GET FILE NO EXPIRED optimise
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{PATCH_PUBLIC_URL_NO_EXPIRED_OPTIMISE}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
