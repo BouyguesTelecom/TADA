@@ -5,7 +5,7 @@
  *   description: Single File management
  */
 
-import { validatorHeaders } from '../middleware/validators/index';
+import { validatorHeaders } from '../middleware/validators';
 import { validatorGetAsset, validatorFileFilter, validatorFileBody, validatorFileCatalog, validatorFileSize, validatorParams, validatorNamespace } from '../middleware/validators/oneFileValidators';
 import { validatorFile } from '../middleware/validators/oneFileValidators';
 import { Router } from 'express';
@@ -56,6 +56,8 @@ router.get(`/assets/media/:format/*`, [timeoutMiddleware, validatorGetAsset], ge
  *               file:
  *                 type: string
  *                 format: binary
+ *               toWebp:
+ *                  type: boolean
  *               destination:
  *                 type: string
  *               expiration_date:

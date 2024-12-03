@@ -5,7 +5,7 @@
  *   description: Multiple files management
  */
 
-import { validatorHeaders } from '../middleware/validators/index';
+import { validatorHeaders } from '../middleware/validators';
 import { validatorCatalog, validatorFiles, validatorFilesBody, validatorFilesFilter, validatorFilesSize, validatorUUIds } from '../middleware/validators/multipleFilesValidators';
 import { Router } from 'express';
 import { postAssets, patchAssets, deleteAssets } from '../controllers/files.controller';
@@ -35,11 +35,15 @@ router.use(redisConnectionMiddleware);
  *                 type: string
  *               files:
  *                 type: array
- *                 items:
- *                   type: string
- *                   format: binary
+ *                 format: binary
  *               toWebp:
- *                 type: boolean
+ *                  type: boolean
+ *               destination:
+ *                 type: string
+ *               expiration_date:
+ *                  type: date
+ *               information:
+ *                  type: string
  *     responses:
  *       200:
  *         description: Files successfully uploaded

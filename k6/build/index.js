@@ -81,7 +81,7 @@ function getAll() {
         headers: { 'Authorization': "Bearer ".concat(__ENV.BEARER_TOKEN), 'Content-Type': 'application/json' }
     };
     var res = http_1.default.get('http://localhost:3001/catalog', params);
-    console.log('Response: ', res.body);
+    console.log('Get Catalog Response: ', res.body);
     errorRate.add(res.status >= 400);
 }
 function getFile() {
@@ -106,7 +106,7 @@ function updateFile() {
     var url = "".concat(__ENV.URL_API, "/").concat(fileUUID);
     var params = { headers: { 'Authorization': "Bearer ".concat(__ENV.BEARER_TOKEN), 'Content-Type': 'application/json' } };
     var res = http_1.default.patch(url, payload, params);
-    console.log('Response: ', res.body);
+    console.log('Update File Response: ', res.body);
 }
 function deleteFile() {
     if (!fileUUID) {
@@ -116,7 +116,7 @@ function deleteFile() {
     var url = "".concat(__ENV.URL_API, "/").concat(fileUUID);
     var params = { headers: { 'Authorization': "Bearer ".concat(__ENV.BEARER_TOKEN), 'Content-Type': 'application/json' } };
     var res = http_1.default.del(url, null, params);
-    console.log('Response: ', res.body);
+    console.log('Delete File Response: ', res.body);
 }
 function postFile() {
     var payload = JSON.stringify({
@@ -127,7 +127,7 @@ function postFile() {
     var params = { headers: { 'Authorization': "Bearer ".concat(__ENV.BEARER_TOKEN), 'Content-Type': 'application/json' } };
     var url = "".concat(__ENV.URL_API);
     var res = http_1.default.post(url, payload, params);
-    console.log('Response: ', res.body);
+    console.log('Post File Response: ', res.body);
     var jsonResponse = JSON.parse(typeof res.body === 'string' ? res.body : '');
     if (jsonResponse.data && jsonResponse.data.length > 0) {
         fileUUID = jsonResponse.data[0].uuid;
