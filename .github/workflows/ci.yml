@@ -136,8 +136,6 @@ jobs:
           new_version=${{ needs.determine-version.outputs.new_version }}
           echo "Docker api with version $new_version"
           docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:api-${new_version} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src/api
-          docker tag ${{ env.IMAGE_NAME }}:api-${new_version} ${{ env.IMAGE_NAME }}:api-latest
-          docker push ${{ env.IMAGE_NAME }}:api-latest
 
   build-and-push-docker-job:
     runs-on: ubuntu-latest
@@ -170,8 +168,6 @@ jobs:
         run: |
           new_version=${{ needs.determine-version.outputs.new_version }}
           docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:job-${new_version} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src
-          docker tag ${{ env.IMAGE_NAME }}:job-${new_version} ${{ env.IMAGE_NAME }}:job-latest
-          docker push ${{ env.IMAGE_NAME }}:job-latest
 
   publish-helm-chart:
     runs-on: ubuntu-latest
@@ -201,9 +197,7 @@ jobs:
       - name: Package Helm chart
         run: |
           helm package opensource --version "${{ needs.determine-version.outputs.new_version }}"
-          helm package opensource --version "latest"
 
       - name: Push Helm chart to Docker Hub
         run: |
-          helm push $(ls *${{ needs.determine-version.outputs.new_version }}*.tgz) oci://registry-1.docker.io/bouyguestelecomcharts
-          helm push $(ls *latest*.tgz) oci://registry-1.docker.io/bouyguestelecomcharts
+          helm push $(ls *.tgz) oci://registry-1.docker.io/bouyguestelecomcharts
