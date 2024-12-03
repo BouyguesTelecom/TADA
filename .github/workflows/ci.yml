@@ -3,7 +3,7 @@ name: CI Docker and Helm
 on:
   push:
     branches:
-      - workflow/api-improve
+      - main
 
 env:
   IMAGE_NAME: bouyguestelecom/tada
