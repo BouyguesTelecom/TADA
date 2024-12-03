@@ -164,7 +164,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push Docker image Job
+      - name: Build and push Docker image Jo
         run: |
           new_version=${{ needs.determine-version.outputs.new_version }}
           docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:job-${new_version} -t ${{ env.IMAGE_NAME }}:job-latest --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src
