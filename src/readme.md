@@ -153,7 +153,10 @@ structure:
    cd src/api
     npm install
     ```
-3. Setup your .env just as the .env.example
+3. Setup your .env by running
+    ```sh
+    npm run decrypt-env
+    ```
 
 4. Change git remote url to avoid accidental pushes to base project
     ```sh
