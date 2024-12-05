@@ -163,12 +163,6 @@ structure:
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-<!-- USAGE EXAMPLES -->
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- ROADMAP -->
-
 <!-- CONTRIBUTING -->
 
 ## Contributing
