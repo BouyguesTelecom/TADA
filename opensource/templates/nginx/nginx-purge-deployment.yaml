@@ -25,6 +25,13 @@ spec:
                         -   name: nginx-config-volume
                             mountPath: /etc/nginx/nginx.conf
                             subPath: nginx.conf
+                    resources:
+                        requests:
+                            cpu: 200m
+                            memory: 128Mi
+                        limits:
+                            cpu: 800m
+                            memory: 512Mi
             volumes:
                 -   name: nginx-purge-cache
                     emptyDir: {}

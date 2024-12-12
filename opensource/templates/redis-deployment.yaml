@@ -26,6 +26,13 @@ spec:
                   volumeMounts:
                       - name: redis-storage
                         mountPath: /dumps
+                  resources:
+                    requests:
+                      cpu: 200m
+                      memory: 128Mi
+                    limits:
+                      cpu: 800m
+                      memory: 512Mi
             volumes:
                 - name: redis-storage
                   persistentVolumeClaim:
