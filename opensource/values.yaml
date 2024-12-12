@@ -35,8 +35,8 @@ s3:
 
 mediaProvider:
     useStripMetadata: true
-    imageName: 'amelieloulou/transform-and-deliver-assets'
-    imageVersion: 'latest'
+    imageName: 'bouyguestelecom/tada'
+    imageVersion: 'api-latest'
     pvPathImage: '/images'
     service: 'http://media-service'
     nginx:
@@ -74,7 +74,7 @@ mediaProvider:
             requests:
                 storage: 500Mi
     backupAndCleanJob:
-        imageName: 'amelieloulou/transform-and-deliver-assets'
+        imageName: 'bouyguestelecom/tada'
         imageVersion: 'job-latest'
 
 rateLimit:

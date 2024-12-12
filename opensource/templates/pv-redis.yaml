@@ -25,18 +25,19 @@ spec:
                 - orbstack
 ---
 {{- end }}
-
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: redis-pv-claim
+    name: redis-pv
+    annotations:
+        volume-expander-operator.redhat-cop.io/autoexpand: "true"
+        volume-expander-operator.redhat-cop.io/polling-frequency: "1m"
+        volume-expander-operator.redhat-cop.io/expand-threshold-percent: "80"
+        volume-expander-operator.redhat-cop.io/expand-by-percent: "25"
 spec:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: "{{.Values.mediaProvider.storage.resources.requests.storage}}"
-  storageClassName: "{{.Values.mediaProvider.storage.storageClassName}}"
-  selector:
-    matchLabels:
-      type: redis
+    accessModes:
+        - ReadWriteMany
+    resources:
+        requests:
+            storage: 1Gi
+    storageClassName: "{{.Values.mediaProvider.storage.storageClassName}}"
