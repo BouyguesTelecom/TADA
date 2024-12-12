@@ -11,11 +11,11 @@ spec:
     {{- if .Values.ingress.tls }}
     tls:
         -   hosts:
-                - {{ .Values.env }}.{{ .Values.domain }}
+                - {{ .Values.env }}{{ .Values.domain }}
             secretName: {{ .Release.Name }}-tls-certificate
     {{- end }}
     rules:
-        - host: '{{ .Values.env }}.{{ .Values.domain }}'
+        - host: '{{ .Values.env }}{{ .Values.domain }}'
           http:
               paths:
                   - path: {{ if hasKey .Values.mediaProvider "apiPrefix" }}{{ .Values.mediaProvider.apiPrefix }}/assets/media{{ else }}/assets/media{{ end }}
