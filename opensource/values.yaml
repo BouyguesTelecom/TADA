@@ -1,5 +1,3 @@
-local: true
-
 redis:
     service: redis-service
     dumpFolderPath: '/dumps'
