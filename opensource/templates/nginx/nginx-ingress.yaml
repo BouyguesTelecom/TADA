@@ -12,7 +12,7 @@ spec:
     tls:
         -   hosts:
                 - {{ .Values.env }}.{{ .Values.domain }}
-            secretName: {{ ..Release.Name }}-tls-certificate
+            secretName: {{ .Release.Name }}-tls-certificate
     {{- end }}
     rules:
         - host: '{{ .Values.env }}.{{ .Values.domain }}'
