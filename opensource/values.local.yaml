@@ -1,5 +1,10 @@
 local: true
 
+ingress:
+    className: nginx
+    annotations:
+        kubernetes.io/ingress.class: nginx
+
 redis:
     service: redis-service
     dumpFolderPath: '/dumps'
