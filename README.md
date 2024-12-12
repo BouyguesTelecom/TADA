@@ -215,7 +215,7 @@ transform-and-deliver-assets:
 You can use our docker image API from [docker hub](https://hub.docker.com/r/bouyguestelecom/tada/tags)
 
 ```shell
-
+ docker pull bouyguestelecom/tada:api-latest
 ```
 
 ## Want to collaborate or test locally ?

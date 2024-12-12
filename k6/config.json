@@ -1,25 +1,9 @@
 {
   "scenarios": {
-    "scenario_API_getFile": {
-      "executor": "per-vu-iterations",
-      "vus": 1,
-      "iterations": 15,
-      "exec": "getFile",
-      "startTime": "0s",
-      "env": {
-        "REQUEST": "/DEV/testsd/vegecalv.webp",
-        "URL_PUBLIC": "http://localhost:8080/palpatine/assets/media/full/DEV/testsd/vegecalv.webp",
-        "URL_API": "http://localhost:3001/file",
-        "BEARER_TOKEN": "cooltokenyeah"
-      },
-      "tags": {
-        "name": "Rate Limit Test"
-      }
-    },
     "scenario_API_postFile": {
       "executor": "per-vu-iterations",
       "vus": 1,
-      "iterations": 15,
+      "iterations": 1,
       "exec": "postFile",
       "startTime": "0s",
       "env": {
@@ -29,7 +13,23 @@
         "BEARER_TOKEN": "cooltokenyeah"
       },
       "tags": {
-        "name": "Rate Limit Test"
+        "name": "File Upload Test"
+      }
+    },
+    "scenario_API_getFile": {
+      "executor": "per-vu-iterations",
+      "vus": 1,
+      "iterations": 15,
+      "exec": "getFile",
+      "startTime": "3s",
+      "env": {
+        "REQUEST": "/DEV/testsd/vegecalv.webp",
+        "URL_PUBLIC": "http://localhost:8080/palpatine/assets/media/full/DEV/testsd/vegecalv.webp",
+        "URL_API": "http://localhost:3001/file",
+        "BEARER_TOKEN": "cooltokenyeah"
+      },
+      "tags": {
+        "name": "File Retrieval Test"
       }
     },
     "scenario_API_updateFile": {
@@ -37,7 +37,7 @@
       "vus": 1,
       "iterations": 15,
       "exec": "updateFile",
-      "startTime": "0s",
+      "startTime": "10s",
       "env": {
         "REQUEST": "/DEV/testsd/vegecalv.webp",
         "URL_PUBLIC": "http://localhost:8080/palpatine/assets/media/full/DEV/testsd/vegecalv.webp",
@@ -45,7 +45,7 @@
         "BEARER_TOKEN": "cooltokenyeah"
       },
       "tags": {
-        "name": "Rate Limit Test"
+        "name": "File Update Test"
       }
     },
     "scenario_API_deleteFile": {
@@ -53,7 +53,7 @@
       "vus": 1,
       "iterations": 15,
       "exec": "deleteFile",
-      "startTime": "0s",
+      "startTime": "20s",
       "env": {
         "REQUEST": "/DEV/testsd/vegecalv.webp",
         "URL_PUBLIC": "http://localhost:8080/palpatine/assets/media/full/DEV/testsd/vegecalv.webp",
@@ -61,7 +61,7 @@
         "BEARER_TOKEN": "cooltokenyeah"
       },
       "tags": {
-        "name": "Rate Limit Test"
+        "name": "File Delete Test"
       }
     }
   },

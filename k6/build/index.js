@@ -4,41 +4,40 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.options = void 0;
-exports.getAll = getAll;
+exports.postFile = postFile;
 exports.getFile = getFile;
 exports.updateFile = updateFile;
 exports.deleteFile = deleteFile;
-exports.postFile = postFile;
 var http_1 = __importDefault(require("k6/http"));
 var metrics_1 = require("k6/metrics");
+var k6_1 = require("k6");
 var errorRate = new metrics_1.Rate('error_rate');
-var fileUUID = '';
+var fileUUID = 'cec5e1dc-7083-43f3-b2e5-ea5ad61ca799';
+var filePublicURL = '';
+var fileData = open('../../src/api/images/vegecalv.png', 'b');
 exports.options = {
     scenarios: {
+        scenario_API_postFile: {
+            executor: 'per-vu-iterations',
+            vus: 1,
+            iterations: 1,
+            exec: 'postFile',
+            startTime: '0s',
+            env: {
+                REQUEST: '/DEV/testsd/vegecalv.webp',
+                URL_API: 'http://localhost:3001/palpatine/file',
+                BEARER_TOKEN: 'cooltokenyeah'
+            },
+            tags: { name: 'Rate Limit Test' }
+        },
         scenario_API_getFile: {
             executor: 'per-vu-iterations',
             vus: 1,
             iterations: 15,
             exec: 'getFile',
-            startTime: '0s',
+            startTime: '3s',
             env: {
-                REQUEST: '/DEV/testsd/vegecalv.webp',
-                URL_PUBLIC: 'http://localhost:8080/palpatine/assets/media/full/DEV/testsd/vegecalv.webp',
-                URL_API: 'http://localhost:3001/file',
-                BEARER_TOKEN: 'cooltokenyeah'
-            },
-            tags: { name: 'Rate Limit Test' }
-        },
-        scenario_API_postFile: {
-            executor: 'per-vu-iterations',
-            vus: 1,
-            iterations: 15,
-            exec: 'postFile',
-            startTime: '0s',
-            env: {
-                REQUEST: '/DEV/testsd/vegecalv.webp',
-                URL_PUBLIC: 'http://localhost:8080/palpatine/assets/media/full/DEV/testsd/vegecalv.webp',
-                URL_API: 'http://localhost:3001/file',
+                URL_PUBLIC: 'http://localhost:8080/palpatine/assets/media/full/DEV/vegecalv.webp',
                 BEARER_TOKEN: 'cooltokenyeah'
             },
             tags: { name: 'Rate Limit Test' }
@@ -48,11 +47,9 @@ exports.options = {
             vus: 1,
             iterations: 15,
             exec: 'updateFile',
-            startTime: '0s',
+            startTime: '10s',
             env: {
-                REQUEST: '/DEV/testsd/vegecalv.webp',
-                URL_PUBLIC: 'http://localhost:8080/palpatine/assets/media/full/DEV/testsd/vegecalv.webp',
-                URL_API: 'http://localhost:3001/file',
+                URL_API: 'http://localhost:3001/palpatine/file/<uuid>',
                 BEARER_TOKEN: 'cooltokenyeah'
             },
             tags: { name: 'Rate Limit Test' }
@@ -62,27 +59,46 @@ exports.options = {
             vus: 1,
             iterations: 15,
             exec: 'deleteFile',
-            startTime: '0s',
+            startTime: '20s',
             env: {
-                REQUEST: '/DEV/testsd/vegecalv.webp',
-                URL_PUBLIC: 'http://localhost:8080/palpatine/assets/media/full/DEV/testsd/vegecalv.webp',
-                URL_API: 'http://localhost:3001/file',
+                URL_API: 'http://localhost:3001/palpatine/file/<uuid>',
                 BEARER_TOKEN: 'cooltokenyeah'
             },
             tags: { name: 'Rate Limit Test' }
         }
     },
     thresholds: {
-        'http_req_duration{type:get_rate_limit}': [{ threshold: 'p(95) < 500' }]
+        error_rate: ['rate<0.05'],
+        'http_req_duration{type:get_rate_limit}': ['p(95)<500']
     }
 };
-function getAll() {
-    var params = {
-        headers: { 'Authorization': "Bearer ".concat(__ENV.BEARER_TOKEN), 'Content-Type': 'application/json' }
-    };
-    var res = http_1.default.get('http://localhost:3001/catalog', params);
-    console.log('Get Catalog Response: ', res.body);
-    errorRate.add(res.status >= 400);
+function postFile() {
+    (0, k6_1.group)('Post File', function () {
+        var payload = {
+            file: http_1.default.file(fileData, 'vegecalv.webp', 'image/webp'),
+            namespace: 'DEV',
+            destination: 'testsd',
+            toWebp: 'true',
+            expiration_date: '2023-12-31',
+            information: 'Test file upload'
+        };
+        var params = { headers: { 'Authorization': "Bearer ".concat(__ENV.BEARER_TOKEN) } };
+        var url = "".concat(__ENV.URL_API);
+        var res = http_1.default.post(url, payload, params);
+        console.log('Post File Response:', res.body);
+        var jsonResponse = JSON.parse(typeof res.body === 'string' ? res.body : '');
+        if (jsonResponse && jsonResponse.data && jsonResponse.data.length > 0) {
+            fileUUID = jsonResponse.data[0].uuid;
+            filePublicURL = jsonResponse.data[0].public_url;
+            console.log("File UUID: ".concat(fileUUID));
+            console.log("File Public URL: ".concat(filePublicURL));
+        }
+        else {
+            console.log('Failed to retrieve UUID.');
+        }
+        (0, k6_1.check)(res, { 'status is 200': function (r) { return r.status === 200; } });
+        errorRate.add(res.status >= 400);
+    });
 }
 function getFile() {
     var params = {
@@ -117,23 +133,4 @@ function deleteFile() {
     var params = { headers: { 'Authorization': "Bearer ".concat(__ENV.BEARER_TOKEN), 'Content-Type': 'application/json' } };
     var res = http_1.default.del(url, null, params);
     console.log('Delete File Response: ', res.body);
-}
-function postFile() {
-    var payload = JSON.stringify({
-        name: 'example_file',
-        type: 'text/plain',
-        content: 'This is a test file content'
-    });
-    var params = { headers: { 'Authorization': "Bearer ".concat(__ENV.BEARER_TOKEN), 'Content-Type': 'application/json' } };
-    var url = "".concat(__ENV.URL_API);
-    var res = http_1.default.post(url, payload, params);
-    console.log('Post File Response: ', res.body);
-    var jsonResponse = JSON.parse(typeof res.body === 'string' ? res.body : '');
-    if (jsonResponse.data && jsonResponse.data.length > 0) {
-        fileUUID = jsonResponse.data[0].uuid;
-        console.log("File UUID: ".concat(fileUUID));
-    }
-    else {
-        console.log('Failed to retrieve UUID.');
-    }
 }

@@ -36,8 +36,6 @@ router.use(redisConnectionMiddleware);
  */
 router.get(`/assets/media/:format/*`, [timeoutMiddleware, validatorGetAsset], getAsset);
 
-router.get(`/assets/media/:format/*`, [timeoutMiddleware, validatorGetAsset], getAsset);
-
 /**
  * @swagger
  * /file:
