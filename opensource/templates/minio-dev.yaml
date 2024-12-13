@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: minio-deployment
+  name: {{ .Release.Name }}-minio-deployment
   labels:
-    app: minio
+    app: {{ .Release.Name }}-minio
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: minio
+      app: {{ .Release.Name }}-minio
   template:
     metadata:
       labels:
-        app: minio
+        app: {{ .Release.Name }}-minio
     spec:
       containers:
-        - name: minio
+        - name: {{ .Release.Name }}-minio
           image: minio/minio
           ports:
             - containerPort: 9000
@@ -34,13 +34,13 @@ spec:
       volumes:
         - name: minio-storage
           persistentVolumeClaim:
-            claimName: minio-pv-claim
+            claimName: {{ .Release.Name }}-minio-pv-claim
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: minio
+  name: {{ .Release.Name }}-minio
 spec:
   type: NodePort
   ports:
@@ -53,13 +53,13 @@ spec:
       protocol: TCP
       name: console
   selector:
-    app: minio
+    app: {{ .Release.Name }}-minio
 
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: minio-ingress
+  name: {{ .Release.Name }}-minio-ingress
   annotations:
     kubernetes.io/ingress.class: nginx
 spec:
@@ -72,16 +72,16 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: minio
+                name: {{ .Release.Name }}-minio
                 port:
                   name: console
 ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: local-pv-minio
+  name: {{ .Release.Name }}-local-pv-minio
   labels:
-    type: minio
+    type:  {{ .Release.Name }}-minio
 spec:
   capacity:
     storage: 5G
@@ -105,7 +105,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: minio-pv-claim
+  name: {{ .Release.Name }}-minio-pv-claim
 spec:
   accessModes:
     - ReadWriteMany
@@ -115,5 +115,5 @@ spec:
   storageClassName: "{{.Values.mediaProvider.storage.storageClassName}}"
   selector:
     matchLabels:
-      type: minio
+      type:  {{ .Release.Name }}-minio
 {{- end }}
