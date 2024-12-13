@@ -108,7 +108,7 @@ spec:
             - name: DELEGATED_STORAGE_METHOD
               value: "{{ default "DISTANT_BACKEND" .Values.delegatedStorage.storageMethod }}"
             -   name: DELEGATED_STORAGE_HOST
-                value: "{{ if eq .Values.delegatedStorage.storageMethod \"S3\" }}http://{{ include \"minioService\" . }}:{{ .Values.s3.port }}{{ else }}{{ .Values.delegatedStorage.host }}{{ end }}"
+                value: "{{ if eq .Values.delegatedStorage.storageMethod "S3" }}http://{{ include "minioService" . }}:{{ .Values.s3.port }}{{ else }}{{ .Values.delegatedStorage.host }}{{ end }}"
             - name: DELEGATED_STORAGE_READINESS_CHECK
               value: "{{ default "/minio/health/live" .Values.delegatedStorage.routes.readinessCheck }}"
             {{- if and (eq .Values.delegatedStorage.connect true) (eq .Values.delegatedStorage.storageMethod "DISTANT_BACKEND") }}
