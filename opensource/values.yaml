@@ -2,11 +2,9 @@ ingress:
     nginx:
         className: nginx
         annotations:
-            kubernetes.io/ingress.class: nginx
     api:
         className: nginx
         annotations:
-            kubernetes.io/ingress.class: nginx
 redis:
     service: redis-service
     dumpFolderPath: '/dumps'
