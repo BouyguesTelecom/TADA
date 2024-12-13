@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: nginx-purge
+    name: {{ .Release.Name }}-nginx-purge
     labels:
-        app: nginx-purge
+        app: {{ .Release.Name }}-nginx-purge
 spec:
     replicas: 1
     selector:
         matchLabels:
-            app: nginx-purge
+            app: {{ .Release.Name }}-nginx-purge
     template:
         metadata:
             labels:
-                app: nginx-purge
+                app: {{ .Release.Name }}-nginx-purge
         spec:
             containers:
-                -   name: nginx-purge
+                -   name: {{ .Release.Name }}-nginx-purge
                     image: emcniece/nginx-cache-purge:1.13-alpine
                     ports:
                         -   containerPort: 8081
@@ -41,7 +41,7 @@ spec:
                     emptyDir: {}
                 -   name: nginx-config-volume
                     configMap:
-                        name: nginx-purge-configmap
+                        name: "{{ .Release.Name }}-nginx-purge-configmap"
                         items:
                             -   key: nginx.conf
                                 path: nginx.conf

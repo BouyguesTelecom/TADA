@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-    name: nginx-purge-configmap
+    name: {{ .Release.Name }}-nginx-purge-configmap
 data:
     proxy-body-size: 10m
     nginx.conf: |
@@ -26,7 +26,7 @@ data:
             proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=zone2:10m max_size=1g inactive=24h use_temp_path=off;
             server {
               listen 8081;
-              server_name nginx-purge;
+              server_name {{ .Release.Name }}-nginx-purge;
 
               proxy_cache zone2;
               proxy_cache_key $request_uri;
@@ -55,7 +55,7 @@ data:
                 proxy_no_cache 1;
                 proxy_cache_bypass 1;
                 add_header X-Cache-Status $upstream_cache_status;
-                proxy_pass {{ .Values.mediaProvider.service }};
+                proxy_pass {{ include "mediaService" . }};
               }
 
               location ~ ^{{ if hasKey .Values.mediaProvider "apiPrefix" }}{{ .Values.mediaProvider.apiPrefix }}{{ .Values.mediaProvider.routes.files.get }}{{ else }}{{ .Values.mediaProvider.routes.files.get }}{{ end }} {
@@ -63,7 +63,7 @@ data:
                     deny all;
                 }
                 add_header X-Cache-Status $upstream_cache_status;
-                proxy_pass {{ .Values.mediaProvider.service }};
+                proxy_pass {{ include "mediaService" . }};
               }
                 location ~ /purge(/.*) {
                    limit_except GET {

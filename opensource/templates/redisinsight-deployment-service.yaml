@@ -2,19 +2,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: redisinsight-deployment
+  name: {{ .Release.Name }}-redisinsight-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: redisinsight
+      app: {{ .Release.Name }}-redisinsight
   template:
     metadata:
       labels:
-        app: redisinsight
+        app: {{ .Release.Name }}-redisinsight
     spec:
       containers:
-        - name: redisinsight
+        - name: {{ .Release.Name }}-redisinsight
           image: redis/redisinsight:latest
           ports:
             - containerPort: 5540
@@ -22,10 +22,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: redisinsight-service
+  name: {{ .Release.Name }}-redisinsight-service
 spec:
   selector:
-    app: redisinsight
+    app: {{ .Release.Name }}-redisinsight
   ports:
     - protocol: TCP
       port: 5540

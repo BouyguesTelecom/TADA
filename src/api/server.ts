@@ -11,6 +11,7 @@ const port = parseInt(process.env.PORT, 10) || 3001;
 const standalone = process.env.DELEGATED_STORAGE_METHOD === 'STANDALONE';
 
 const checkAccessToBackup = async () => {
+    console.log('CHECK ACCESS BACKUP :::', process.env.DELEGATED_STORAGE_HOST)
     const backupUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.DELEGATED_STORAGE_READINESS_CHECK}`;
     const checkBackup = await fetch(backupUrl);
     if (checkBackup.status !== 200) {

@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: media
+  name: {{ .Release.Name }}-media
   labels:
-    app: media
+    app: {{ .Release.Name }}-media
 spec:
   replicas: {{ .Values.hpa.replicaCountMin }}
   selector:
     matchLabels:
-      app: media
+      app: {{ .Release.Name }}-media
   template:
     metadata:
       labels:
-        app: media
+        app: {{ .Release.Name }}-media
     spec:
       containers:
-        - name: media-api
+        - name: {{ .Release.Name }}-media-api
           image: "{{ .Values.mediaProvider.imageName }}:{{ .Values.mediaProvider.imageVersion }}"
           resources:
             requests:
@@ -76,7 +76,7 @@ spec:
             - name: NGINX_INGRESS
               value: '{{.Values.protocol}}://{{.Values.env}}{{.Values.domain}}'
             - name: IMAGE_SERVICE
-              value: "{{ default "http://media-service" .Values.mediaProvider.service }}"
+              value: "{{ include "mediaService" . }}"
             - name: API_PREFIX
               value: "{{ default "/palpatine" .Values.mediaProvider.apiPrefix }}"
             - name: USE_STRIPMETADATA
@@ -104,11 +104,11 @@ spec:
               value: "{{ default "true" .Values.dev }}"
 
             - name: REDIS_SERVICE
-              value: "{{ default "redis-service" .Values.redis.service }}"
+              value: "{{ include "redisService" . }}"
             - name: DELEGATED_STORAGE_METHOD
               value: "{{ default "DISTANT_BACKEND" .Values.delegatedStorage.storageMethod }}"
             - name: DELEGATED_STORAGE_HOST
-              value: "{{ default "http://minio:9000" .Values.delegatedStorage.host }}"
+              value: "http://{{ include "minioService" . }}:{{ .Values.s3.port}}"
             - name: DELEGATED_STORAGE_READINESS_CHECK
               value: "{{ default "/minio/health/live" .Values.delegatedStorage.routes.readinessCheck }}"
             {{- if and (eq .Values.delegatedStorage.connect true) (eq .Values.delegatedStorage.storageMethod "DISTANT_BACKEND") }}
@@ -126,7 +126,7 @@ spec:
             {{- if and (eq .Values.delegatedStorage.connect true) (eq .Values.delegatedStorage.storageMethod "S3") }}
 
             - name: S3_ENDPOINT
-              value: "{{ default "minio" .Values.s3.endpoint }}"
+              value: {{ include "minioService" . }}
             - name: S3_PORT
               value: "{{ default "9000" .Values.s3.port }}"
             - name: S3_ACCESS_KEY
@@ -139,6 +139,6 @@ spec:
       volumes:
         - name: redis-storage
           persistentVolumeClaim:
-            claimName: redis-pv
+            claimName: {{ .Release.Name }}-redis-pv
         - name: logs
           emptyDir: { }
