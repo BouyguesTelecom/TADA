@@ -22,6 +22,8 @@ spec:
                     volumeMounts:
                         -   name: nginx-purge-cache
                             mountPath: /var/cache/nginx
+                        -   name: nginx-pid
+                            mountPath: /var/run
                         -   name: nginx-config-volume
                             mountPath: /etc/nginx/nginx.conf
                             subPath: nginx.conf
@@ -32,10 +34,9 @@ spec:
                         limits:
                             cpu: 800m
                             memory: 512Mi
-                    securityContext:
-                        runAsUser: 0
-                        runAsGroup: 0
             volumes:
+                -   name: nginx-pid
+                    emptyDir: {}
                 -   name: nginx-purge-cache
                     emptyDir: {}
                 -   name: nginx-config-volume
