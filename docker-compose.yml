@@ -84,7 +84,7 @@ services:
         networks:
             - media_network
     images-provider:
-        image: bouyguestelecom/tada:api-1.2.6-main
+        image: bouyguestelecom/tada:api-latest
         ports:
             - 3001:3001
         networks:
