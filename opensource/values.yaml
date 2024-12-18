@@ -41,6 +41,9 @@ s3:
                 storage: 500Mi
 
 mediaProvider:
+    initImagesPath: ''
+    initImagesNamespace: ''
+    initImagesDestination: ''
     useStripMetadata: true
     imageName: 'bouyguestelecom/tada'
     imageVersion: 'api-latest'
