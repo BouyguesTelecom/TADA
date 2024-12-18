@@ -136,6 +136,12 @@ spec:
             - name: S3_BUCKET_NAME
               value: "{{ default "media" .Values.s3.bucketName }}"
             {{- end }}
+            - name: IMAGES_UPLOAD_PATH
+              value: "{{ .Values.mediaProvider.initImagesPath }}"
+            - name: IMAGES_UPLOAD_NAMESPACE
+              value: "{{ .Values.mediaProvider.initImagesNamespace }}"
+            - name: IMAGES_UPLOAD_DESTINATION
+              value: "{{ .Values.mediaProvider.initImagesDestination }}"
       volumes:
         - name: redis-storage
           persistentVolumeClaim:
