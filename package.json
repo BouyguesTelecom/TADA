@@ -1,7 +1,7 @@
 {
     "scripts": {
         "format": "prettier --write .",
-        "dev:api": "export IMAGES_UPLOAD_PATH=../../local/default && export IMAGES_UPLOAD_NAMESPACE=DEV && export IMAGES_UPLOAD_DESTINATION=default && cd src/api && npm run dev",
+        "dev:api": "cd src/api && npm run dev",
         "docker:dev": "docker compose -f docker-compose.dev.yml up --build -d",
         "docker": "docker compose up --build -d"
     },
