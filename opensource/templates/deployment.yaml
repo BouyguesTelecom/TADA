@@ -29,8 +29,6 @@ spec:
           volumeMounts:
             - name: redis-storage
               mountPath: "{{ default "/dumps" .Values.redis.dumpFolderPath }}"
-            - name: logs
-              mountPath: "/logs"
           env:
             - name: FILE_GET_ROUTE
               value: "{{ .Values.mediaProvider.routes.file.get  }}"
@@ -140,5 +138,3 @@ spec:
         - name: redis-storage
           persistentVolumeClaim:
             claimName: {{ .Release.Name }}-redis-pv
-        - name: logs
-          emptyDir: { }
