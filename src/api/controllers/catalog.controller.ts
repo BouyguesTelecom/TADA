@@ -17,7 +17,10 @@ export const addFileInCatalog = async (req: Request, res: Response) => {
 
 export const getFiles = async (req: Request, res: Response) => {
     const { data: catalog } = await getCatalog();
-    return res.status(200).json(catalog);
+    if (req.query.filterByKey && req.query.filterByValue) {
+        return res.json(catalog.filter(item => item[`${req.query.filterByKey}`] === req.query.filterByValue))
+    }
+    return res.status(200).json(catalog)
 };
 
 export const getFile = async (req: Request, res: Response) => {
