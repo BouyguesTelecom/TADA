@@ -16,7 +16,7 @@ spec:
         spec:
             containers:
                 -   name: {{ .Release.Name }}-nginx
-                    image: bitnami/nginx:latest
+                    image: {{ .Values.mediaProvider.nginx.imageName }}
                     ports:
                         -   containerPort: 8080
                     volumeMounts:

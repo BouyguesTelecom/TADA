@@ -16,7 +16,7 @@ spec:
         spec:
             containers:
                 -   name: {{ .Release.Name }}-nginx-purge
-                    image: emcniece/nginx-cache-purge:1.13-alpine
+                    image: {{.Values.mediaProvider.nginxPurge.imageName}}
                     ports:
                         -   containerPort: 8081
                     volumeMounts:
