@@ -51,7 +51,6 @@ mediaProvider:
     service: 'http://media-service'
     nginx:
         imageName: bitnami/nginx:latest
-        service: 'http://nginx'
     nginxPurge:
         imageName: emcniece/nginx-cache-purge:1.13-alpine
     thumbor:

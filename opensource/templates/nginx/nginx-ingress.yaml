@@ -22,13 +22,13 @@ spec:
                         pathType: ImplementationSpecific
                         backend:
                             service:
-                                name: {{ .Release.Name }}-nginx
+                                name: {{ .Release.Name }}-nginx-service
                                 port:
                                     number: 80
                     -   path: {{ if hasKey .Values.mediaProvider "apiPrefix" }}{{ .Values.mediaProvider.apiPrefix }}/catalog{{ else }}/catalog{{ end }}
                         pathType: ImplementationSpecific
                         backend:
                             service:
-                                name: {{ .Release.Name }}-nginx
+                                name: {{ .Release.Name }}-nginx-service
                                 port:
                                     number: 80
