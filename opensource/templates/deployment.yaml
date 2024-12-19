@@ -70,7 +70,7 @@ spec:
                         -   name: DUMP_FOLDER_PATH
                             value: "{{ default "/dumps" .Values.redis.dumpFolderPath }}"
                         -   name: NGINX_SERVICE
-                            value: {{.Release.Name}}-nginx-service
+                            value: http://{{.Release.Name}}-nginx-service
                         -   name: NGINX_INGRESS
                             value: '{{.Values.protocol}}://{{.Values.env}}{{.Values.domain}}'
                         -   name: IMAGE_SERVICE
