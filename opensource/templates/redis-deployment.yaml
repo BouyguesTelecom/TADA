@@ -14,7 +14,7 @@ spec:
         spec:
             containers:
                 - name:  {{ .Release.Name }}-redis
-                  image: bitnami/redis:7.0.15-debian-12-r20
+                  image: {{ .Values.redis.imageName }}
                   command:
                       - 'redis-server'
                       - '--protected-mode'

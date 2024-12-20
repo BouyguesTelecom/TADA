@@ -6,6 +6,7 @@ ingress:
         className: nginx
         annotations:
 redis:
+    imageName: bitnami/redis:7.0.15-debian-12-r20
     service: redis-service
     dumpFolderPath: '/dumps'
     storage:
@@ -53,8 +54,6 @@ mediaProvider:
         imageName: bitnami/nginx:latest
     nginxPurge:
         imageName: emcniece/nginx-cache-purge:1.13-alpine
-    thumbor:
-        service: 'http://thumbor-service'
     routes:
         healthcheck:
             get: '/readiness-check'
