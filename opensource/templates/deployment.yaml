@@ -76,9 +76,9 @@ spec:
                         -   name: IMAGE_SERVICE
                             value: "{{ include "mediaService" . }}"
                         -   name: API_PREFIX
-                            value: "{{ default "/palpatine" .Values.mediaProvider.apiPrefix }}"
+                            value: "{{ default "" .Values.mediaProvider.apiPrefix }}"
                         -   name: USE_STRIPMETADATA
-                            value: "{{ default "/palpatine" .Values.mediaProvider.useStripMetadata }}"
+                            value: "{{ default "" .Values.mediaProvider.useStripMetadata }}"
                         -   name: RATE_LIMIT
                             value: "{{ default "5" .Values.mediaProvider.rateLimit.limit }}"
                         -   name: RATE_LIMIT_WINDOW
