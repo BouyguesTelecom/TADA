@@ -23,15 +23,15 @@ export const validatorFilesFilter = async (req: Request, res: Response, next: Ne
                 const errorFileName = isFileNameInvalid(file);
 
                 if (errorFileName || !mimeTypeIsAllowed) {
-                    const message = mimeTypeIsAllowed ? errorFileName : `File type ${file.mimetype} unauthorized.`;
+                    const message = mimeTypeIsAllowed ? errorFileName : `File type ${ file.mimetype } unauthorized.`;
                     return {
                         ...acc,
-                        invalidFiles: [...invalidFiles, { ...file, message, uuid }]
+                        invalidFiles: [ ...invalidFiles, { ...file, message, uuid } ]
                     };
                 }
 
                 return {
-                    validFiles: [...validFiles, { ...file, uuid }],
+                    validFiles: [ ...validFiles, { ...file, uuid } ],
                     invalidFiles
                 };
             },
@@ -54,7 +54,7 @@ export const validatorUUIds = (req: Request, res: Response, next: NextFunction) 
             return sendResponse({
                 res,
                 status: 400,
-                errors: ['No uuids provided']
+                errors: [ 'No uuids provided' ]
             });
         }
         const numberOfFiles = req.files.length;
@@ -64,7 +64,7 @@ export const validatorUUIds = (req: Request, res: Response, next: NextFunction) 
             return sendResponse({
                 res,
                 status: 400,
-                errors: ['Number of UUIDs and number of files provided different']
+                errors: [ 'Number of UUIDs and number of files provided different' ]
             });
         }
         res.locals.uuids = uuidsFromBody;
@@ -82,11 +82,11 @@ export const validatorFilesSize = async (req: Request, res: Response, next: Next
                 const fileTooLarge = await fileIsTooLarge(file, req.params, req.method);
                 if (fileTooLarge) {
                     return {
-                        invalidFiles: [...invalidFiles, fileTooLarge],
+                        invalidFiles: [ ...invalidFiles, fileTooLarge ],
                         validFiles
                     };
                 }
-                return { invalidFiles, validFiles: [...validFiles, file] };
+                return { invalidFiles, validFiles: [ ...validFiles, file ] };
             },
             Promise.resolve({
                 invalidFiles: invalidFilesFromLocal,
@@ -105,7 +105,7 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
         return sendResponse({
             res,
             status: 400,
-            errors: [`Body has to be an array`]
+            errors: [ `Body has to be an array` ]
         });
     }
 
@@ -116,7 +116,9 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
         async (accumulator, file) => {
             const { validFiles, invalidFiles } = await accumulator;
             const uniqueName = !file.uuid && generateUniqueName(file, req.body, namespace, toWebp);
-            const itemFound = await findFileInCatalog(file.uuid ? file.uuid : uniqueName, file.uuid ? 'uuid' : 'unique_name');
+            const itemFound = await findFileInCatalog(file.uuid ? file.uuid : uniqueName, file.uuid ?
+                'uuid' :
+                'unique_name');
             if (itemFound && req.method === 'POST') {
                 return {
                     validFiles,
@@ -129,7 +131,7 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
                     ]
                 };
             }
-            const fileInfo: Object = generateFileInfo(file, req.method);
+            const fileInfo: Object = generateFileInfo(Array.isArray(req.body) ? file : req.body, req.method);
             if (!fileInfo && !req.files) {
                 return {
                     validFiles,
@@ -147,7 +149,9 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
                     ...validFiles,
                     {
                         ...file,
-                        uniqueName: itemFound ? itemFound.unique_name : generateUniqueName(file, req.body, namespace, toWebp),
+                        uniqueName: itemFound ?
+                            itemFound.unique_name :
+                            generateUniqueName(file, req.body, namespace, toWebp),
                         fileInfo,
                         toWebp,
                         catalogItem: itemFound
@@ -178,11 +182,11 @@ const _checkFilesInCatalog = async (files: any[], invalidFilesFromNamespace) => 
             if (!itemFound) {
                 return {
                     validFiles,
-                    invalidFiles: [...invalidFiles, { ...file, message: 'Not found in catalog' }]
+                    invalidFiles: [ ...invalidFiles, { ...file, message: 'Not found in catalog' } ]
                 };
             }
             return {
-                validFiles: [...validFiles, { ...file, catalogItem: itemFound }],
+                validFiles: [ ...validFiles, { ...file, catalogItem: itemFound } ],
                 invalidFiles
             };
         },
@@ -195,7 +199,9 @@ const _checkFilesInCatalog = async (files: any[], invalidFilesFromNamespace) => 
 
 export const validatorCatalog = async (req: Request, res: Response, next: NextFunction) => {
     const { validFiles: validFilesFromLocal, invalidFiles: invalidFilesFromLocal } = res.locals;
-    const { validFiles, invalidFiles } = await _checkFilesInCatalog(validFilesFromLocal?.length ? validFilesFromLocal : req.body, invalidFilesFromLocal || []);
+    const { validFiles, invalidFiles } = await _checkFilesInCatalog(validFilesFromLocal?.length ?
+        validFilesFromLocal :
+        req.body, invalidFilesFromLocal || []);
     if (!validFiles.length) {
         return sendResponse({ res, status: 400, errors: invalidFiles });
     }
