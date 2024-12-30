@@ -105,7 +105,11 @@ router.post(`/file`, [authMiddleware, validatorHeaders, validatorFile, validator
  *       200:
  *         description: The file was successfully patched
  */
-router.patch(`/file/:uuid`, [authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorParams, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog], patchAsset);
+router.patch(
+    `/file/:uuid`,
+    [authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorParams, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog],
+    patchAsset
+);
 
 /**
  * @swagger

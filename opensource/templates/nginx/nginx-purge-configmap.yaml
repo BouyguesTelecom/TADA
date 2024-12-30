@@ -58,7 +58,7 @@ data:
                 proxy_pass {{ include "mediaService" . }};
               }
 
-              location ~ ^{{ if hasKey .Values.mediaProvider "apiPrefix" }}{{ .Values.mediaProvider.apiPrefix }}{{ .Values.mediaProvider.routes.files.get }}{{ else }}{{ .Values.mediaProvider.routes.files.get }}{{ end }} {
+              location ~ ^{{ if hasKey .Values.mediaProvider "apiPrefix" }}{{ .Values.mediaProvider.apiPrefix }}{{ .Values.mediaProvider.routes.file.get }}{{ else }}{{ .Values.mediaProvider.routes.file.get }}{{ end }} {
                 limit_except GET {
                     deny all;
                 }

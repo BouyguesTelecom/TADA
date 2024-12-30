@@ -43,19 +43,22 @@ The user can either use the original image via a specific URL or process the ima
 ### Project structure and architecture
 
 To access the **API documentation** run at the root of the project :
+
 ```
 npm run dev:api
 ```
+
 Then go to :
+
 ```
 http://localhost:3001/api-docs/
 ```
 
 The image service (more generally files) consists of a first Nginx server whose configuration contains 3 types of locations:
 
--   /catalog
--   /assets/media/\*
--   /purge/assets/media/\*
+- /catalog
+- /assets/media/\*
+- /purge/assets/media/\*
 
 This first web server is caching resource 1m,
 then proxy pass to the nginx purge server that contains the same locations but configured with proxy_purge_module.
@@ -63,15 +66,15 @@ This server caching 30d and can invalidate cache with purge location.
 
 To retrieve an uploaded file, 3 ways :
 
--   /assets/media/**original**/`image_name.extension` : no processing on the image
--   /assets/media/**full**/`image_name.extension` : transform to webp and serve as webp
--   /assets/media/**optimise**/200x0/`image_name.extension` : resizing to with 200 and transform to webp and serve as webp
+- /assets/media/**original**/`image_name.extension` : no processing on the image
+- /assets/media/**full**/`image_name.extension` : transform to webp and serve as webp
+- /assets/media/**optimise**/200x0/`image_name.extension` : resizing to with 200 and transform to webp and serve as webp
 
 And finally an Express Node API whose roles are:
 
--   providing the list of files exposed by the catalog/reference on a GET route
--   uploading new files
--   updating existing files
+- providing the list of files exposed by the catalog/reference on a GET route
+- uploading new files
+- updating existing files
 
 An important point is also the notion of catalog. The catalog serves as a reference & truth for the express API, the image can be accessible on glutton, or in the PV but contains information indicating not to serve it (either it has been deleted from the catalog, or it has expired for example).
 
@@ -137,8 +140,8 @@ structure:
 
 2 daily jobs associated with TADA (Transform And Deliver Assets 🎉):
 
--   a job to synchronize the state of our API in relation to YOUR delegated_storage: if the image is in the catalog, but not in your storage, it deletes the image from the catalog.
--   a catalog publication job on your delegated storage: the status of the catalog once a day is published on your storage which allows you to retrieve the most up-to-date list in the event of a new API instance.
+- a job to synchronize the state of our API in relation to YOUR delegated_storage: if the image is in the catalog, but not in your storage, it deletes the image from the catalog.
+- a catalog publication job on your delegated storage: the status of the catalog once a day is published on your storage which allows you to retrieve the most up-to-date list in the event of a new API instance.
 
 <!-- GETTING STARTED -->
 
@@ -150,10 +153,11 @@ structure:
     ```
 2. Install NPM packages
     ```sh
-   cd src/api
+    cd src/api
     npm install
     ```
 3. Setup your .env by running
+
     ```sh
     npm run decrypt-env
     ```

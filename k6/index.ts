@@ -77,7 +77,7 @@ export function postFile() {
             expiration_date: '2023-12-31',
             information: 'Test file upload'
         };
-        const params = { headers: { 'Authorization': `Bearer ${__ENV.BEARER_TOKEN}` } };
+        const params = { headers: { Authorization: `Bearer ${__ENV.BEARER_TOKEN}` } };
         const url = `${__ENV.URL_API}`;
         const res = http.post(url, payload, params);
         console.log('Post File Response:', res.body);
@@ -98,7 +98,7 @@ export function postFile() {
 
 export function getFile(): void {
     const params = {
-        headers: { 'Authorization': `Bearer ${__ENV.BEARER_TOKEN}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${__ENV.BEARER_TOKEN}`, 'Content-Type': 'application/json' },
         insecureSkipTLSVerify: true
     };
     const res = http.get(`${__ENV.URL_PUBLIC}`, params);
@@ -118,20 +118,19 @@ export function updateFile(): void {
         data: [{ st: 'CMS', key_name: 'unique_name', key_value: `${__ENV.REQUEST}`, changes: { expired: 'true' } }]
     });
     const url = `${__ENV.URL_API}/${fileUUID}`;
-    const params = { headers: { 'Authorization': `Bearer ${__ENV.BEARER_TOKEN}`, 'Content-Type': 'application/json' } };
+    const params = { headers: { Authorization: `Bearer ${__ENV.BEARER_TOKEN}`, 'Content-Type': 'application/json' } };
     const res = http.patch(url, payload, params);
     console.log('Update File Response: ', res.body);
 }
 
 export function deleteFile(): void {
-if (!fileUUID) {
-    console.log('Invalid UUID: Delete operation skipped.');
-    return;
-}
+    if (!fileUUID) {
+        console.log('Invalid UUID: Delete operation skipped.');
+        return;
+    }
 
-const url = `${__ENV.URL_API}/${fileUUID}`;
-const params = { headers: { 'Authorization': `Bearer ${__ENV.BEARER_TOKEN}`, 'Content-Type': 'application/json' } };
-const res = http.del(url, null, params);
-console.log('Delete File Response: ', res.body);
+    const url = `${__ENV.URL_API}/${fileUUID}`;
+    const params = { headers: { Authorization: `Bearer ${__ENV.BEARER_TOKEN}`, 'Content-Type': 'application/json' } };
+    const res = http.del(url, null, params);
+    console.log('Delete File Response: ', res.body);
 }
-

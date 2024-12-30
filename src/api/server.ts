@@ -11,7 +11,6 @@ const port = parseInt(process.env.PORT, 10) || 3001;
 const standalone = process.env.DELEGATED_STORAGE_METHOD === 'STANDALONE';
 
 const checkAccessToBackup = async () => {
-    console.log('CHECK ACCESS BACKUP :::', process.env.DELEGATED_STORAGE_HOST)
     const backupUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.DELEGATED_STORAGE_READINESS_CHECK}`;
     const checkBackup = await fetch(backupUrl);
     if (checkBackup.status !== 200) {
@@ -36,11 +35,11 @@ const connectToRedisWithRetry = async (maxRetries, delay) => {
     while (attempts < maxRetries) {
         try {
             await redisHandler.connectClient();
-            const {data:catalog} = await getCatalog()
-            if(catalog.length){
-                for (const item of catalog){
-                    if(item.unique_name.includes('/tests/')){
-                        await deleteCatalogItem(item.unique_name)
+            const { data: catalog } = await getCatalog();
+            if (catalog.length) {
+                for (const item of catalog) {
+                    if (item.unique_name.includes('/tests/')) {
+                        await deleteCatalogItem(item.unique_name);
                     }
                 }
             }

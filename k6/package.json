@@ -1,22 +1,22 @@
 {
-  "name": "k6",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc",
-    "k6": "tsc && k6 run build/index.js --config config.json"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "devDependencies": {
-    "@types/node": "^22.9.1",
-    "typescript": "^5.6.3",
-    "@types/k6": "0.54.0"
-  },
-  "dependencies": {
-    "k6": "^0.0.0"
-  }
+    "name": "k6",
+    "version": "1.0.0",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "tsc",
+        "k6": "tsc && k6 run build/index.js --config config.json"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description": "",
+    "devDependencies": {
+        "@types/node": "^22.9.1",
+        "typescript": "^5.6.3",
+        "@types/k6": "0.54.0"
+    },
+    "dependencies": {
+        "k6": "^0.0.0"
+    }
 }

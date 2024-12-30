@@ -165,50 +165,50 @@ transform-and-deliver-assets:
     rateLimit: ...
     domain: .media
     env: media-service
-    # SEE BELOW ALL VALUES 
+    # SEE BELOW ALL VALUES
 ```
 
-| Clé                                              | Description                                         | Exemples de Valeurs            |
-| ------------------------------------------------ | --------------------------------------------------- | ------------------------------ |
-| local                                            | Activer ou désactiver le mode local                 | true / false                   |
-| redis.service                                    | Nom du service Redis                                | 'redis-service'                |
-| redis.dumpFolderPath                             | Chemin du dossier de dump pour Redis                | '/dumps'                       |
-| redis.storage.storageClassName                   | Nom de la classe de stockage pour Redis             | 'hostpath'                     |
-| redis.storage.resources.requests.storage         | Espace de stockage demandé par Redis                | '500Mi'                        |
-| delegatedStorage.rateLimitWindow                 | Fenêtre de limitation de débit (ms)                 | 30000                          |
-| delegatedStorage.rateLimit                       | Limitation de débit                                 | 5                              |
-| delegatedStorage.host                            | Nom d'hôte du service personnalisé                  | 'your_custom_service_api'      |
-| delegatedStorage.routes.readinessCheck           | Chemin de vérification de disponibilité             | '/readiness-check'             |
-| delegatedStorage.accessToken                     | Jeton d'accès pour le stockage délégué              | 'your_access_token'            |
-| delegatedStorage.storageMethod                   | Méthode de stockage                                 | 'DISTANT_BACKEND'              |
-| s3.routes.readinessCheck                         | Chemin de vérification de disponibilité pour MinIO  | '/minio/health/live'           |
-| s3.endpoint                                      | Point de terminaison (endpoint) pour S3/MinIO       | 'minio'                        |
-| s3.port                                          | Port pour S3/MinIO                                  | '9000'                         |
-| s3.accessKey                                     | Clé d'accès pour S3/MinIO                           | 'minioadmin'                   |
-| s3.secretKey                                     | Clé secrète pour S3/MinIO                           | 'minioadmin'                   |
-| s3.bucketName                                    | Nom du bucket S3/MinIO                              | 'media'                        |
-| s3.storage.storageClassName                      | Nom de la classe de stockage pour S3/MinIO          | 'hostpath'                     |
-| s3.storage.resources.requests.storage            | Espace de stockage demandé pour S3/MinIO            | '500Mi'                        |
-| mediaProvider.service                            | URL du service média                                | 'http://media-service'         |
-| mediaProvider.apiPrefix                          | Préfixe de l'API pour le service média              | '/palpatine'                   |
-| mediaProvider.routes.healthcheck.get             | Chemin de vérification de la santé du service média | '/readiness-check'             |
-| mediaProvider.routes.file.get                    | Chemin GET pour récupérer des fichiers              | '/assets/media/'               |
-| mediaProvider.routes.file.post                   | Chemin POST pour télécharger un fichier             | '/upload'                      |
-| mediaProvider.routes.files.post                  | Chemin POST pour télécharger plusieurs fichiers     | '/uploads'                     |
-| mediaProvider.routes.catalog.get                 | Chemin GET pour récupérer le catalogue de fichiers  | '/catalog'                     |
-| mediaProvider.payloadMaxSize                     | Taille maximale de la charge utile                  | '10mb'                         |
-| mediaProvider.rateLimit.windowMs                 | Fenêtre de limitation de débit (ms)                 | 30000                          |
-| mediaProvider.rateLimit.limit                    | Limitation de débit                                 | 5                              |
-| mediaProvider.originsAllowed                     | Origines autorisées                                 | 'localhost,\*'                 |
-| mediaProvider.methodsAllowed                     | Méthodes HTTP autorisées                            | 'GET,POST'                     |
-| mediaProvider.storage.storageClassName           | Nom de la classe de stockage pour le provider média | 'hostpath'                     |
-| mediaProvider.storage.resources.requests.storage | Espace de stockage demandé pour le media provider   | '500Mi'                        |
-| rateLimit.windowMs                               | Fenêtre de limitation de débit (ms)                 | 30000                          |
-| rateLimit.limit                                  | Limitation de débit                                 | 5                              |
-| domain                                           | Domaine du service                                  | '.media'                       |
-| env                                              | Environnement du service                            | 'media-service'                |
-| NAMESPACES_ALLOWED                               | Espaces de noms autorisés                           | 'DEV'                          |
-| version                                          | Version du chart                                    | '1.0.6'                        |
+| Clé                                              | Description                                         | Exemples de Valeurs       |
+| ------------------------------------------------ | --------------------------------------------------- | ------------------------- |
+| local                                            | Activer ou désactiver le mode local                 | true / false              |
+| redis.service                                    | Nom du service Redis                                | 'redis-service'           |
+| redis.dumpFolderPath                             | Chemin du dossier de dump pour Redis                | '/dumps'                  |
+| redis.storage.storageClassName                   | Nom de la classe de stockage pour Redis             | 'hostpath'                |
+| redis.storage.resources.requests.storage         | Espace de stockage demandé par Redis                | '500Mi'                   |
+| delegatedStorage.rateLimitWindow                 | Fenêtre de limitation de débit (ms)                 | 30000                     |
+| delegatedStorage.rateLimit                       | Limitation de débit                                 | 5                         |
+| delegatedStorage.host                            | Nom d'hôte du service personnalisé                  | 'your_custom_service_api' |
+| delegatedStorage.routes.readinessCheck           | Chemin de vérification de disponibilité             | '/readiness-check'        |
+| delegatedStorage.accessToken                     | Jeton d'accès pour le stockage délégué              | 'your_access_token'       |
+| delegatedStorage.storageMethod                   | Méthode de stockage                                 | 'DISTANT_BACKEND'         |
+| s3.routes.readinessCheck                         | Chemin de vérification de disponibilité pour MinIO  | '/minio/health/live'      |
+| s3.endpoint                                      | Point de terminaison (endpoint) pour S3/MinIO       | 'minio'                   |
+| s3.port                                          | Port pour S3/MinIO                                  | '9000'                    |
+| s3.accessKey                                     | Clé d'accès pour S3/MinIO                           | 'minioadmin'              |
+| s3.secretKey                                     | Clé secrète pour S3/MinIO                           | 'minioadmin'              |
+| s3.bucketName                                    | Nom du bucket S3/MinIO                              | 'media'                   |
+| s3.storage.storageClassName                      | Nom de la classe de stockage pour S3/MinIO          | 'hostpath'                |
+| s3.storage.resources.requests.storage            | Espace de stockage demandé pour S3/MinIO            | '500Mi'                   |
+| mediaProvider.service                            | URL du service média                                | 'http://media-service'    |
+| mediaProvider.apiPrefix                          | Préfixe de l'API pour le service média              | '/palpatine'              |
+| mediaProvider.routes.healthcheck.get             | Chemin de vérification de la santé du service média | '/readiness-check'        |
+| mediaProvider.routes.file.get                    | Chemin GET pour récupérer des fichiers              | '/assets/media/'          |
+| mediaProvider.routes.file.post                   | Chemin POST pour télécharger un fichier             | '/upload'                 |
+| mediaProvider.routes.files.post                  | Chemin POST pour télécharger plusieurs fichiers     | '/uploads'                |
+| mediaProvider.routes.catalog.get                 | Chemin GET pour récupérer le catalogue de fichiers  | '/catalog'                |
+| mediaProvider.payloadMaxSize                     | Taille maximale de la charge utile                  | '10mb'                    |
+| mediaProvider.rateLimit.windowMs                 | Fenêtre de limitation de débit (ms)                 | 30000                     |
+| mediaProvider.rateLimit.limit                    | Limitation de débit                                 | 5                         |
+| mediaProvider.originsAllowed                     | Origines autorisées                                 | 'localhost,\*'            |
+| mediaProvider.methodsAllowed                     | Méthodes HTTP autorisées                            | 'GET,POST'                |
+| mediaProvider.storage.storageClassName           | Nom de la classe de stockage pour le provider média | 'hostpath'                |
+| mediaProvider.storage.resources.requests.storage | Espace de stockage demandé pour le media provider   | '500Mi'                   |
+| rateLimit.windowMs                               | Fenêtre de limitation de débit (ms)                 | 30000                     |
+| rateLimit.limit                                  | Limitation de débit                                 | 5                         |
+| domain                                           | Domaine du service                                  | '.media'                  |
+| env                                              | Environnement du service                            | 'media-service'           |
+| NAMESPACES_ALLOWED                               | Espaces de noms autorisés                           | 'DEV'                     |
+| version                                          | Version du chart                                    | '1.0.6'                   |
 
 ### Using docker image API :
 

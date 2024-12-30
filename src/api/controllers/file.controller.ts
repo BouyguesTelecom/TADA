@@ -184,10 +184,13 @@ export const patchAsset = async (req: Request, res: Response) => {
                 contentType: file.mimetype
             });
 
-            const patchBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${itemToUpdate.unique_name}&version=${itemToUpdate.version}&mimetype=${itemToUpdate.mimetype}`, {
-                method: 'PATCH',
-                body: form
-            });
+            const patchBackupFile = await fetch(
+                `${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${itemToUpdate.unique_name}&version=${itemToUpdate.version}&mimetype=${itemToUpdate.mimetype}`,
+                {
+                    method: 'PATCH',
+                    body: form
+                }
+            );
 
             if (patchBackupFile.status !== 200) {
                 await deleteCatalogItem(uniqueName);

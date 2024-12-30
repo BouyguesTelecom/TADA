@@ -16,8 +16,8 @@ export const redisConnectionMiddleware = async (req: Request, res: Response, nex
         });
 
         next();
-    } catch ( error ) {
-        logger.error(`Redis connection error: ${ error.message }`);
+    } catch (error) {
+        logger.error(`Redis connection error: ${error.message}`);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
