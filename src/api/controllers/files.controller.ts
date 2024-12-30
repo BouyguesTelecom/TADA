@@ -104,7 +104,7 @@ export const patchAssets = async (req: Request, res: Response) => {
         Promise.resolve({ data: [], errors: invalidFiles })
     );
 
-    return sendResponse({ res, status: 200, data, errors });
+    return sendResponse({ res, status: 200, data, errors, purge: 'true' });
 };
 
 export const deleteAssets = async (req: Request, res: Response) => {

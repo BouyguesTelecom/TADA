@@ -8,15 +8,15 @@ const options = {
         info: {
             title: 'TADA API',
             version: '1.0.0',
-            description: 'API documentation for all routes',
+            description: 'API documentation for all routes'
         },
         servers: [
             {
-                url: 'http://localhost:3001',
-            },
-        ],
+                url: 'http://localhost:3001'
+            }
+        ]
     },
-    apis: ['./routes/*.ts'],
+    apis: ['./routes/*.ts']
 };
 
 const specs = swaggerJsdoc(options);

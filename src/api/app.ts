@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { logger } from './utils/logs/winston';
 import { morganMiddleware } from './utils/logs/morgan';
-import { setupSwagger} from './swaggerConfig';
+import { setupSwagger } from './swaggerConfig';
 
 require('dotenv').config();
 

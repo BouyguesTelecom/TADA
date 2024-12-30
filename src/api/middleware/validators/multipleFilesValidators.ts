@@ -129,7 +129,7 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
                     ]
                 };
             }
-            const fileInfo: Object = generateFileInfo(file, req.method);
+            const fileInfo: Object = generateFileInfo(req.body, req.method);
             if (!fileInfo && !req.files) {
                 return {
                     validFiles,
@@ -174,7 +174,7 @@ const _checkFilesInCatalog = async (files: any[], invalidFilesFromNamespace) => 
     return await files.reduce(
         async (accumulator, file) => {
             const { validFiles, invalidFiles } = await accumulator;
-            const itemFound = await findFileInCatalog(file.uuid, 'uuid');
+            const itemFound = await findFileInCatalog(file.uuid ?? file.key_value, file.uuid ? 'uuid' : file.key_name);
             if (!itemFound) {
                 return {
                     validFiles,

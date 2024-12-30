@@ -1,16 +1,18 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
+'use strict';
+var __importDefault =
+    (this && this.__importDefault) ||
+    function (mod) {
+        return mod && mod.__esModule ? mod : { default: mod };
+    };
+Object.defineProperty(exports, '__esModule', { value: true });
 exports.options = void 0;
 exports.getAll = getAll;
 exports.getFile = getFile;
 exports.updateFile = updateFile;
 exports.deleteFile = deleteFile;
 exports.postFile = postFile;
-var http_1 = __importDefault(require("k6/http"));
-var metrics_1 = require("k6/metrics");
+var http_1 = __importDefault(require('k6/http'));
+var metrics_1 = require('k6/metrics');
 var errorRate = new metrics_1.Rate('error_rate');
 exports.options = {
     scenarios: {
@@ -67,24 +69,23 @@ function getFile() {
         headers: { 'Content-Type': 'application/json' },
         insecureSkipTLSVerify: true
     };
-    var res = http_1.default.get("".concat(__ENV.URL_PUBLIC), params);
+    var res = http_1.default.get(''.concat(__ENV.URL_PUBLIC), params);
     if (res.status === 429) {
-        console.log("URL : ".concat(__ENV.REQUEST, " is banned after 10 requests (per minute): ").concat(res.status));
+        console.log('URL : '.concat(__ENV.REQUEST, ' is banned after 10 requests (per minute): ').concat(res.status));
     }
 }
 function updateFile() {
     var payload = JSON.stringify({
-        data: [{ st: 'CMS', key_name: 'unique_name', key_value: "".concat(__ENV.REQUEST), changes: { expired: 'true' } }]
+        data: [{ st: 'CMS', key_name: 'unique_name', key_value: ''.concat(__ENV.REQUEST), changes: { expired: 'true' } }]
     });
     var params = { headers: { 'Content-Type': 'application/json' } };
-    http_1.default.patch("".concat(__ENV.URL_API), payload, params);
+    http_1.default.patch(''.concat(__ENV.URL_API), payload, params);
 }
 function deleteFile() {
     var payload = JSON.stringify({
-        data: [{ st: 'CMS', key_name: 'unique_name', key_value: "".concat(__ENV.REQUEST) }]
+        data: [{ st: 'CMS', key_name: 'unique_name', key_value: ''.concat(__ENV.REQUEST) }]
     });
     var params = { headers: { 'Content-Type': 'application/json' } };
-    http_1.default.del("".concat(__ENV.URL_API), payload, params);
+    http_1.default.del(''.concat(__ENV.URL_API), payload, params);
 }
-function postFile() {
-}
+function postFile() {}
