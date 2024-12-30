@@ -129,7 +129,7 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
                     ]
                 };
             }
-            const fileInfo: Object = generateFileInfo(req.body, req.method);
+            const fileInfo: Object = generateFileInfo(file, req.method);
             if (!fileInfo && !req.files) {
                 return {
                     validFiles,

@@ -86,7 +86,7 @@ export const patchAssets = async (req: Request, res: Response) => {
                     signature = calculateSHA256(stream);
                 }
             }
-            const fileInfo = generateFileInfo(req.body);
+            const fileInfo = generateFileInfo(file);
             const version = req.files ? file.catalogItem.version + 1 : file.catalogItem.version;
             const updatedItem = await updateCatalogItem(file.uuid, {
                 ...file.catalogItem,

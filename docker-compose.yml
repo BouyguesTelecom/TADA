@@ -141,7 +141,7 @@ services:
             <<: *default-environment
             IMAGE_SERVICE: http://images-provider:3001
             API_SERVICE: http://images-provider:3001
-            API_PREFIX: /palpatine
+            API_PREFIX:
             DEV_ENV: true
             CATALOG_ROUTE: '/catalog'
             GET_ROUTE: '/assets/media/'
