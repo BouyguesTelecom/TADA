@@ -4,7 +4,6 @@ const MEDIA_TOKEN = process.env.MEDIA_TOKEN;
 
 export const authMiddleware = async (req, res, next) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    console.log('TOKEN::::', token, 'MEDIA TOKEN::::', MEDIA_TOKEN);
     if (token === MEDIA_TOKEN) {
         return next();
     } else {
