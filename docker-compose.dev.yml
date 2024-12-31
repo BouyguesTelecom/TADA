@@ -96,6 +96,7 @@ services:
             DELEGATED_STORAGE_HOST: http://minio:9000
             REDIS_SERVICE: redis
             S3_ENDPOINT: minio
+            MEDIA_TOKEN: token
         healthcheck:
             test: ["CMD-SHELL", "wget --spider --quiet http://images-provider:3001$$API_PREFIX/readiness-check || exit 1"]
             interval: 10s

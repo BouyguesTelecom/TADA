@@ -140,6 +140,8 @@ spec:
                             value: "{{ .Values.mediaProvider.initImagesNamespace }}"
                         -   name: IMAGES_UPLOAD_DESTINATION
                             value: "{{ .Values.mediaProvider.initImagesDestination }}"
+                        -   name: MEDIA_TOKEN
+                            value: "{{ .Values.mediaProvider.mediaToken }}"
             volumes:
                 -   name: redis-storage
                     persistentVolumeClaim:

@@ -145,6 +145,7 @@ services:
             DEV_ENV: true
             CATALOG_ROUTE: '/catalog'
             GET_ROUTE: '/assets/media/'
+            MEDIA_TOKEN: token
 
 volumes:
     pv-minio:

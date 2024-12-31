@@ -42,6 +42,7 @@ s3:
                 storage: 500Mi
 
 mediaProvider:
+    mediaToken: 'token'
     initImagesPath: ''
     initImagesNamespace: ''
     initImagesDestination: ''

@@ -41,6 +41,7 @@ s3:
                 storage: 500Mi
 
 mediaProvider:
+    mediaToken: 'token'
     useStripMetadata: true
     imageName: 'localhost:5001/media-api'
     imageVersion: 'latest'

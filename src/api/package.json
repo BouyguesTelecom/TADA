@@ -9,7 +9,6 @@
         "build": "tsc",
         "encrypt-env": "openssl enc -aes-256-cbc -salt -in .env -out .env.enc -k \"media\" -pbkdf2",
         "decrypt-env": "openssl enc -aes-256-cbc -d -in .env.enc -out .env -k \"media\" -pbkdf2",
-        "give-bruno-env": "openssl enc -aes-256-cbc -d -in .env.enc -out ../../MEDIA_API/.env -k \"media\" -pbkdf2",
         "docker:start": "docker-compose -f ../../docker-compose.yml up --build -d",
         "docker:stop": "docker-compose -f ../../docker-compose.yml down"
     },
