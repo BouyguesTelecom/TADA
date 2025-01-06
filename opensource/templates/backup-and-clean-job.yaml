@@ -13,11 +13,11 @@ spec:
           containers:
             - name: remove-expired-files-cronjob
               image: '{{ .Values.mediaProvider.backupAndCleanJob.imageName }}:{{ .Values.mediaProvider.backupAndCleanJob.imageVersion }}'
-              volumeMounts:
-                - name: logs
-                  mountPath: "/logs"
               resources:
                 requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
                   cpu: 50m
                   memory: 64Mi
               env:
@@ -39,9 +39,6 @@ spec:
                   value: '{{ .Values.mediaProvider.routes.files.patch }}'
                 - name: DELETE_ROUTE
                   value: '{{ .Values.mediaProvider.routes.files.delete }}'
-          volumes:
-            - name: logs
-              emptyDir: {}
           restartPolicy: Never
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 1

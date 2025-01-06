@@ -82,7 +82,7 @@ export const deleteAllCatalog = async (): Promise<ICatalogResponseMulti> => {
 
 export const createDumpCatalog = async (): Promise<{ status: number; data: string[]; errors: string[] }> => {
     const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
-    logger.info(`Delete catalog ${backupStorageMethod === 'STANDALONE' ? 'catalog.json' : 'REDIS'} ...`);
+    logger.info(`Create dump catalog ${backupStorageMethod === 'STANDALONE' ? 'catalog.json' : 'REDIS'} ...`);
     switch (backupStorageMethod) {
         case 'STANDALONE':
             return await standalone.createDump();
