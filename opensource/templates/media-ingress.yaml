@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-    name: {{ .Release.Name }}-api-ingress
+    name: tada-{{ .Release.Name }}-api-ingress
     annotations:
         {{- range $key, $value := .Values.ingress.api.annotations }}
         {{ $key }}: {{ $value | quote }}
@@ -12,7 +12,7 @@ spec:
     tls:
         -   hosts:
                 - {{ .Values.env }}.api{{ .Values.domain }}
-            secretName: {{ .Release.Name }}-api-tls-certificate
+            secretName: tada-{{ .Release.Name }}-api-tls-certificate
     {{- end }}
     rules:
         - host: '{{.Values.env}}.api{{.Values.domain}}'
@@ -22,6 +22,6 @@ spec:
                     pathType: ImplementationSpecific
                     backend:
                         service:
-                            name: {{ .Release.Name }}-media-service
+                            name: tada-{{ .Release.Name }}-media-service
                             port:
                                 number: 80

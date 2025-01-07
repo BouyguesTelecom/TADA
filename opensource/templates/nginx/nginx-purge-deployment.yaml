@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ .Release.Name }}-nginx-purge
+    name: tada-{{ .Release.Name }}-nginx-purge
     labels:
-        app: {{ .Release.Name }}-nginx-purge
+        app: tada-{{ .Release.Name }}-nginx-purge
 spec:
     replicas: 1
     selector:
         matchLabels:
-            app: {{ .Release.Name }}-nginx-purge
+            app: tada-{{ .Release.Name }}-nginx-purge
     template:
         metadata:
             labels:
-                app: {{ .Release.Name }}-nginx-purge
+                app: tada-{{ .Release.Name }}-nginx-purge
         spec:
             containers:
-                -   name: {{ .Release.Name }}-nginx-purge
+                -   name: tada-{{ .Release.Name }}-nginx-purge
                     image: {{.Values.mediaProvider.nginxPurge.imageName}}
                     ports:
                         -   containerPort: 8081
@@ -41,7 +41,7 @@ spec:
                     emptyDir: {}
                 -   name: nginx-config-volume
                     configMap:
-                        name: "{{ .Release.Name }}-nginx-purge-configmap"
+                        name: "tada-{{ .Release.Name }}-nginx-purge-configmap"
                         items:
                             -   key: nginx.conf
                                 path: nginx.conf

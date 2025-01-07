@@ -6,13 +6,7 @@ ingress:
         kubernetes.io/ingress.class: nginx
 
 redis:
-    service: redis-service
     dumpFolderPath: '/dumps'
-    storage:
-        storageClassName: hostpath
-        resources:
-            requests:
-                storage: 500Mi
 
 delegatedStorage:
     rateLimitWindow: 30000
@@ -49,8 +43,6 @@ mediaProvider:
     service: 'http://media-service'
     nginx:
         service: 'http://nginx'
-    thumbor:
-        service: 'http://thumbor-service'
     routes:
         healthcheck:
             get: '/readiness-check'

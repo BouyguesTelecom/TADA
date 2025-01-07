@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ .Release.Name }}-nginx
+    name: tada-{{ .Release.Name }}-nginx
     labels:
-        app: {{ .Release.Name }}-nginx
+        app: tada-{{ .Release.Name }}-nginx
 spec:
     replicas: 1
     selector:
         matchLabels:
-            app: {{ .Release.Name }}-nginx
+            app: tada-{{ .Release.Name }}-nginx
     template:
         metadata:
             labels:
-                app: {{ .Release.Name }}-nginx
+                app: tada-{{ .Release.Name }}-nginx
         spec:
             containers:
-                -   name: {{ .Release.Name }}-nginx
+                -   name: tada-{{ .Release.Name }}-nginx
                     image: {{ .Values.mediaProvider.nginx.imageName }}
                     ports:
                         -   containerPort: 8080
@@ -37,7 +37,7 @@ spec:
                     emptyDir: {}
                 -   name: nginx-config-volume
                     configMap:
-                        name: {{ .Release.Name }}-nginx-configmap
+                        name: tada-{{ .Release.Name }}-nginx-configmap
                         items:
                             -   key: nginx.conf
                                 path: nginx.conf

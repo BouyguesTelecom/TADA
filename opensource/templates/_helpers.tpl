@@ -1,11 +1,11 @@
 {{- define "minioService" -}}
-{{ .Release.Name }}-minio
+tada-{{ .Release.Name }}-minio
 {{- end -}}
 
 {{- define "redisService" -}}
-{{ .Release.Name }}-redis-service
+tada-{{ .Release.Name }}-redis-service
 {{- end -}}
 
 {{- define "mediaService" -}}
-http://{{ .Release.Name }}-media-service
+http://tada-{{ .Release.Name }}-media-service
 {{- end -}}

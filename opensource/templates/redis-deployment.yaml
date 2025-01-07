@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name:  {{ .Release.Name }}-redis-deployment
+    name:  tada-{{ .Release.Name }}-redis-deployment
 spec:
     replicas: 1
     selector:
         matchLabels:
-            app:  {{ .Release.Name }}-redis
+            app:  tada-{{ .Release.Name }}-redis
     template:
         metadata:
             labels:
-                app:  {{ .Release.Name }}-redis
+                app:  tada-{{ .Release.Name }}-redis
         spec:
             containers:
-                - name:  {{ .Release.Name }}-redis
+                - name:  tada-{{ .Release.Name }}-redis
                   image: {{ .Values.redis.imageName }}
                   command:
                       - 'redis-server'
@@ -36,4 +36,4 @@ spec:
             volumes:
                 - name: redis-storage
                   persistentVolumeClaim:
-                      claimName:  {{ .Release.Name }}-redis-pv
+                      claimName:  tada-{{ .Release.Name }}-redis-pv

@@ -2,19 +2,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-redisinsight-deployment
+  name: tada-{{ .Release.Name }}-redisinsight-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ .Release.Name }}-redisinsight
+      app: tada-{{ .Release.Name }}-redisinsight
   template:
     metadata:
       labels:
-        app: {{ .Release.Name }}-redisinsight
+        app: tada-{{ .Release.Name }}-redisinsight
     spec:
       containers:
-        - name: {{ .Release.Name }}-redisinsight
+        - name: tada-{{ .Release.Name }}-redisinsight
           image: redis/redisinsight:latest
           ports:
             - containerPort: 5540
@@ -22,10 +22,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Release.Name }}-redisinsight-service
+  name: tada-{{ .Release.Name }}-redisinsight-service
 spec:
   selector:
-    app: {{ .Release.Name }}-redisinsight
+    app: tada-{{ .Release.Name }}-redisinsight
   ports:
     - protocol: TCP
       port: 5540

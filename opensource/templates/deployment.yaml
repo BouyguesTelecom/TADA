@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ .Release.Name }}-media
+    name: tada-{{ .Release.Name }}-media
     labels:
-        app: {{ .Release.Name }}-media
+        app: tada-{{ .Release.Name }}-media
 spec:
     replicas: {{ .Values.hpa.replicaCountMin }}
     selector:
         matchLabels:
-            app: {{ .Release.Name }}-media
+            app: tada-{{ .Release.Name }}-media
     template:
         metadata:
             labels:
-                app: {{ .Release.Name }}-media
+                app: tada-{{ .Release.Name }}-media
         spec:
             containers:
-                -   name: {{ .Release.Name }}-media-api
+                -   name: tada-{{ .Release.Name }}-media-api
                     image: "{{ .Values.mediaProvider.imageName }}:{{ .Values.mediaProvider.imageVersion }}"
                     resources:
                         requests:
@@ -145,4 +145,4 @@ spec:
             volumes:
                 -   name: redis-storage
                     persistentVolumeClaim:
-                        claimName: {{ .Release.Name }}-redis-pv
+                        claimName: tada-{{ .Release.Name }}-redis-pv

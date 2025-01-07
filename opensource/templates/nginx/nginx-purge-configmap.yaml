@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-    name: {{ .Release.Name }}-nginx-purge-configmap
+    name: tada-{{ .Release.Name }}-nginx-purge-configmap
 data:
     proxy-body-size: 10m
     nginx.conf: |
@@ -26,7 +26,7 @@ data:
             proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=zone2:10m max_size=1g inactive=24h use_temp_path=off;
             server {
               listen 8081;
-              server_name {{ .Release.Name }}-nginx-purge;
+              server_name tada-{{ .Release.Name }}-nginx-purge;
 
               proxy_cache zone2;
               proxy_cache_key $request_uri;
