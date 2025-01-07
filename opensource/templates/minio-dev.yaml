@@ -111,8 +111,8 @@ spec:
     - ReadWriteMany
   resources:
     requests:
-      storage: "{{.Values.mediaProvider.storage.resources.requests.storage}}"
-  storageClassName: "{{.Values.mediaProvider.storage.storageClassName}}"
+      storage: "{{.Values.s3.storage.resources.requests.storage}}"
+  storageClassName: "{{.Values.s3.storage.storageClassName}}"
   selector:
     matchLabels:
       type:  tada-{{ .Release.Name }}-minio

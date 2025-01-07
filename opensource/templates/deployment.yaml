@@ -19,11 +19,11 @@ spec:
                     image: "{{ .Values.mediaProvider.imageName }}:{{ .Values.mediaProvider.imageVersion }}"
                     resources:
                         requests:
-                            cpu: 200m
-                            memory: 128Mi
+                            cpu: {{ .Values.mediaProvider.resources.requests.cpu }}
+                            memory: {{ .Values.mediaProvider.resources.requests.memory }}
                         limits:
-                            cpu: 800m
-                            memory: 512Mi
+                            cpu: {{ .Values.mediaProvider.resources.limits.cpu }}
+                            memory: {{ .Values.mediaProvider.resources.limits.memory }}
                     ports:
                         -   containerPort: 3001
                     volumeMounts:
@@ -65,8 +65,6 @@ spec:
                             value: "{{ default "localhost,*" .Values.mediaProvider.originsAllowed }}"
                         -   name: METHODS_ALLOWED
                             value: "{{ default "GET,POST" .Values.mediaProvider.methodsAllowed }}"
-                        -   name: THUMBOR_SERVICE
-                            value: "{{ default "http://thumbor-service" .Values.mediaProvider.thumbor.service }}"
                         -   name: DUMP_FOLDER_PATH
                             value: "{{ default "/dumps" .Values.redis.dumpFolderPath }}"
                         -   name: NGINX_SERVICE

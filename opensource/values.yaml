@@ -11,9 +11,13 @@ redis:
     dumpFolderPath: '/dumps'
     storage:
         storageClassName: hostpath
-        resources:
-            requests:
-                storage: 500Mi
+    resources:
+        requests:
+            cpu: 200m
+            memory: 128Mi  
+        limits:
+            cpu: 800m
+            memory: 512Mi
 
 delegatedStorage:
     rateLimitWindow: 30000
@@ -53,8 +57,23 @@ mediaProvider:
     service: 'http://media-service'
     nginx:
         imageName: bitnami/nginx:latest
+        resources:
+            requests:
+                cpu: 200m
+                memory: 128Mi
+            limits:
+                cpu: 800m
+                memory: 512Mi
     nginxPurge:
         imageName: emcniece/nginx-cache-purge:1.13-alpine
+        resources:
+            requests:
+                cpu: 200m
+                memory: 128Mi
+            limits:
+                cpu: 800m
+                memory: 512Mi
+
     routes:
         healthcheck:
             get: '/readiness-check'
@@ -82,12 +101,21 @@ mediaProvider:
     methodsAllowed: 'GET,POST'
     storage:
         storageClassName: hostpath
-        resources:
-            requests:
-                storage: 500Mi
+    resources:
+        requests:
+            cpu: 200m
+            memory: 128Mi
+        limits:
+            cpu: 800m
+            memory: 512Mi
+        
     backupAndCleanJob:
         imageName: 'bouyguestelecom/tada'
         imageVersion: 'job-latest'
+        resources:
+            requests:
+                cpu: 50m
+                memory: 64Mi
 
 rateLimit:
     windowMs: 30000

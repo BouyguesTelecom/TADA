@@ -27,11 +27,11 @@ spec:
                             subPath: nginx.conf
                     resources:
                         requests:
-                            cpu: 200m
-                            memory: 128Mi
+                            cpu: {{ .Values.mediaProvider.nginx.resources.requests.cpu }}
+                            memory: {{ .Values.mediaProvider.nginx.resources.requests.memory }}
                         limits:
-                            cpu: 800m
-                            memory: 512Mi
+                            cpu: {{ .Values.mediaProvider.nginx.resources.limits.cpu }}
+                            memory: {{ .Values.mediaProvider.nginx.resources.limits.memory }}
             volumes:
                 -   name: nginx-cache
                     emptyDir: {}

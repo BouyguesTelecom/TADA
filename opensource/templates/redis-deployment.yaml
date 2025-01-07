@@ -28,11 +28,11 @@ spec:
                         mountPath: /dumps
                   resources:
                     requests:
-                      cpu: 200m
-                      memory: 128Mi
+                      cpu: {{ .Values.redis.resources.requests.cpu }}
+                      memory: {{ .Values.redis.resources.requests.memory }}
                     limits:
-                      cpu: 800m
-                      memory: 512Mi
+                      cpu: {{ .Values.redis.resources.limits.cpu }}
+                      memory: {{ .Values.redis.resources.limits.memory }}
             volumes:
                 - name: redis-storage
                   persistentVolumeClaim:

@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: tada-{{ .Release.Name }}-backup-and-clean-cronjob-{{ .Values.version }}
+  name: tada-{{ .Release.Name }}-backup-and-clean-{{ .Values.version }}
 spec:
   schedule: '0 0 * * *'
   jobTemplate:
@@ -15,8 +15,8 @@ spec:
               image: '{{ .Values.mediaProvider.backupAndCleanJob.imageName }}:{{ .Values.mediaProvider.backupAndCleanJob.imageVersion }}'
               resources:
                 requests:
-                  cpu: 50m
-                  memory: 64Mi
+                      cpu: {{ .Values.mediaProvider.backupAndCleanJob.resources.requests.cpu }}
+                      memory: {{ .Values.mediaProvider.backupAndCleanJob.resources.requests.memory }}
               env:
                 - name: API_SERVICE
                   value: '{{ .Values.mediaProvider.service }}'

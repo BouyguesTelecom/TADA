@@ -3,7 +3,6 @@ x-environment-variables:
     API_PREFIX: "/palpatine"
     DELEGATED_STORAGE_RATE_LIMIT: 5
     DELEGATED_STORAGE_RATE_LIMIT_WINDOW: 30000
-    THUMBOR_SERVICE: http://localhost:8888
     NGINX_SERVICE: http://host.docker.internal:8080
     IMAGE_SERVICE: http://localhost:3001
     NGINX_INGRESS: http://localhost:8080
@@ -94,7 +93,6 @@ services:
             - ./local/redis/dumps:/dumps
         environment:
             <<: *default-environment
-            THUMBOR_SERVICE: http://thumbor:8888
             NGINX_SERVICE: http://nginx:8080
             IMAGE_SERVICE: http://images-provider:3001
             NGINX_INGRESS: http://localhost:8080
