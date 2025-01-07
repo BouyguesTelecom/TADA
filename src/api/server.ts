@@ -72,7 +72,7 @@ const createStandaloneFolderAndCatalog = () => {
         if (!standalone) {
             await checkAccessToBackup();
             await connectToRedisWithRetry(3, 10000);
-            await redisHandler.disconnectClient();
+
             const dbDump = fs.existsSync(`${process.env.DUMP_FOLDER_PATH}/dump.rdb`);
 
             if (!dbDump) {
@@ -81,6 +81,8 @@ const createStandaloneFolderAndCatalog = () => {
             } else {
                 logger.info('dump.rdb already exists : skipping getting latest dump from backup 🔆');
             }
+
+            await redisHandler.disconnectClient();
         }
 
         if (standalone) {
