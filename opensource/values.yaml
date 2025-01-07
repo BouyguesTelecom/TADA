@@ -54,7 +54,7 @@ mediaProvider:
     imageName: 'bouyguestelecom/tada'
     imageVersion: 'api-latest'
     pvPathImage: '/images'
-    service: 'http://media-service'
+    service: 'http://tada-palpatine-media-ap1-media-service.palpatine-media-ap1'
     nginx:
         imageName: bitnami/nginx:latest
         resources:
