@@ -42,6 +42,7 @@ export const addFilesInCatalog = async (items: FileProps[]): Promise<ICatalogRes
                 errors: null
             };
         }
+        logger.error(`⛔️ Errors adding files: ${response.errors}`);
         return {
             status: 500,
             errors: response.errors || ['Unknown error'],
