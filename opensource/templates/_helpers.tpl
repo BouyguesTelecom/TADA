@@ -9,3 +9,7 @@ tada-{{ .Release.Name }}-redis-service
 {{- define "mediaService" -}}
 http://tada-{{ .Release.Name }}-media-service
 {{- end -}}
+
+{{- define "nginxService" -}}
+http://tada-{{.Release.Name}}-{{.Values.nginx.serviceName}}
+{{- end -}}

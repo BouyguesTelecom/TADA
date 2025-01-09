@@ -15,8 +15,10 @@ export interface FileProps extends FilePathProps {
     file: any;
 }
 
+const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+
 export const getLastDump = async () => {
-    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    
     logger.info(`GET DUMP from backup storage using ${backupStorageMethod} method...`);
     switch (backupStorageMethod) {
         case 'DISTANT_BACKEND':
@@ -29,7 +31,7 @@ export const getLastDump = async () => {
 };
 
 export const getFileBackup = async ({ filepath, version, mimetype }: FilePathProps): Promise<BackupProps> => {
-    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    
     logger.info(`GET file from backup storage using ${backupStorageMethod} method...`);
     switch (backupStorageMethod) {
         case 'DISTANT_BACKEND':
@@ -52,7 +54,7 @@ export const getFileBackup = async ({ filepath, version, mimetype }: FilePathPro
 };
 
 export const generateStreamBackup = async ({ filepath, file, version, mimetype, headers = null }: FileProps) => {
-    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    
     logger.info(`Uploading file to backup storage using ${backupStorageMethod} method...`);
     switch (backupStorageMethod) {
         case 'DISTANT_BACKEND':
@@ -79,7 +81,7 @@ export const generateStreamBackup = async ({ filepath, file, version, mimetype, 
 };
 
 export const updateFileBackup = async ({ filepath, file, version, mimetype, headers = {} }: FileProps): Promise<BackupProps> => {
-    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    
     logger.info(`Updating file from backup storage using ${backupStorageMethod} method...`);
     switch (backupStorageMethod) {
         case 'DISTANT_BACKEND':
@@ -106,7 +108,7 @@ export const updateFileBackup = async ({ filepath, file, version, mimetype, head
 };
 
 export const deleteFileBackup = async ({ filepath, version, mimetype, headers = {} }: FilePathProps): Promise<BackupProps> => {
-    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    
     logger.info(`Delete file from backup storage using ${backupStorageMethod} method...`);
     switch (backupStorageMethod) {
         case 'DISTANT_BACKEND':

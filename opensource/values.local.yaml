@@ -1,12 +1,32 @@
 local: true
+protocol: 'http'
+env: 'media-service'
+domain: '.media'
+NAMESPACES_ALLOWED: 'DEV'
 
 ingress:
-    className: nginx
-    annotations:
-        kubernetes.io/ingress.class: nginx
+    ingress:
+        nginx:
+            className: nginx
+            annotations:
+        api:
+            className: nginx
+            annotations:
+                nginx.ingress.kubernetes.io/proxy-body-size: 100m
 
 redis:
+    imageName: bitnami/redis:7.0.15-debian-12-r20
     dumpFolderPath: '/dumps'
+    storage:
+        storageClassName: hostpath
+        requestedStorage: 1Gi
+    resources:
+        requests:
+            cpu: 200m
+            memory: 128Mi
+        limits:
+            cpu: 800m
+            memory: 512Mi
 
 delegatedStorage:
     rateLimitWindow: 30000
@@ -15,15 +35,10 @@ delegatedStorage:
     host: 'http://minio:9000'
     routes:
         readinessCheck: '/minio/health/live'
-        get: ''
-        post: ''
-        put: ''
-        delete: ''
     accessToken: 'NinjaDesIles'
     storageMethod: 'S3'
 
 s3:
-    endpoint: 'minio'
     port: '9000'
     accessKey: 'minioadmin'
     secretKey: 'minioadmin'
@@ -34,59 +49,51 @@ s3:
             requests:
                 storage: 500Mi
 
-mediaProvider:
+nginx:
+    imageName: bitnami/nginx:latest
+    serviceName: nginx-service
+    resources:
+        requests:
+            cpu: 200m
+            memory: 128Mi
+        limits:
+            cpu: 800m
+            memory: 512Mi
+
+nginxPurge:
+    imageName: emcniece/nginx-cache-purge:1.13-alpine
+    resources:
+        requests:
+            cpu: 200m
+            memory: 128Mi
+        limits:
+            cpu: 800m
+            memory: 512Mi
+
+backupAndCleanJob:
+    imageName: 'localhost:5001/jobs-api'
+    imageVersion: 'latest'
+    resources:
+        requests:
+            cpu: 50m
+            memory: 64Mi
+
+mediaApi:
     mediaToken: 'token'
     useStripMetadata: true
     imageName: 'localhost:5001/media-api'
     imageVersion: 'latest'
-    pvPathImage: '/images'
     service: 'http://media-service'
-    nginx:
-        service: 'http://nginx'
     routes:
         healthcheck:
             get: '/readiness-check'
         file:
             get: '/assets/media/'
-            post: '/upload'
-            patch: ''
-            delete: ''
-        files:
-            post: '/uploads'
-            patch: ''
-            delete: ''
         catalog:
             get: '/catalog'
-        delegatedStorage:
-            get: '/delegated-storage'
-            post: '/delegated-storage'
-            patch: '/delegated-storage'
-            delete: '/delegated-storage'
     payloadMaxSize: '10mb'
-    rateLimit:
-        windowMs: 30000
-        limit: 5
-    originsAllowed: 'localhost,*'
+    originsAllowed: "localhost,*"
     methodsAllowed: 'GET,POST'
-    storage:
-        storageClassName: hostpath
-        resources:
-            requests:
-                storage: 500Mi
-    backupAndCleanJob:
-        imageName: 'localhost:5001/jobs-api'
-        imageVersion: 'latest'
-
-rateLimit:
-    windowMs: 30000
-    limit: 5
-
-hpa:
-    replicaCountMin: 1
-    replicaCountMax: 1
-
-protocol: 'http'
-env: 'media-service'
-domain: '.media'
-NAMESPACES_ALLOWED: 'DEV'
-version: '1.0.6'
+    hpa:
+        replicaCountMin: 1
+        replicaCountMax: 1

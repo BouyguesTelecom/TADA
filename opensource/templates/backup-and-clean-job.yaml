@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: tada-{{ .Release.Name }}-backup-and-clean-{{ .Values.version }}
+  name: tada-{{ .Release.Name }}-backup-and-clean
 spec:
   schedule: '0 0 * * *'
   jobTemplate:
@@ -12,30 +12,24 @@ spec:
         spec:
           containers:
             - name: remove-expired-files-cronjob
-              image: '{{ .Values.mediaProvider.backupAndCleanJob.imageName }}:{{ .Values.mediaProvider.backupAndCleanJob.imageVersion }}'
+              image: '{{ .Values.backupAndCleanJob.imageName }}:{{ .Values.backupAndCleanJob.imageVersion }}'
               resources:
                 requests:
-                      cpu: {{ .Values.mediaProvider.backupAndCleanJob.resources.requests.cpu }}
-                      memory: {{ .Values.mediaProvider.backupAndCleanJob.resources.requests.memory }}
+                      cpu: {{ .Values.backupAndCleanJob.resources.requests.cpu }}
+                      memory: {{ .Values.backupAndCleanJob.resources.requests.memory }}
               env:
                 - name: API_SERVICE
-                  value: '{{ .Values.mediaProvider.service }}'
+                  value: "{{ include "mediaService" . }}"
                 - name: CATALOG_ROUTE
-                  value: '{{ .Values.mediaProvider.routes.catalog.get }}'
+                  value: '{{ .Values.mediaApi.routes.catalog.get }}'
                 - name: DEV_ENV
                   value: '{{ .Values.dev }}'
-                - name: IMAGE_SERVICE
-                  value: '{{ .Values.mediaProvider.service }}'
+                - name: NGINX_SERVICE
+                  value: "{{ include "nginxService" . }}"
                 - name: API_PREFIX
-                  value: '{{ .Values.mediaProvider.apiPrefix }}'
+                  value: '{{ .Values.mediaApi.apiPrefix }}'
                 - name: DELEGATED_STORAGE_METHOD
-                  value: '{{ .Values.mediaProvider.backupStorageMethod }}'
-                - name: GET_ROUTE
-                  value: '{{ .Values.mediaProvider.routes.files.get }}'
-                - name: PATCH_ROUTE
-                  value: '{{ .Values.mediaProvider.routes.files.patch }}'
-                - name: DELETE_ROUTE
-                  value: '{{ .Values.mediaProvider.routes.files.delete }}'
+                  value: '{{ .Values.mediaApi.backupStorageMethod }}'
           restartPolicy: Never
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 1

@@ -16,7 +16,7 @@ spec:
         spec:
             containers:
                 -   name: tada-{{ .Release.Name }}-nginx-purge
-                    image: {{.Values.mediaProvider.nginxPurge.imageName}}
+                    image: {{.Values.nginxPurge.imageName}}
                     ports:
                         -   containerPort: 8081
                     volumeMounts:
@@ -29,11 +29,11 @@ spec:
                             subPath: nginx.conf
                     resources:
                         requests:
-                            cpu: {{ .Values.mediaProvider.nginxPurge.resources.requests.cpu }}
-                            memory: {{ .Values.mediaProvider.nginxPurge.resources.requests.memory }}
+                            cpu: {{ .Values.nginxPurge.resources.requests.cpu }}
+                            memory: {{ .Values.nginxPurge.resources.requests.memory }}
                         limits:
-                            cpu: {{ .Values.mediaProvider.nginxPurge.resources.limits.cpu }}
-                            memory: {{ .Values.mediaProvider.nginxPurge.resources.limits.memory }}
+                            cpu: {{ .Values.nginxPurge.resources.limits.cpu }}
+                            memory: {{ .Values.nginxPurge.resources.limits.memory }}
             volumes:
                 -   name: nginx-pid
                     emptyDir: {}

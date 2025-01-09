@@ -39,5 +39,5 @@ spec:
         - ReadWriteMany
     resources:
         requests:
-            storage: 1Gi
-    storageClassName: "{{.Values.mediaProvider.storage.storageClassName}}"
+            storage: "{{.Values.redis.storage.requestedStorage}}"
+    storageClassName: "{{.Values.redis.storage.storageClassName}}"

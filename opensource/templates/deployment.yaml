@@ -5,7 +5,7 @@ metadata:
     labels:
         app: tada-{{ .Release.Name }}-media
 spec:
-    replicas: {{ .Values.hpa.replicaCountMin }}
+    replicas: {{ .Values.mediaApi.hpa.replicaCountMin }}
     selector:
         matchLabels:
             app: tada-{{ .Release.Name }}-media
@@ -16,89 +16,53 @@ spec:
         spec:
             containers:
                 -   name: tada-{{ .Release.Name }}-media-api
-                    image: "{{ .Values.mediaProvider.imageName }}:{{ .Values.mediaProvider.imageVersion }}"
+                    image: "{{ .Values.mediaApi.imageName }}:{{ .Values.mediaApi.imageVersion }}"
                     resources:
                         requests:
-                            cpu: {{ .Values.mediaProvider.resources.requests.cpu }}
-                            memory: {{ .Values.mediaProvider.resources.requests.memory }}
+                            cpu: {{ .Values.mediaApi.resources.requests.cpu }}
+                            memory: {{ .Values.mediaApi.resources.requests.memory }}
                         limits:
-                            cpu: {{ .Values.mediaProvider.resources.limits.cpu }}
-                            memory: {{ .Values.mediaProvider.resources.limits.memory }}
+                            cpu: {{ .Values.mediaApi.resources.limits.cpu }}
+                            memory: {{ .Values.mediaApi.resources.limits.memory }}
                     ports:
                         -   containerPort: 3001
                     volumeMounts:
                         -   name: redis-storage
                             mountPath: "{{ default "/dumps" .Values.redis.dumpFolderPath }}"
                     env:
-                        -   name: FILE_GET_ROUTE
-                            value: "{{ .Values.mediaProvider.routes.file.get  }}"
-                        -   name: FILE_POST_ROUTE
-                            value: "{{ default "/upload" .Values.mediaProvider.routes.file.post }}"
-                        -   name: FILE_PATCH_ROUTE
-                            value: "{{ default "" .Values.mediaProvider.routes.file.patch }}"
-                        -   name: FILE_DELETE_ROUTE
-                            value: "{{ default "" .Values.mediaProvider.routes.file.delete }}"
-
-                        -   name: FILES_POST_ROUTE
-                            value: "{{ default "/uploads" .Values.mediaProvider.routes.files.postMultiple }}"
-                        -   name: FILES_PATCH_ROUTE
-                            value: "{{ default "" .Values.mediaProvider.routes.files.patch }}"
-                        -   name: FILES_DELETE_ROUTE
-                            value: "{{ default "" .Values.mediaProvider.routes.files.delete }}"
-
                         -   name: CATALOG_ROUTE
-                            value: "{{ default "/catalog" .Values.mediaProvider.routes.catalog.get }}"
-                        -   name: DELEGATED_STORAGE_GET_ROUTE
-                            value: "{{ default "/delegated-storage" .Values.mediaProvider.routes.delegatedStorage.get }}"
-                        -   name: DELEGATED_STORAGE_POST_ROUTE
-                            value: "{{ default "/delegated-storage" .Values.mediaProvider.routes.delegatedStorage.post }}"
-                        -   name: DELEGATED_STORAGE_PATCH_ROUTE
-                            value: "{{ default "/delegated-storage" .Values.mediaProvider.routes.delegatedStorage.patch }}"
-                        -   name: DELEGATED_STORAGE_DELETE_ROUTE
-                            value: "{{ default "/delegated-storage" .Values.mediaProvider.routes.delegatedStorage.delete }}"
-
+                            value: "{{ default "/catalog" .Values.mediaApi.routes.catalog.get }}"
                         -   name: PAYLOAD_MAX_SIZE
-                            value: "{{ default "10mb" .Values.mediaProvider.payloadMaxSize }}"
+                            value: "{{ default "10mb" .Values.mediaApi.payloadMaxSize }}"
                         -   name: HEALTHCHECK_ROUTE
-                            value: "{{ default "/readiness-check" .Values.mediaProvider.routes.healthcheck.get }}"
+                            value: "{{ default "/readiness-check" .Values.mediaApi.routes.healthcheck.get }}"
                         -   name: ORIGINS_ALLOWED
-                            value: "{{ default "localhost,*" .Values.mediaProvider.originsAllowed }}"
+                            value: |
+                                    {{ .Values.mediaApi.originsAllowed | default "localhost,*" }}
                         -   name: METHODS_ALLOWED
-                            value: "{{ default "GET,POST" .Values.mediaProvider.methodsAllowed }}"
+                            value: "{{ default "GET,POST" .Values.mediaApi.methodsAllowed }}"
                         -   name: DUMP_FOLDER_PATH
                             value: "{{ default "/dumps" .Values.redis.dumpFolderPath }}"
                         -   name: NGINX_SERVICE
-                            value: http://tada-{{.Release.Name}}-nginx-service
+                            value: "{{ include "nginxService" . }}"
                         -   name: NGINX_INGRESS
                             value: '{{.Values.protocol}}://{{.Values.env}}{{.Values.domain}}'
                         -   name: IMAGE_SERVICE
                             value: "{{ include "mediaService" . }}"
                         -   name: API_PREFIX
-                            value: "{{ default "" .Values.mediaProvider.apiPrefix }}"
+                            value: "{{ default "" .Values.mediaApi.apiPrefix }}"
                         -   name: USE_STRIPMETADATA
-                            value: "{{ default "" .Values.mediaProvider.useStripMetadata }}"
-                        -   name: RATE_LIMIT
-                            value: "{{ default "5" .Values.mediaProvider.rateLimit.limit }}"
-                        -   name: RATE_LIMIT_WINDOW
-                            value: "{{ default "30000" .Values.mediaProvider.rateLimit.windowMs }}"
-
+                            value: "{{ default "" .Values.mediaApi.useStripMetadata }}"
                         -   name: DELEGATED_STORAGE_RATE_LIMIT
                             value: "{{ default "5" .Values.delegatedStorage.rateLimit }}"
                         -   name: DELEGATED_STORAGE_RATE_LIMIT_WINDOW
                             value: "{{ default "30000" .Values.delegatedStorage.rateLimitWindow }}"
-
-                        -   name: VERSION
-                            value: "{{ default "1.0.6" .Values.version }}"
                         -   name: NAMESPACES
                             value: "{{ default "DEV" .Values.NAMESPACES_ALLOWED }}"
                         -   name: VALID_MIMETYPES
                             value: "image/png,image/jpeg,application/pdf,image/jpg,image/webp,image/svg+xml"
-
-                        -   name: PUBLIC_IMAGE_URL
-                            value: {{ if eq .Values.environment "prod" }} "{{.Values.protocol}}://{{ .Values.env }}{{ .Values.domain }}/assets/media" {{ else }} "{{.Values.protocol}}://{{ .Values.env }}{{ .Values.domain }}/assets/media" {{ end }}
                         -   name: DEV_ENV
                             value: "{{ default "true" .Values.dev }}"
-
                         -   name: REDIS_SERVICE
                             value: "{{ include "redisService" . }}"
                         -   name: DELEGATED_STORAGE_METHOD
@@ -107,20 +71,11 @@ spec:
                             value: "{{ if eq .Values.delegatedStorage.storageMethod "S3" }}http://{{ include "minioService" . }}:{{ .Values.s3.port }}{{ else }}{{ .Values.delegatedStorage.host }}{{ end }}"
                         -   name: DELEGATED_STORAGE_READINESS_CHECK
                             value: "{{ default "/minio/health/live" .Values.delegatedStorage.routes.readinessCheck }}"
-            {{- if and (eq .Values.delegatedStorage.connect true) (eq .Values.delegatedStorage.storageMethod "DISTANT_BACKEND") }}
-                        -   name: DELEGATED_STORAGE_GET_PATH
-                            value: "{{ default "" .Values.delegatedStorage.routes.get }}"
-                        -   name: DELEGATED_STORAGE_POST_PATH
-                            value: "{{ default "" .Values.delegatedStorage.routes.post }}"
-                        -   name: DELEGATED_STORAGE_PATCH_PATH
-                            value: "{{ default "" .Values.delegatedStorage.routes.patch }}"
-                        -   name: DELEGATED_STORAGE_DELETE_PATH
-                            value: "{{ default "" .Values.delegatedStorage.routes.delete }}"
+                        {{- if and (eq .Values.delegatedStorage.connect true) (eq .Values.delegatedStorage.storageMethod "DISTANT_BACKEND") }}
                         -   name: DELEGATED_STORAGE_TOKEN
                             value: "{{ default "NinjaDesIles" .Values.delegatedStorage.accessToken }}"
-            {{- end }}
-            {{- if and (eq .Values.delegatedStorage.connect true) (eq .Values.delegatedStorage.storageMethod "S3") }}
-
+                        {{- end }}
+                        {{- if and (eq .Values.delegatedStorage.connect true) (eq .Values.delegatedStorage.storageMethod "S3") }}
                         -   name: S3_ENDPOINT
                             value: {{ include "minioService" . }}
                         -   name: S3_PORT
@@ -131,15 +86,9 @@ spec:
                             value: "{{ default "minioadmin" .Values.s3.secretKey }}"
                         -   name: S3_BUCKET_NAME
                             value: "{{ default "media" .Values.s3.bucketName }}"
-            {{- end }}
-                        -   name: IMAGES_UPLOAD_PATH
-                            value: "{{ .Values.mediaProvider.initImagesPath }}"
-                        -   name: IMAGES_UPLOAD_NAMESPACE
-                            value: "{{ .Values.mediaProvider.initImagesNamespace }}"
-                        -   name: IMAGES_UPLOAD_DESTINATION
-                            value: "{{ .Values.mediaProvider.initImagesDestination }}"
+                        {{- end }}
                         -   name: MEDIA_TOKEN
-                            value: "{{ .Values.mediaProvider.mediaToken }}"
+                            value: "{{ .Values.mediaApi.mediaToken }}"
             volumes:
                 -   name: redis-storage
                     persistentVolumeClaim:

@@ -3,8 +3,10 @@ import * as standalone from './standalone';
 import { logger } from '../utils/logs/winston';
 import { ICatalogResponse, ICatalogResponseMulti } from '../props/catalog';
 
+const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+
 export const getCatalog = async (): Promise<ICatalogResponseMulti> => {
-    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    
     logger.info(`Retrieve files from catalog ${backupStorageMethod === 'STANDALONE' ? 'catalog.json' : 'REDIS'} ...`);
     switch (backupStorageMethod) {
         case 'STANDALONE':
@@ -15,7 +17,7 @@ export const getCatalog = async (): Promise<ICatalogResponseMulti> => {
 };
 
 export const getCatalogItem = async ({ uuid }): Promise<ICatalogResponse> => {
-    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    
     logger.info(`Retrieve file from catalog ${backupStorageMethod === 'STANDALONE' ? 'catalog.json' : 'REDIS'} ...`);
     switch (backupStorageMethod) {
         case 'STANDALONE':
@@ -26,7 +28,7 @@ export const getCatalogItem = async ({ uuid }): Promise<ICatalogResponse> => {
 };
 
 export const addCatalogItem = async (item): Promise<ICatalogResponse> => {
-    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    
     logger.info(`Add file in catalog ${backupStorageMethod === 'STANDALONE' ? 'catalog.json' : 'REDIS'} ...`);
     switch (backupStorageMethod) {
         case 'STANDALONE':
@@ -37,7 +39,7 @@ export const addCatalogItem = async (item): Promise<ICatalogResponse> => {
 };
 
 export const addCatalogItems = async (items): Promise<ICatalogResponseMulti> => {
-    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    
     logger.info(`Add files in catalog ${backupStorageMethod === 'STANDALONE' ? 'catalog.json' : 'REDIS'} ...`);
     switch (backupStorageMethod) {
         case 'STANDALONE':
@@ -48,7 +50,7 @@ export const addCatalogItems = async (items): Promise<ICatalogResponseMulti> => 
 };
 
 export const updateCatalogItem = async (uuid, itemToUpdate): Promise<ICatalogResponse> => {
-    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    
     logger.info(`Update file in catalog ${backupStorageMethod === 'STANDALONE' ? 'catalog.json' : 'REDIS'} ...`);
     switch (backupStorageMethod) {
         case 'STANDALONE':
@@ -59,7 +61,7 @@ export const updateCatalogItem = async (uuid, itemToUpdate): Promise<ICatalogRes
 };
 
 export const deleteCatalogItem = async (uniqueName): Promise<ICatalogResponse> => {
-    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    
     logger.info(`Delete file in catalog ${backupStorageMethod === 'STANDALONE' ? 'catalog.json' : 'REDIS'} ...`);
     switch (backupStorageMethod) {
         case 'STANDALONE':
@@ -70,7 +72,7 @@ export const deleteCatalogItem = async (uniqueName): Promise<ICatalogResponse> =
 };
 
 export const deleteAllCatalog = async (): Promise<ICatalogResponseMulti> => {
-    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    
     logger.info(`Delete catalog ${backupStorageMethod === 'STANDALONE' ? 'catalog.json' : 'REDIS'} ...`);
     switch (backupStorageMethod) {
         case 'STANDALONE':
@@ -81,7 +83,7 @@ export const deleteAllCatalog = async (): Promise<ICatalogResponseMulti> => {
 };
 
 export const createDumpCatalog = async (): Promise<{ status: number; data: string[]; errors: string[] }> => {
-    const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
+    
     logger.info(`Create dump catalog ${backupStorageMethod === 'STANDALONE' ? 'catalog.json' : 'REDIS'} ...`);
     switch (backupStorageMethod) {
         case 'STANDALONE':

@@ -16,7 +16,7 @@ spec:
         spec:
             containers:
                 -   name: tada-{{ .Release.Name }}-nginx
-                    image: {{ .Values.mediaProvider.nginx.imageName }}
+                    image: {{ .Values.nginx.imageName }}
                     ports:
                         -   containerPort: 8080
                     volumeMounts:
@@ -27,11 +27,11 @@ spec:
                             subPath: nginx.conf
                     resources:
                         requests:
-                            cpu: {{ .Values.mediaProvider.nginx.resources.requests.cpu }}
-                            memory: {{ .Values.mediaProvider.nginx.resources.requests.memory }}
+                            cpu: {{ .Values.nginx.resources.requests.cpu }}
+                            memory: {{ .Values.nginx.resources.requests.memory }}
                         limits:
-                            cpu: {{ .Values.mediaProvider.nginx.resources.limits.cpu }}
-                            memory: {{ .Values.mediaProvider.nginx.resources.limits.memory }}
+                            cpu: {{ .Values.nginx.resources.limits.cpu }}
+                            memory: {{ .Values.nginx.resources.limits.memory }}
             volumes:
                 -   name: nginx-cache
                     emptyDir: {}

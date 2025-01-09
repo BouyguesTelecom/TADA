@@ -47,7 +47,7 @@ data:
                 access_log off;
                 log_not_found off;
               }
-              location {{ if hasKey .Values.mediaProvider "apiPrefix" }}{{ .Values.mediaProvider.apiPrefix }}/catalog{{ else }}/catalog{{ end }} {
+              location {{ if hasKey .Values.mediaApi "apiPrefix" }}{{ .Values.mediaApi.apiPrefix }}/catalog{{ else }}/catalog{{ end }} {
                 limit_except GET {
                     deny all;
                 }
@@ -58,7 +58,7 @@ data:
                 proxy_pass {{ include "mediaService" . }};
               }
 
-              location ~ ^{{ if hasKey .Values.mediaProvider "apiPrefix" }}{{ .Values.mediaProvider.apiPrefix }}{{ .Values.mediaProvider.routes.file.get }}{{ else }}{{ .Values.mediaProvider.routes.file.get }}{{ end }} {
+              location ~ ^{{ if hasKey .Values.mediaApi "apiPrefix" }}{{ .Values.mediaApi.apiPrefix }}{{ .Values.mediaApi.routes.file.get }}{{ else }}{{ .Values.mediaApi.routes.file.get }}{{ end }} {
                 limit_except GET {
                     deny all;
                 }

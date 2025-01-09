@@ -52,7 +52,7 @@ interface File {
     unique_name: string;
 }
 
-const processFiles = async (files: File[], apiServiceURL: string, imageServiceURL: string) => {
+const processFiles = async (files: File[], apiServiceURL: string, nginxServiceURL: string) => {
     const itemDeletionLog: string[] = [];
 
     const updatedFiles = await Promise.all(
@@ -62,7 +62,7 @@ const processFiles = async (files: File[], apiServiceURL: string, imageServiceUR
 
             if (expirationDate && expirationDate <= currentDate && file.expired === false) {
                 const patchData = { expired: 'true', namespace: file.namespace };
-                const patchUrl = `${apiServiceURL}${process.env.PATCH_ROUTE}/${file.uuid}`;
+                const patchUrl = `${apiServiceURL}/file/${file.uuid}`;
                 logger.info(`Making a PATCH request to ${patchUrl} with data: ${JSON.stringify(patchData)}`);
                 await callAPI(patchUrl, 'PATCH', patchData, true);
                 logger.info(`File ${file.uuid} marked as expired.`);
@@ -70,7 +70,7 @@ const processFiles = async (files: File[], apiServiceURL: string, imageServiceUR
             }
 
             if (file.expired === 'true') {
-                const fullUrl = `${imageServiceURL}${process.env.GET_ROUTE}${file.unique_name}`;
+                const fullUrl = `${nginxServiceURL}${file.unique_name}`;
                 logger.info(`Checking file existence at: ${fullUrl}`);
                 try {
                     const response = await fetch(fullUrl);
@@ -95,7 +95,7 @@ const deleteFilesFromCatalog = async (itemDeletionLog: string[], files: File[], 
         itemDeletionLog.map(async (uuid) => {
             const file = files.find((f) => f.uuid === uuid);
             if (file) {
-                const deleteUrl = `${apiServiceURL}${process.env.DELETE_ROUTE}/${uuid}`;
+                const deleteUrl = `${apiServiceURL}/file/${uuid}`;
                 logger.info(`Making a DELETE request to ${deleteUrl} for file ${file.uuid}`);
                 await callAPI(deleteUrl, 'DELETE', { namespace: file.namespace });
                 logger.info(`File ${file.uuid} expired and deleted from PV and backup.`);
@@ -110,11 +110,11 @@ export const processCatalog = async () => {
     try {
         const apiServiceURL = process.env.API_PREFIX ? `${process.env.API_SERVICE}${process.env.API_PREFIX}` : process.env.API_SERVICE!;
         const catalogRoute = process.env.CATALOG_ROUTE!;
-        const imageServiceURL = process.env.IMAGE_SERVICE!;
+        const nginxServiceURL = process.env.NGINX_SERVICE!;
 
         const files: File[] = await callAPI(`${apiServiceURL}${catalogRoute}`, 'GET');
 
-        const { updatedFiles, itemDeletionLog } = await processFiles(files, apiServiceURL, imageServiceURL);
+        const { updatedFiles, itemDeletionLog } = await processFiles(files, apiServiceURL, nginxServiceURL);
 
         const remainingFiles = await deleteFilesFromCatalog(itemDeletionLog, updatedFiles, apiServiceURL);
 

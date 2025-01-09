@@ -8,9 +8,27 @@ import { setupSwagger } from './swaggerConfig';
 
 require('dotenv').config();
 
+function sanitizeAndConvertToRegex(str) {
+    const sanitizedStr = str.trim();
+
+    if (sanitizedStr.startsWith('/') && sanitizedStr.endsWith('/')) {
+        return new RegExp(sanitizedStr.slice(1, -1));
+    }
+
+    return sanitizedStr;
+}
+
+const originsAllowed = process.env.ORIGINS_ALLOWED
+    ? process.env.ORIGINS_ALLOWED.split(',').map(sanitizeAndConvertToRegex)
+    : ['*'];
+
+const methodsAllowed = process.env.METHODS_ALLOWED
+    ? process.env.METHODS_ALLOWED.split(',')
+    : ['*'];
+
 const corsOptions: cors.CorsOptions = {
-    origin: '*',
-    methods: process.env.METHODS_ALLOWED ? process.env.METHODS_ALLOWED.split(',') : '*'
+    origin: originsAllowed,
+    methods: methodsAllowed
 };
 
 const app = express();
@@ -27,13 +45,13 @@ const API_PREFIX = process.env.API_PREFIX || '';
 
 app.use((req: Request, res: Response, next: NextFunction) => {
     const API_PREFIX = process.env.API_PREFIX || '';
-    app.locals.PREFIXED_API_URL = `${process.env.IMAGE_SERVICE}${API_PREFIX}`;
-    app.locals.PREFIXED_ASSETS_URL = `${API_PREFIX}/assets/media`;
-    app.locals.PREFIXED_CATALOG = `${process.env.DEV_ENV ? 'DEV/' : ''}catalog`;
+    app.locals.PREFIXED_API_URL = `${ process.env.IMAGE_SERVICE }${ API_PREFIX }`;
+    app.locals.PREFIXED_ASSETS_URL = `${ API_PREFIX }/assets/media`;
+    app.locals.PREFIXED_CATALOG = `${ process.env.DEV_ENV ? 'DEV/' : '' }catalog`;
     next();
 });
 
-app.get(`${API_PREFIX}${process.env.HEALTHCHECK_ROUTE}`, (_req: Request, res: Response) => {
+app.get(`${ API_PREFIX }${ process.env.HEALTHCHECK_ROUTE }`, (_req: Request, res: Response) => {
     return res.status(200).end();
 });
 
@@ -47,7 +65,7 @@ fs.readdirSync(routersPath).forEach((file) => {
         if (routerModule && routerModule.router) {
             app.use(API_PREFIX, routerModule.router);
         } else {
-            logger.error(`Error importing route file: ${file}`);
+            logger.error(`Error importing route file: ${ file }`);
         }
     }
 });
