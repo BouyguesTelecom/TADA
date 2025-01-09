@@ -53,6 +53,8 @@ spec:
                             value: "{{ default "" .Values.mediaApi.apiPrefix }}"
                         -   name: USE_STRIPMETADATA
                             value: "{{ default "" .Values.mediaApi.useStripMetadata }}"
+                        -   name: DELEGATED_STORAGE_PATH
+                            value: "{{ default "" .Values.delegatedStorage.path }}"
                         -   name: DELEGATED_STORAGE_RATE_LIMIT
                             value: "{{ default "5" .Values.delegatedStorage.rateLimit }}"
                         -   name: DELEGATED_STORAGE_RATE_LIMIT_WINDOW

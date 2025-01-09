@@ -39,9 +39,9 @@ const generateOptions = (method, contentTypeHeaders, file = null) => {
 
 const generateUrl = (filepath, version, mimetype, method) => {
     if (version || mimetype) {
-        return `${process.env.DELEGATED_STORAGE_HOST}${process.env[`DELEGATED_STORAGE_${method}_PATH`]}${filepath}?version=${version}&mimetype=${mimetype}`;
+        return `${process.env.DELEGATED_STORAGE_HOST}${process.env[`DELEGATED_STORAGE_PATH`]}${filepath}?version=${version}&mimetype=${mimetype}`;
     }
-    return `${process.env.DELEGATED_STORAGE_HOST}${process.env[`DELEGATED_STORAGE_${method}_PATH`]}${filepath}`;
+    return `${process.env.DELEGATED_STORAGE_HOST}${process.env[`DELEGATED_STORAGE_PATH`]}${filepath}`;
 };
 
 export const getLastDump = async () => {

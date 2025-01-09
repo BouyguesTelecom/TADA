@@ -37,6 +37,7 @@ delegatedStorage:
         readinessCheck: '/minio/health/live'
     accessToken: 'NinjaDesIles'
     storageMethod: 'S3'
+    path: ''
 
 s3:
     port: '9000'
