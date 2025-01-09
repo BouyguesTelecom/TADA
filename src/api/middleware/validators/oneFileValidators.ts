@@ -106,7 +106,7 @@ export const validatorFileSize = async (req: Request, res: Response, next: NextF
 };
 
 export const generateFileInfo = (body, method = 'PATCH') => {
-    const keysAllowed = ['external_id', 'expired', 'expiration_date', 'information', ...(method === 'POST' ? ['destination'] : [])];
+    const keysAllowed = ['external_id', 'expired', 'expiration_date', 'information', 'signature', 'namespace', 'size', 'base_host', 'base_url', ...(method === 'POST' ? ['destination'] : [])];
     const bodyKeys = Object.keys(body.changes ?? body);
     const hasAllowedKey = bodyKeys.some((key) => keysAllowed.includes(key));
     if (hasAllowedKey) {
