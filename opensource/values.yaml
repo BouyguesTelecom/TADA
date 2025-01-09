@@ -102,7 +102,6 @@ mediaApi:
             cpu: 800m
             memory: 512Mi
     hpa:
-        enabled: true
         replicaCountMin: 1
         replicaCountMax: 2
         metrics:
