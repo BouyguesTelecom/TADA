@@ -63,8 +63,10 @@ spec:
                             value: "{{ default "DEV" .Values.NAMESPACES_ALLOWED }}"
                         -   name: VALID_MIMETYPES
                             value: "image/png,image/jpeg,application/pdf,image/jpg,image/webp,image/svg+xml"
+                        {{- if .Values.dev}}
                         -   name: DEV_ENV
-                            value: "{{ default "true" .Values.dev }}"
+                            value: "true"
+                        {{- end}}
                         -   name: REDIS_SERVICE
                             value: "{{ include "redisService" . }}"
                         -   name: DELEGATED_STORAGE_METHOD
