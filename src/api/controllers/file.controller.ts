@@ -21,14 +21,20 @@ const streamToBuffer = (stream: PassThrough): Promise<Buffer> => {
     });
 };
 
-const checkSignature = async (file: FileProps, stream: PassThrough): Promise<boolean> => {
+const checkSignature = async (file: FileProps, stream: PassThrough): Promise<{isValidSignature: boolean; originSignature: string | null}> => {
     try {
         const buffer = await streamToBuffer(stream);
         const signature = calculateSHA256(buffer);
-        return file.signature === signature;
+        return {
+            isValidSignature: file.signature === signature,
+            originSignature: signature
+        };
     } catch (error) {
         logger.error('Error checking signature:', error);
-        return false;
+        return {
+            isValidSignature: false,
+            originSignature: null
+        }
     }
 };
 
@@ -67,9 +73,10 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
             return res.status(500).end();
         });
 
-        const isValidSignature = await checkSignature(item, streamForSignature);
+        const { isValidSignature, originSignature } = await checkSignature(item, streamForSignature);
 
         if (!isValidSignature) {
+            logger.error(`Invalid signatures (catalog: ${item.signature}, origin: ${originSignature})`);
             return res.status(418).end();
         }
 
