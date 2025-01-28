@@ -20,7 +20,9 @@ data:
             '"response_code":$status,'
             '"body_byte_send":"$body_bytes_sent",'
             '"duration":"$request_time",'
-            '"cache_status":"$upstream_cache_status"'
+            '"cache_status":"$upstream_cache_status",'
+            '"x-waza":"$http_x_waza",'
+    '"request_source":"$http_x_request_source"'
             '}';
 
             proxy_cache_path /opt/bitnami/nginx/cache levels=1:2 keys_zone=zone1:10m max_size=1g inactive=24h use_temp_path=off;
