@@ -125,7 +125,7 @@ export function updateFile(): void {
 
 export function deleteFile(): void {
     if (!fileUUID) {
-        console.log('Invalid UUID: Delete operation skipped.');
+        console.log('Invalid UUID : Delete operation skipped.');
         return;
     }
 
