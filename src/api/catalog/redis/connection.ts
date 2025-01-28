@@ -51,11 +51,15 @@ const delAsync = async (key) => {
 const keysAsync = async (pattern) => {
     return await redisClient.keys(pattern);
 };
+
+const generateDump = async () => redisClient.save();
+
 export const redisHandler = {
     connectClient,
     disconnectClient,
     getAsync,
     setAsync,
     delAsync,
-    keysAsync
+    keysAsync,
+    generateDump
 };

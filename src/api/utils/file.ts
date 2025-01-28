@@ -82,7 +82,7 @@ const convertToWebp = async (imagePath) => {
         };
         const image = sharp(imagePath).withMetadata();
         const { format } = await image.metadata();
-        const webpPath = '/tmp/' + imagePath.split('/tmp/')[1].split('.')[0] + '.webp';
+        const webpPath = '/tmp/' + 'webp-' + imagePath.split('/tmp/')[1].split('.')[0] + '.webp';
         await image[format](config[format]).rotate().toFormat('webp').toFile(webpPath);
         return webpPath;
     } catch (errorMessage) {

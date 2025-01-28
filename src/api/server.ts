@@ -78,6 +78,7 @@ const createStandaloneFolderAndCatalog = () => {
             if (!dbDump) {
                 logger.info("dump.rdb doesn't exists : getting latest dump from backup ✅");
                 await getLastDump();
+                await redisHandler.generateDump();
             } else {
                 logger.info('dump.rdb already exists : skipping getting latest dump from backup 🔆');
             }

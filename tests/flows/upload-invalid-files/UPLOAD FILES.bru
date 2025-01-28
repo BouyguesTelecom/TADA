@@ -22,6 +22,6 @@ body:multipart-form {
 
 assert {
   res.status: eq 200
-  res.body.data: length 0
-  res.body.errors: length 2
+  res.body.data: length 1
+  res.body.errors: length 1
 }
