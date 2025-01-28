@@ -18,7 +18,7 @@ spec:
         -   host: '{{ .Values.env }}{{ .Values.domain }}'
             http:
                 paths:
-                    -   path: {{ if hasKey .Values.mediaApi "apiPrefix" }}{{ .Values.mediaApi.apiPrefix }}/assets/media{{ else }}/assets/media{{ end }}
+                    -   path: {{ if hasKey .Values.mediaApi "apiPrefix" }}{{ .Values.mediaApi.apiPrefix }}/assets/media/?${{ else }}/assets/media/?${{ end }}
                         pathType: ImplementationSpecific
                         backend:
                             service:
