@@ -101,7 +101,8 @@ structure:
         "original_mimetype": "image/webp",
         "mimetype": "image/webp",
         "signature": "ca71754acda70e41cb23e465fbb5ecc683186cf779a2bae2cbf290527b1f6671",
-        "size": 16730
+        "size": 16730,
+        "destination": "DEV"
     },
     {
         "uuid": "d26a191f-1087-4169-b6cd-3db96f38ece4",
@@ -126,10 +127,11 @@ structure:
 
 ### Daily jobs
 
-2 daily jobs associated with TADA (Transform And Deliver Assets 🎉):
+3 daily jobs associated with TADA (Transform And Deliver Assets 🎉):
 
 - a job to synchronize the state of our API in relation to YOUR delegated_storage: if the image is in the catalog, but not in your storage, it deletes the image from the catalog.
 - a catalog publication job on your delegated storage: the status of the catalog once a day is published on your storage which allows you to retrieve the most up-to-date list in the event of a new API instance.
+- a job to check the expiration of the files in the catalog with an expiration date.
 
 ## How to use TADA ? 🎉
 
@@ -168,47 +170,47 @@ transform-and-deliver-assets:
     # SEE BELOW ALL VALUES
 ```
 
-| Clé                                              | Description                                         | Exemples de Valeurs       |
-| ------------------------------------------------ | --------------------------------------------------- | ------------------------- |
-| local                                            | Activer ou désactiver le mode local                 | true / false              |
-| redis.service                                    | Nom du service Redis                                | 'redis-service'           |
-| redis.dumpFolderPath                             | Chemin du dossier de dump pour Redis                | '/dumps'                  |
-| redis.storage.storageClassName                   | Nom de la classe de stockage pour Redis             | 'hostpath'                |
-| redis.storage.resources.requests.storage         | Espace de stockage demandé par Redis                | '500Mi'                   |
-| delegatedStorage.rateLimitWindow                 | Fenêtre de limitation de débit (ms)                 | 30000                     |
-| delegatedStorage.rateLimit                       | Limitation de débit                                 | 5                         |
-| delegatedStorage.host                            | Nom d'hôte du service personnalisé                  | 'your_custom_service_api' |
-| delegatedStorage.routes.readinessCheck           | Chemin de vérification de disponibilité             | '/readiness-check'        |
-| delegatedStorage.accessToken                     | Jeton d'accès pour le stockage délégué              | 'your_access_token'       |
-| delegatedStorage.storageMethod                   | Méthode de stockage                                 | 'DISTANT_BACKEND'         |
-| s3.routes.readinessCheck                         | Chemin de vérification de disponibilité pour MinIO  | '/minio/health/live'      |
-| s3.endpoint                                      | Point de terminaison (endpoint) pour S3/MinIO       | 'minio'                   |
-| s3.port                                          | Port pour S3/MinIO                                  | '9000'                    |
-| s3.accessKey                                     | Clé d'accès pour S3/MinIO                           | 'minioadmin'              |
-| s3.secretKey                                     | Clé secrète pour S3/MinIO                           | 'minioadmin'              |
-| s3.bucketName                                    | Nom du bucket S3/MinIO                              | 'media'                   |
-| s3.storage.storageClassName                      | Nom de la classe de stockage pour S3/MinIO          | 'hostpath'                |
-| s3.storage.resources.requests.storage            | Espace de stockage demandé pour S3/MinIO            | '500Mi'                   |
-| mediaApi.service                            | URL du service média                                | 'http://media-service'    |
-| mediaApi.apiPrefix                          | Préfixe de l'API pour le service média              | '/palpatine'              |
-| mediaApi.routes.healthcheck.get             | Chemin de vérification de la santé du service média | '/readiness-check'        |
-| mediaApi.routes.file.get                    | Chemin GET pour récupérer des fichiers              | '/assets/media/'          |
-| mediaApi.routes.file.post                   | Chemin POST pour télécharger un fichier             | '/upload'                 |
-| mediaApi.routes.files.post                  | Chemin POST pour télécharger plusieurs fichiers     | '/uploads'                |
-| mediaApi.routes.catalog.get                 | Chemin GET pour récupérer le catalogue de fichiers  | '/catalog'                |
-| mediaApi.payloadMaxSize                     | Taille maximale de la charge utile                  | '10mb'                    |
-| mediaApi.rateLimit.windowMs                 | Fenêtre de limitation de débit (ms)                 | 30000                     |
-| mediaApi.rateLimit.limit                    | Limitation de débit                                 | 5                         |
-| mediaApi.originsAllowed                     | Origines autorisées                                 | 'localhost,\*'            |
-| mediaApi.methodsAllowed                     | Méthodes HTTP autorisées                            | 'GET,POST'                |
-| mediaApi.storage.storageClassName           | Nom de la classe de stockage pour le provider média | 'hostpath'                |
-| mediaApi.storage.resources.requests.storage | Espace de stockage demandé pour le media provider   | '500Mi'                   |
-| rateLimit.windowMs                               | Fenêtre de limitation de débit (ms)                 | 30000                     |
-| rateLimit.limit                                  | Limitation de débit                                 | 5                         |
-| domain                                           | Domaine du service                                  | '.media'                  |
-| env                                              | Environnement du service                            | 'media-service'           |
-| NAMESPACES_ALLOWED                               | Espaces de noms autorisés                           | 'DEV'                     |
-| version                                          | Version du chart                                    | '1.0.6'                   |
+| Clé                                         | Description                                | Exemples de Valeurs       |
+| ------------------------------------------- | ------------------------------------------ | ------------------------- |
+| local                                       | Enable or disable the local mode           | true / false              |
+| redis.service                               | Redis service name                         | 'redis-service'           |
+| redis.dumpFolderPath                        | Redis dump folder path                     | '/dumps'                  |
+| redis.storage.storageClassName              | Redis storage class name                   | 'hostpath'                |
+| redis.storage.resources.requests.storage    | Redis storage requested space              | '500Mi'                   |
+| delegatedStorage.rateLimitWindow            | Delegated storage rate limit window (ms)   | 30000                     |
+| delegatedStorage.rateLimit                  | Delegated storage rate limit               | 5                         |
+| delegatedStorage.host                       | Custom service API host                    | 'your_custom_service_api' |
+| delegatedStorage.routes.readinessCheck      | Readiness check path                       | '/readiness-check'        |
+| delegatedStorage.accessToken                | Access token for the delegated storage     | 'your_access_token'       |
+| delegatedStorage.storageMethod              | Storage method                             | 'DISTANT_BACKEND'         |
+| s3.routes.readinessCheck                    | Readiness check path for MinIO             | '/minio/health/live'      |
+| s3.endpoint                                 | Endpoint for S3/MinIO                      | 'minio'                   |
+| s3.port                                     | Port for S3/MinIO                          | '9000'                    |
+| s3.accessKey                                | Access key for S3/MinIO                    | 'minioadmin'              |
+| s3.secretKey                                | Secret key for S3/MinIO                    | 'minioadmin'              |
+| s3.bucketName                               | Bucket name for S3/MinIO                   | 'media'                   |
+| s3.storage.storageClassName                 | Storage class name for S3/MinIO            | 'hostpath'                |
+| s3.storage.resources.requests.storage       | Requested storage space for S3/MinIO       | '500Mi'                   |
+| mediaApi.service                            | URL for the media service                  | 'http://media-service'    |
+| mediaApi.apiPrefix                          | API prefix for the media service           | '/palpatine'              |
+| mediaApi.routes.healthcheck.get             | Media healthcheck endpoint                 | '/readiness-check'        |
+| mediaApi.routes.file.get                    | Endpoint to get files                      | '/assets/media/'          |
+| mediaApi.routes.file.post                   | Endpoint to upload a file                  | '/upload'                 |
+| mediaApi.routes.files.post                  | Endpoint to upload multiple files          | '/uploads'                |
+| mediaApi.routes.catalog.get                 | Endpoint to get the file catalog           | '/catalog'                |
+| mediaApi.payloadMaxSize                     | Maximum payload size                       | '10mb'                    |
+| mediaApi.rateLimit.windowMs                 | Rate limit window (ms)                     | 30000                     |
+| mediaApi.rateLimit.limit                    | Rate limit                                 | 5                         |
+| mediaApi.originsAllowed                     | Allowed origins                            | 'localhost,\*'            |
+| mediaApi.methodsAllowed                     | Allowed HTTP methods                       | 'GET,POST'                |
+| mediaApi.storage.storageClassName           | Storage class name for media provider      | 'hostpath'                |
+| mediaApi.storage.resources.requests.storage | Requested storage space for media provider | '500Mi'                   |
+| rateLimit.windowMs                          | Rate limit window (ms)                     | 30000                     |
+| rateLimit.limit                             | Rate limit                                 | 5                         |
+| domain                                      | Domain for the service                     | '.media'                  |
+| env                                         | Environment for the service                | 'media-service'           |
+| NAMESPACES_ALLOWED                          | Allowed namespaces                         | 'DEV'                     |
+| version                                     | Chart version                              | '1.0.6'                   |
 
 ### Using docker image API :
 
@@ -299,16 +301,6 @@ Prerequisites:
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-<!-- USAGE EXAMPLES -->
-
-## Usage
-
-Use this space to show useful examples of how a project can be used.
-
-_For more examples, please refer to the [Documentation](https://example.com)_
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 <!-- ROADMAP -->
 
 ## Roadmap
@@ -350,25 +342,8 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 ## Contact
 
-Maintainer name - email@example.com
+Maintainer name - Bouygues Telecom
 
-Project Link: [https://github.com/](https://github.com/)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- ACKNOWLEDGMENTS -->
-
-## Acknowledgments
-
-Use this space to list resources you find helpful and would like to give credit to. I've included a few of my favorites to kick things off!
-
-- [Choose an Open Source License](https://choosealicense.com)
-- [GitHub Emoji Cheat Sheet](https://www.webpagefx.com/tools/emoji-cheat-sheet)
-- [Malven's Flexbox Cheatsheet](https://flexbox.malven.co/)
-- [Malven's Grid Cheatsheet](https://grid.malven.co/)
-- [Img Shields](https://shields.io)
-- [GitHub Pages](https://pages.github.com)
-- [Font Awesome](https://fontawesome.com)
-- [React Icons](https://react-icons.github.io/react-icons/search)
+Project Link: [https://github.com/](https://github.com/BouyguesTelecom/TADA)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
