@@ -21,7 +21,7 @@ const fileSchema = Joi.object({
     original_mimetype: Joi.string().optional(),
     mimetype: Joi.string().optional(),
     signature: Joi.string().required(),
-    size: Joi.number().required()
+    size: Joi.number().allow(null).optional()
 });
 
 interface ValidateSchemaProps {
@@ -31,7 +31,7 @@ interface ValidateSchemaProps {
 
 interface ValidationErrorDetail {
     message: string;
-    path: (string | number)[];
+    path: ( string | number )[];
     type: string;
     context?: {
         key?: string;

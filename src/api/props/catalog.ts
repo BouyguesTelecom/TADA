@@ -15,7 +15,7 @@ export interface FileProps {
     original_mimetype?: string;
     mimetype?: string;
     signature?: string;
-    size?: number | string;
+    size?: number | string ;
 }
 
 export interface ICatalogResponse {

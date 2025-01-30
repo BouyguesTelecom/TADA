@@ -88,13 +88,13 @@ export const patchAssets = async (req: Request, res: Response) => {
             }
             const fileInfo = generateFileInfo(file);
             const version = req.files ? file.catalogItem.version + 1 : file.catalogItem.version;
-            const updatedItem = await updateCatalogItem(file.uuid, {
+            const updatedItem = await updateCatalogItem(file.uuid ?? file.catalogItem.uuid, {
                 ...file.catalogItem,
                 ...file.fileInfo,
                 ...fileInfo,
                 version,
                 ...(signature && { signature }),
-                ...(file && { size: file.size })
+                ...(file?.size && { size: file.size })
             });
             if (updatedItem.datum) {
                 return { data: [...data, updatedItem.datum], errors };
