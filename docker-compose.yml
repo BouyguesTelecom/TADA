@@ -1,6 +1,6 @@
 x-environment-variables:
   &default-environment
-    API_PREFIX: "/palpatine"
+    API_PREFIX: ""
     DELEGATED_STORAGE_RATE_LIMIT: 5
     DELEGATED_STORAGE_RATE_LIMIT_WINDOW: 30000
     NGINX_SERVICE: http://host.docker.internal:8080
@@ -96,9 +96,9 @@ services:
             NGINX_SERVICE: http://nginx:8080
             IMAGE_SERVICE: http://images-provider:3001
             NGINX_INGRESS: http://localhost:8080
-            DELEGATED_STORAGE_HOST: http://minio:9000
+            DELEGATED_STORAGE_HOST: http://localhost:3002
             REDIS_SERVICE: redis
-            S3_ENDPOINT: minio
+            MEDIA_TOKEN: token
         healthcheck:
             test: ["CMD-SHELL", "wget --spider --quiet http://images-provider:3001$$API_PREFIX/readiness-check || exit 1"]
             interval: 10s

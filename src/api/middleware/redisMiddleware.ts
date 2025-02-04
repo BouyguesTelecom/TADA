@@ -8,9 +8,9 @@ export const redisConnectionMiddleware = async (req: Request, res: Response, nex
     }
     try {
         await redisHandler.connectClient();
-
         res.on('finish', async () => {
-            if (!req.url.includes('delegated-storage')) {
+            console.log('RES ON FINISH ICI ☄️:::', req.url)
+            if (!req.url.includes('delegated-storage') && !req.url.includes('catalog')) {
                 await redisHandler.disconnectClient();
             }
         });

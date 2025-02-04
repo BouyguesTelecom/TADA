@@ -1,6 +1,6 @@
 protocol: 'http'
 env: 'media-service'
-domain: '.media'
+domain: 'media'
 NAMESPACES_ALLOWED: 'DEV'
 
 ingress:

@@ -54,7 +54,7 @@ router.use(redisConnectionMiddleware);
  *       500:
  *         description: Internal server error
  */
-router.post(`/files`, [authMiddleware, validatorFiles, validatorFilesFilter, validatorFilesSize, validatorNamespace, validatorFilesBody], postAssets);
+router.post(`/files`, [ authMiddleware, validatorFiles, validatorFilesFilter, validatorFilesSize, validatorNamespace, validatorFilesBody, validatorUUIds, validatorCatalog ], postAssets);
 
 /**
  * @swagger
@@ -104,7 +104,7 @@ router.post(`/files`, [authMiddleware, validatorFiles, validatorFilesFilter, val
  *       500:
  *         description: Internal server error
  */
-router.patch(`/files`, [authMiddleware, validatorFiles, validatorUUIds, validatorFilesFilter, validatorFilesSize, validatorCatalog, validatorFilesBody], patchAssets);
+router.patch(`/files`, [ authMiddleware, validatorFiles, validatorUUIds, validatorCatalog, validatorFilesFilter, validatorFilesSize, validatorFilesBody ], patchAssets);
 
 /**
  * @swagger
@@ -135,6 +135,6 @@ router.patch(`/files`, [authMiddleware, validatorFiles, validatorUUIds, validato
  *       500:
  *         description: Internal server error
  */
-router.delete(`/files`, [authMiddleware, validatorUUIds, validatorCatalog], deleteAssets);
+router.delete(`/files`, [ authMiddleware, validatorUUIds, validatorCatalog ], deleteAssets);
 
 export { router };

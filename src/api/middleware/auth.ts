@@ -4,6 +4,7 @@ const MEDIA_TOKEN = process.env.MEDIA_TOKEN;
 
 export const authMiddleware = async (req, res, next) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
+    console.log(token, MEDIA_TOKEN, 'WAZA')
     if (token === MEDIA_TOKEN) {
         return next();
     } else {

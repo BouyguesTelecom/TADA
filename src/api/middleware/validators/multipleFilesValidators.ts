@@ -3,7 +3,7 @@ import { isFileNameInvalid, storage } from './utils/multer';
 import { fileIsTooLarge, generateUniqueName, sendResponse } from './utils';
 import { generateFileInfo } from './oneFileValidators';
 import { NextFunction, Request, Response } from 'express';
-import { findFileInCatalog } from '../../utils/catalog';
+import { getCachedCatalog } from '../../catalog/redis/connection';
 
 export const validatorFiles = multer({
     storage: storage
@@ -46,31 +46,36 @@ export const validatorFilesFilter = async (req: Request, res: Response, next: Ne
 };
 
 export const validatorUUIds = (req: Request, res: Response, next: NextFunction) => {
-    const { contentType } = res.locals;
 
-    if (contentType === 'multipart/form-data') {
-        const uuidsFromBody = req.body.uuids;
-        if (!uuidsFromBody) {
-            return sendResponse({
-                res,
-                status: 400,
-                errors: [ 'No uuids provided' ]
-            });
-        }
-        const numberOfFiles = req.files.length;
-        const uuids = uuidsFromBody.split(',');
+    if (req.method === 'POST') {
+        const { contentType } = res.locals;
 
-        if (numberOfFiles !== uuids.length) {
-            return sendResponse({
-                res,
-                status: 400,
-                errors: [ 'Number of UUIDs and number of files provided different' ]
-            });
+        if (contentType === 'multipart/form-data') {
+            const uuidsFromBody = req.body.uuids;
+            if (!uuidsFromBody) {
+                return sendResponse({
+                    res,
+                    status: 400,
+                    errors: [ 'No uuids provided' ]
+                });
+            }
+            const numberOfFiles = req.files.length;
+            const uuids = uuidsFromBody.split(',');
+
+            if (numberOfFiles !== uuids.length) {
+                return sendResponse({
+                    res,
+                    status: 400,
+                    errors: [ 'Number of UUIDs and number of files provided different' ]
+                });
+            }
+            res.locals.uuids = uuidsFromBody;
         }
-        res.locals.uuids = uuidsFromBody;
+        return next()
     }
+    const { invalidFiles: invalidFilesFromLocal, validFiles: validFilesFromLocal } = res.locals;
 
-    next();
+    return next();
 };
 
 export const validatorFilesSize = async (req: Request, res: Response, next: NextFunction) => {
@@ -110,6 +115,7 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
     }
 
     const { namespace, validFiles: validFilesFromLocal, invalidFiles: invalidFilesFromLocal } = res.locals;
+    console.log('Dans validatorFilesBody ===>', namespace, validFilesFromLocal, invalidFilesFromLocal);
     const toWebp = req.body.toWebp !== 'false';
 
     const { validFiles, invalidFiles } = await validFilesFromLocal.reduce(
@@ -161,7 +167,7 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
             invalidFiles: invalidFilesFromLocal
         })
     );
-
+    console.log('WHAT THE FUCK ? ===>', validFiles, invalidFiles);
     if (!validFiles.length && !req.files) {
         return sendResponse({ res, status: 400, errors: invalidFiles });
     }
@@ -170,36 +176,48 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
     next();
 };
 
-
-const _checkFilesInCatalog = async (files: any[], invalidFilesFromNamespace) => {
-    return await files.reduce(
-        async (accumulator, file) => {
+export const validatorCatalog = async (req: Request, res: Response, next: NextFunction) => {
+    const { validFiles: validFilesFromLocal, invalidFiles: invalidFilesFromLocal, uuids } = res.locals;
+    console.log('IN VALIDATOR CATALOG => ', validFilesFromLocal, invalidFilesFromLocal, '<== HIHI 🥒', uuids);
+    const { validFiles, invalidFiles } = validFilesFromLocal.reduce(async (accumulator, file) => {
             const { validFiles, invalidFiles } = await accumulator;
-            const itemFound = await findFileInCatalog(file.uuid ?? file.key_value, file.uuid ? 'uuid' : file.key_name);
-            if (!itemFound) {
+            if (req.method === 'POST') {
+                console.log('je veux recup le catalog avec ID:::', file.uuid, file);
+                if (!await getCachedCatalog(file.uuid)) {
+                    return {
+                        validFiles: [ ...validFiles, file ],
+                        invalidFiles
+                    };
+                }
                 return {
                     validFiles,
-                    invalidFiles: [ ...invalidFiles, { ...file, message: 'Not found in catalog' } ]
+                    invalidFiles: [ ...invalidFiles, { ...file, message: 'UUID already exists' } ]
                 };
             }
-            return {
-                validFiles: [ ...validFiles, { ...file, catalogItem: itemFound } ],
-                invalidFiles
-            };
+
+            for ( const uuid of uuids ) {
+                console.log(uuid, 'uuid and uuids =>', uuids);
+                if (await getCachedCatalog(uuid)) {
+                    return {
+                        validFiles: [ ...validFiles, file ],
+                        invalidFiles
+                    };
+                }
+                return {
+                    validFiles,
+                    invalidFiles: [ ...invalidFiles, { ...file, message: 'UUID not found' } ]
+                };
+            }
+
         },
         Promise.resolve({
             validFiles: [],
-            invalidFiles: invalidFilesFromNamespace
+            invalidFiles: invalidFilesFromLocal
         })
     );
-};
 
-export const validatorCatalog = async (req: Request, res: Response, next: NextFunction) => {
-    const { validFiles: validFilesFromLocal, invalidFiles: invalidFilesFromLocal } = res.locals;
-    const { validFiles, invalidFiles } = await _checkFilesInCatalog(validFilesFromLocal?.length ?
-        validFilesFromLocal :
-        req.body, invalidFilesFromLocal || []);
-    if (!validFiles.length) {
+    if (!validFiles?.length) {
+        console.log('Jenvoie une 400 BANDE DE LOOSERS 🏄🏽', { errors: invalidFiles });
         return sendResponse({ res, status: 400, errors: invalidFiles });
     }
     res.locals = { ...res.locals, validFiles, invalidFiles };

@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { sendResponse } from '../middleware/validators/utils';
-import { addCatalogItem, deleteCatalogItem, getCatalog, getCatalogItem, updateCatalogItem, deleteAllCatalog, createDumpCatalog } from '../catalog';
+import { addCatalogItem, deleteCatalogItem, getCatalogItem, updateCatalogItem, deleteAllCatalog, createDumpCatalog } from '../catalog';
 import { validateOneFile } from '../catalog/validators';
+import { getCachedCatalog } from '../catalog/redis/connection';
 
 export const addFileInCatalog = async (req: Request, res: Response) => {
     const item = req.body;
@@ -14,7 +15,7 @@ export const addFileInCatalog = async (req: Request, res: Response) => {
 };
 
 export const getFiles = async (req: Request, res: Response) => {
-    const { data: catalog } = await getCatalog();
+    const catalog = await getCachedCatalog()
     if (req.query.filterByKey && req.query.filterByValue) {
         return res.json(catalog.filter((item) => item[`${req.query.filterByKey}`] === req.query.filterByValue));
     }

@@ -1,0 +1,90 @@
+local: true
+
+ingress:
+    nginx:
+        className: nginx
+        annotations:
+    api:
+        className: nginx
+
+redis:
+    service: redis-service
+    dumpFolderPath: '/dumps'
+    storage:
+        storageClassName: hostpath
+        resources:
+            requests:
+                storage: 500Mi
+delegatedStorage:
+    rateLimitWindow: 30000
+    rateLimit: 5
+    routes:
+        readinessCheck: '/readiness-check'
+        get: '/'
+        post: '/'
+        put: '/'
+        delete: '/'
+    storageMethod: 'S3'
+
+s3:
+    routes:
+        readinessCheck: '/minio/health/live'
+    endpoint: 'minio'
+    port: '9000'
+    accessKey: minioadmin
+    secretKey: minioadmin
+    bucketName: media
+    storage:
+        storageClassName: hostpath
+        resources:
+            requests:
+                storage: 500Mi
+mediaProvider:
+    mediaToken: token
+    imageName: 'bouyguestelecom/tada'
+    imageVersion: 'latest'
+    service: 'http://media-service'
+    apiPrefix: ''
+    nginx:
+        imageName: 'bitnami/nginx:latest'
+        service: 'http://nginx'
+    nginxPurge:
+        imageName: 'emcniece/nginx-cache-purge:1.13-alpine'
+    routes:
+        healthcheck:
+            get: '/readiness-check'
+        file:
+            get: '/assets/media/'
+            post: '/upload'
+            patch: ''
+            delete: ''
+        files:
+            post: '/uploads'
+            patch: ''
+            delete: ''
+        catalog:
+            get: '/catalog'
+        delegatedStorage:
+            get: '/backup'
+            post: '/backup'
+            patch: '/backup'
+            delete: '/backup'
+    payloadMaxSize: '10mb'
+    rateLimit:
+        windowMs: 30000
+        limit: 5
+    originsAllowed: 'localhost,*'
+    methodsAllowed: 'GET,POST'
+    storage:
+        storageClassName: hostpath
+        resources:
+            requests:
+                storage: 500Mi
+
+rateLimit:
+    windowMs: 30000
+    limit: 5
+
+env: localhost
+protocol: http
+NAMESPACES_ALLOWED: DEV,default

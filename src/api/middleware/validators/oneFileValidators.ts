@@ -3,10 +3,11 @@ import multer from 'multer';
 import { storage, isFileNameInvalid } from './utils/multer';
 import { deleteFile } from '../../utils/file';
 import { getUniqueName } from '../../utils';
-import { findFileInCatalog } from '../../utils/catalog';
 import { NextFunction, Request, Response } from 'express';
 import { logger } from '../../utils/logs/winston';
-import { redisHandler } from '../../catalog/redis/connection';
+import { getCachedCatalog } from '../../catalog/redis/connection';
+import { getOneFile } from '../../catalog/redis/operations';
+import crypto from 'crypto';
 
 export const validatorNamespace = async (req: Request, res: Response, next: NextFunction) => {
     const namespace = req.body.namespace;
@@ -15,7 +16,7 @@ export const validatorNamespace = async (req: Request, res: Response, next: Next
         return sendResponse({
             res,
             status: 401,
-            errors: ['invalid namespace']
+            errors: [ 'invalid namespace' ]
         });
     }
     res.locals.namespace = namespace;
@@ -23,7 +24,7 @@ export const validatorNamespace = async (req: Request, res: Response, next: Next
 };
 
 export const validatorParams = async (req: Request, res: Response, next: NextFunction) => {
-    const requiredParams = ['uuid'];
+    const requiredParams = [ 'uuid' ];
     const params = req.params;
 
     const missingParams = checkMissingParam({ requiredParams, params });
@@ -37,13 +38,14 @@ export const validatorParams = async (req: Request, res: Response, next: NextFun
 export const validatorFileCatalog = async (req: Request, res: Response, next: NextFunction) => {
     const { uuid, namespace, toWebp, file } = res.locals;
     const uniqueName = file && generateUniqueName(file, req.body, namespace, toWebp);
-    const itemFound = await findFileInCatalog(uuid ? uuid : uniqueName, uuid ? 'uuid' : 'unique_name');
+    const fileUUID = uuid ? uuid : await crypto.createHash('md5').update(uniqueName).digest('hex');
+    const itemFound = await getCachedCatalog(fileUUID);
     if (itemFound && req.method === 'PATCH' && file) {
         if (file.mimetype !== itemFound.original_mimetype && req.body.toWebp === 'false' && itemFound.mimetype === 'image/webp') {
             return sendResponse({
                 res,
                 status: 400,
-                errors: [`Mimetypes are not the same`]
+                errors: [ `Mimetypes are not the same` ]
             });
         }
     }
@@ -51,7 +53,7 @@ export const validatorFileCatalog = async (req: Request, res: Response, next: Ne
         return sendResponse({
             res,
             status: 404,
-            errors: [`Item not found in catalog with namespace ${namespace} and UUID ${uuid}`]
+            errors: [ `Item not found in catalog with namespace ${ namespace } and UUID ${ uuid }` ]
         });
     }
 
@@ -59,7 +61,7 @@ export const validatorFileCatalog = async (req: Request, res: Response, next: Ne
         return sendResponse({
             res,
             status: 400,
-            errors: ['File already exists in catalog, please use patch instead.']
+            errors: [ 'File already exists in catalog, please use patch instead.' ]
         });
     }
     res.locals = {
@@ -85,7 +87,7 @@ export const validatorFileFilter = async (req: Request, res: Response, next: Nex
             return sendResponse({
                 res,
                 status: 400,
-                errors: [mimeTypeIsAllowed ? errorFileName : `File type ${fileFromMulter.mimetype} unauthorized.`]
+                errors: [ mimeTypeIsAllowed ? errorFileName : `File type ${ fileFromMulter.mimetype } unauthorized.` ]
             });
         }
         res.locals.file = req.file;
@@ -99,19 +101,21 @@ export const validatorFileSize = async (req: Request, res: Response, next: NextF
         const fileTooLarge = await fileIsTooLarge(file, { uuid, namespace }, req.method);
         if (fileTooLarge) {
             await deleteFile(file.path);
-            return sendResponse({ res, status: 400, errors: [fileTooLarge] });
+            return sendResponse({ res, status: 400, errors: [ fileTooLarge ] });
         }
     }
     next();
 };
 
 export const generateFileInfo = (body, method = 'PATCH') => {
-    const keysAllowed = ['external_id', 'expired', 'expiration_date', 'information', 'signature', 'namespace', 'size', 'base_host', 'base_url', ...(method === 'POST' ? ['destination'] : [])];
+    const keysAllowed = [ 'external_id', 'expired', 'expiration_date', 'information', 'signature', 'namespace', 'size', 'base_host', 'base_url', ...( method === 'POST' ?
+        [ 'destination' ] :
+        [] ) ];
     const bodyKeys = Object.keys(body.changes ?? body);
     const hasAllowedKey = bodyKeys.some((key) => keysAllowed.includes(key));
     if (hasAllowedKey) {
         const fileInfo = {};
-        for (let key of bodyKeys) {
+        for ( let key of bodyKeys ) {
             if (keysAllowed.includes(key)) {
                 fileInfo[key] = body.changes ? body.changes[key] : body[key];
             }
@@ -127,7 +131,7 @@ export const validatorFileBody = async (req: Request, res: Response, next: NextF
         return sendResponse({
             res,
             status: 400,
-            errors: [`Body has to be of type object`]
+            errors: [ `Body has to be of type object` ]
         });
     }
     const fileInfo = generateFileInfo(req.body, req.method);
@@ -135,7 +139,7 @@ export const validatorFileBody = async (req: Request, res: Response, next: NextF
         return sendResponse({
             res,
             status: 400,
-            errors: [`No allowed changes detected`]
+            errors: [ `No allowed changes detected` ]
         });
     }
     res.locals.fileInfo = fileInfo;
@@ -145,23 +149,22 @@ export const validatorFileBody = async (req: Request, res: Response, next: NextF
 
 export const validatorGetAsset = async (req: Request, res: Response, next: NextFunction) => {
     const allowedNamespaces = process.env.NAMESPACES?.split(',');
-    const uniqueName = getUniqueName(req.url, `/${req.params.format}`);
+    const uniqueName = getUniqueName(req.url, `/${ req.params.format }`);
     let cleanUniqueName = uniqueName;
 
     if (req.params.format === 'optimise') {
         cleanUniqueName = uniqueName.replace(/\/[^/]+\//, '/');
     }
 
-    const uniqueNameFinal = cleanUniqueName
-        .split('/')
-        .filter((item) => item.length > 0)
-        .join('/');
-    const file = await findFileInCatalog(`/${uniqueNameFinal}`, 'unique_name');
+    const uniqueNameFinal = cleanUniqueName.split('/').filter((item) => item.length > 0).join('/');
+
+    const redisKeyMD5 = crypto.createHash('md5').update(uniqueName).digest('hex');
+    const { datum: file } = await getOneFile(redisKeyMD5);
     const namespace = file?.namespace || null;
 
     if (!allowedNamespaces?.includes(namespace) || !file) {
         return res.status(404).end();
     }
-    res.locals = { ...res.locals, uniqueName: `/${uniqueNameFinal}`, file };
+    res.locals = { ...res.locals, uniqueName: `/${ uniqueNameFinal }`, file };
     next();
 };
