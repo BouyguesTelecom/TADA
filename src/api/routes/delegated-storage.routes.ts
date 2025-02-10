@@ -7,7 +7,7 @@
 
 import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { Router } from 'express';
-import { getBackup, patchBackup, postBackup, deleteBackup, getBackupDump } from '../controllers/delegated-storage.controller';
+import { getBackup, patchFileBackup, postFileBackup, deleteFileBackup, patchFilesBackup, postFilesBackup, deleteFilesBackup, getBackupDump } from '../controllers/delegated-storage.controller';
 import { validatorFile } from '../middleware/validators/oneFileValidators';
 
 const router = Router();
@@ -56,7 +56,30 @@ router.get(`/delegated-storage`, rateLimitMiddleware, getBackup);
  *       201:
  *         description: Backup created
  */
-router.post(`/delegated-storage`, [rateLimitMiddleware, validatorFile], postBackup);
+router.post(`/delegated-storage`, [ rateLimitMiddleware, validatorFile ], postFileBackup);
+
+/**
+ * @swagger
+ * /delegated-storage:
+ *   post:
+ *     summary: Create a new backup
+ *     tags: [DelegatedStorage]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: Backup created
+ */
+router.post(`/delegated-storage/files`, [ rateLimitMiddleware, validatorFile ], postFilesBackup);
+
 
 /**
  * @swagger
@@ -78,7 +101,30 @@ router.post(`/delegated-storage`, [rateLimitMiddleware, validatorFile], postBack
  *       200:
  *         description: Backup updated
  */
-router.patch(`/delegated-storage`, [rateLimitMiddleware, validatorFile], patchBackup);
+router.patch(`/delegated-storage`, [ rateLimitMiddleware, validatorFile ], patchFileBackup);
+
+/**
+ * @swagger
+ * /delegated-storage:
+ *   patch:
+ *     summary: Update an existing backup
+ *     tags: [DelegatedStorage]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Backup updated
+ */
+router.patch(`/delegated-storage/files`, [ rateLimitMiddleware, validatorFile ], patchFilesBackup);
+
 
 /**
  * @swagger
@@ -90,6 +136,19 @@ router.patch(`/delegated-storage`, [rateLimitMiddleware, validatorFile], patchBa
  *       200:
  *         description: Backup deleted
  */
-router.delete(`/delegated-storage`, rateLimitMiddleware, deleteBackup);
+router.delete(`/delegated-storage`, rateLimitMiddleware, deleteFileBackup);
+
+/**
+ * @swagger
+ * /delegated-storage:
+ *   delete:
+ *     summary: Delete a backup
+ *     tags: [DelegatedStorage]
+ *     responses:
+ *       200:
+ *         description: Backup deleted
+ */
+router.delete(`/delegated-storage/files`, rateLimitMiddleware, deleteFilesBackup);
+
 
 export { router };

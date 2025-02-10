@@ -10,9 +10,9 @@ import { addCatalogItem, deleteCatalogItem, updateCatalogItem } from '../catalog
 
 export const postAssets = async (req: Request, res: Response) => {
     const { validFiles, invalidFiles } = res.locals;
-    const { data, errors } = await validFiles.reduce(
+    const accumulatedResult = await validFiles.reduce(
         async (accumulator, file) => {
-            const { data, errors } = await accumulator;
+            const { data, errors, forms } = await accumulator;
             const stream = await generateStream(file, file.uniqueName, file.toWebp);
             if (stream) {
                 const signature = calculateSHA256(stream);
@@ -39,22 +39,38 @@ export const postAssets = async (req: Request, res: Response) => {
                         contentType: file.mimetype
                     });
 
-                    const postBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${newItem.unique_name}`, {
-                        method: 'POST',
-                        body: form
-                    });
-
-                    if (postBackupFile.status !== 200) {
-                        await deleteCatalogItem(newItem.unique_name);
-                        errors.push('Failed to upload in backup');
-                    }
+                    forms.push({ form, uniqueName: newItem.unique_name });
+                    return { data: [...data, catalogItem], errors, forms };
                 }
-                return { data: [...data, catalogItem], errors };
             }
-            return { data, errors: [...errors, file] };
+            return { data, errors: [...errors, file], forms };
         },
-        Promise.resolve({ data: [], errors: invalidFiles })
+        Promise.resolve({ data: [], errors: invalidFiles, forms: [] })
     );
+
+    const { data, errors, forms } = accumulatedResult;
+    try {
+
+        const response = await fetch(`${req.app.locals.PREFIXED_API_URL}/delegated-storage/files`, {
+            ...req,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-version': req.query.version ? `${req.query.version}` : '',
+                'x-mimetype': req.query.mimetype ? `${req.query.mimetype}` : ''
+            },
+        });
+
+        if (response.status !== 200) {
+            for (const form of forms) {
+                await deleteCatalogItem(form.uniqueName);
+            }
+            errors.push('Failed to upload in backup');
+        }
+    } catch (error) {
+        errors.push('An error occurred during the backup process');
+    }
+
     return sendResponse({ res, status: 200, data, errors, purge: 'catalog' });
 };
 

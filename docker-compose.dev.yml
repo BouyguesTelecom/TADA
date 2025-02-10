@@ -1,6 +1,6 @@
 x-environment-variables:
   &default-environment
-    API_PREFIX: "/palpatine"
+    API_PREFIX: ""
     DELEGATED_STORAGE_RATE_LIMIT: 5
     DELEGATED_STORAGE_RATE_LIMIT_WINDOW: 30000
     NGINX_SERVICE: http://host.docker.internal:8080
@@ -12,21 +12,20 @@ x-environment-variables:
     VALID_MIMETYPES: image/png,image/jpeg,application/pdf,image/jpg,image/webp,image/svg+xml
 
     DEV_ENV: true
-  
-    # S3 BACKUP :
-    DELEGATED_STORAGE_READINESS_CHECK: /minio/health/live
-    DELEGATED_STORAGE_HOST: http://localhost:9000
 
-    DELEGATED_STORAGE_METHOD: S3
+    # S3 BACKUP :
+    DELEGATED_STORAGE_READINESS_CHECK: /readiness-check
+    DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
+
+    DELEGATED_STORAGE_METHOD: DISTANT_BACKEND
 
     S3_ENDPOINT: localhost
     S3_PORT: 9000
     S3_ACCESS_KEY: minioadmin
     S3_SECRET_KEY: minioadmin
     S3_BUCKET_NAME: media
-
+    DELEGATED_STORAGE_TOKEN: NinjaDesIles
     DUMP_FOLDER_PATH: /dumps
-    REDIS_SERVICE: localhost
 
     HEALTHCHECK_ROUTE: /readiness-check
 
@@ -91,9 +90,10 @@ services:
             NGINX_SERVICE: http://nginx:8080
             IMAGE_SERVICE: http://images-provider:3001
             NGINX_INGRESS: http://localhost:8080
-            DELEGATED_STORAGE_HOST: http://minio:9000
+            DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
+            DELEGATED_STORAGE_SINGLE_PATH: '/file'
+            DELEGATED_STORAGE_MULTI_PATH: '/files'
             REDIS_SERVICE: redis
-            S3_ENDPOINT: minio
             MEDIA_TOKEN: token
         healthcheck:
             test: ["CMD-SHELL", "wget --spider --quiet http://images-provider:3001$$API_PREFIX/readiness-check || exit 1"]

@@ -36,16 +36,11 @@ const connectToRedisWithRetry = async (maxRetries, delay) => {
         try {
             await redisHandler.connectClient();
             const { data: catalog } = await getCatalog();
-            if (catalog.length) {
-                for (const item of catalog) {
-                    if (item.unique_name.includes('/tests/')) {
-                        await deleteCatalogItem(item.unique_name);
-                    }
-                }
-            }
+            console.log(catalog, 'CATALOG ICI !!!')
             return;
         } catch (err) {
             attempts++;
+            console.log(err, 'ERROR ICI')
             logger.error(`Failed to connect to Redis. Attempt ${attempts} of ${maxRetries}. Retrying in ${delay / 1000} seconds...`);
             if (attempts < maxRetries) {
                 await new Promise((resolve) => setTimeout(resolve, delay));
