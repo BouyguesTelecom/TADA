@@ -115,11 +115,8 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
     const { validFiles, invalidFiles } = await validFilesFromLocal.reduce(
         async (accumulator, file) => {
             const { validFiles, invalidFiles } = await accumulator;
-            const uniqueName = !file.uuid && generateUniqueName(file, req.body, namespace, toWebp);
-            const itemFound = await findFileInCatalog(file.uuid ? file.uuid : uniqueName, file.uuid ?
-                'uuid' :
-                'unique_name');
-            if (itemFound && req.method === 'POST') {
+
+            if (file.catalogItem && req.method === 'POST') {
                 return {
                     validFiles,
                     invalidFiles: [
@@ -149,12 +146,11 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
                     ...validFiles,
                     {
                         ...file,
-                        uniqueName: itemFound ?
-                            itemFound.unique_name :
+                        uniqueName: file.catalogItem ?
+                            file.catalogItem.unique_name :
                             generateUniqueName(file, req.body, namespace, toWebp),
                         fileInfo,
-                        toWebp,
-                        catalogItem: itemFound
+                        toWebp
                     }
                 ],
                 invalidFiles
@@ -173,6 +169,7 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
     res.locals = { ...res.locals, validFiles, invalidFiles };
     next();
 };
+
 
 const _checkFilesInCatalog = async (files: any[], invalidFilesFromNamespace) => {
     return await files.reduce(

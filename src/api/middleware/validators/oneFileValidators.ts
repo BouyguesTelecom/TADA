@@ -113,7 +113,7 @@ export const generateFileInfo = (body, method = 'PATCH') => {
         const fileInfo = {};
         for (let key of bodyKeys) {
             if (keysAllowed.includes(key)) {
-                fileInfo[key] = body[key];
+                fileInfo[key] = body.changes ? body.changes[key] : body[key];
             }
         }
         return fileInfo;
