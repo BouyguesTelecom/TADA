@@ -5,18 +5,21 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "build": "tsc",
-        "k6": "tsc && k6 run build/index.js --config config.json"
+        "k6": "tsc && dotenv k6 run build/index.js"
     },
     "keywords": [],
     "author": "",
     "license": "ISC",
     "description": "",
     "devDependencies": {
+        "@types/k6": "^0.54.0",
         "@types/node": "^22.9.1",
-        "typescript": "^5.6.3",
-        "@types/k6": "0.54.0"
+        "dotenv-cli": "^8.0.0",
+        "typescript": "^5.6.3"
     },
     "dependencies": {
-        "k6": "^0.0.0"
+        "dotenv": "^16.4.7",
+        "k6": "^0.0.0",
+        "node-fetch": "^3.3.2"
     }
 }
