@@ -79,7 +79,7 @@ export const getLastDump = async () => {
 
 export const getFile = async ({ filepath, version, mimetype }: FileProps): Promise<BackupProps> => {
     try {
-        const backupGet: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype, 'GET'), generateOptions('GET', 'application/json'));
+        const backupGet: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype), generateOptions('GET', 'application/json'));
 
         if (backupGet.status === 200) {
             const stream = filepath.includes('.json') ? await backupGet.json() : backupGet.body;
@@ -94,7 +94,7 @@ export const getFile = async ({ filepath, version, mimetype }: FileProps): Promi
 
 export const upload = async ({ filepath, file, version, mimetype }: UploadFileProps): Promise<BackupProps> => {
     try {
-        const backupUpload: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype, 'POST'), generateOptions('POST', 'multipart/form-data', file));
+        const backupUpload: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype), generateOptions('POST', 'multipart/form-data', file));
         console.log(backupUpload.status, 'BACKUP RESPONSE ???', generateUrl(filepath, version, mimetype, 'POST'));
         if (backupUpload.status === 201 || backupUpload.status === 200) {
             return { status: 200, stream: backupUpload.body };
@@ -128,7 +128,7 @@ export const uploads = async ({ filespath, files, version, mimetype }: UploadFil
 
 export const update = async ({ filepath, file, version, mimetype }: UploadFileProps): Promise<BackupProps> => {
     try {
-        const backupUptade: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype, 'PATCH'), generateOptions('PUT', 'multipart/form-data', file));
+        const backupUptade: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype), generateOptions('PUT', 'multipart/form-data', file));
 
         if (backupUptade.status === 200) {
             return { status: 200, stream: backupUptade.body };
@@ -161,7 +161,7 @@ export const updates = async ({ filespath, files, version, mimetype }: UploadFil
 
 export const deleteFile = async ({ filepath, version, mimetype }: FileProps): Promise<BackupProps> => {
     try {
-        const backupDelete: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype, 'DELETE'), generateOptions('DELETE', 'application/json'));
+        const backupDelete: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype), generateOptions('DELETE', 'application/json'));
 
         if (backupDelete.status === 200) {
             return { status: 200 };
