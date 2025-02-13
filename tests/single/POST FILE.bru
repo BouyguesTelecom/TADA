@@ -5,15 +5,19 @@ meta {
 }
 
 post {
-  url: {{URL_API}}{{URL_API_PREFIX}}/file
+  url: http://localhost:3002/file
   body: multipartForm
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: NinjaDesIles
 }
 
 body:multipart-form {
   namespace: DEV
-  file: @file(/tmp/images/jpg.jpg)
-  destination: testsd
+  file: @file(/Users/mlaversi/Document/images/5emVS5px.jpeg)
+  destination: test
   ~expired: true
 }
 

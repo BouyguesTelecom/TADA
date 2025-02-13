@@ -21,7 +21,7 @@ const streamToBuffer = (stream: PassThrough): Promise<Buffer> => {
     });
 };
 
-const checkSignature = async (file: FileProps, stream: PassThrough): Promise<{isValidSignature: boolean; originSignature: string | null}> => {
+const checkSignature = async (file: FileProps, stream: PassThrough): Promise<{ isValidSignature: boolean; originSignature: string | null }> => {
     try {
         const buffer = await streamToBuffer(stream);
         const signature = calculateSHA256(buffer);
@@ -34,7 +34,7 @@ const checkSignature = async (file: FileProps, stream: PassThrough): Promise<{is
         return {
             isValidSignature: false,
             originSignature: null
-        }
+        };
     }
 };
 
@@ -123,7 +123,7 @@ export const postAsset = async (req: Request, res: Response) => {
     const stream = await generateStream(file, uniqueName, toWebp);
     if (stream) {
         const signature = calculateSHA256(stream);
-        const newItem = await formatItemForCatalog(fileInfo, file.filename, namespace, uniqueName, fileInfo?.destination || '', file.mimetype, toWebp, signature, file.size);
+        const newItem = await formatItemForCatalog(fileInfo, file.filename, namespace, uniqueName, fileInfo?.destination || '', file.mimetype, toWebp, signature, file.size, file.status);
 
         const { status, error, datum } = await addCatalogItem(newItem);
         if (status !== 200) {
@@ -139,6 +139,7 @@ export const postAsset = async (req: Request, res: Response) => {
             const form = new FormData();
             form.append('file', stream, { filename: uniqueName, contentType: file.mimetype });
             try {
+                console.log('posting file to backup');
                 const postBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${uniqueName}&version=1&mimetype=${file.mimetype}`, {
                     method: 'POST',
                     body: form

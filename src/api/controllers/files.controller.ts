@@ -25,7 +25,8 @@ export const postAssets = async (req: Request, res: Response) => {
                     file.mimetype,
                     file.toWebp,
                     signature,
-                    file.size
+                    file.size,
+                    file.status
                 );
 
                 const { status, error: errorCatalog, datum: catalogItem } = await addCatalogItem(newItem);
@@ -50,7 +51,6 @@ export const postAssets = async (req: Request, res: Response) => {
 
     const { data, errors, forms } = accumulatedResult;
     try {
-
         const response = await fetch(`${req.app.locals.PREFIXED_API_URL}/delegated-storage/files`, {
             ...req,
             method: 'POST',
@@ -58,14 +58,14 @@ export const postAssets = async (req: Request, res: Response) => {
                 'Content-Type': 'application/json',
                 'x-version': req.query.version ? `${req.query.version}` : '',
                 'x-mimetype': req.query.mimetype ? `${req.query.mimetype}` : ''
-            },
+            }
         });
 
         if (response.status !== 200) {
             for (const form of forms) {
                 await deleteCatalogItem(form.uniqueName);
             }
-            errors.push('Failed to upload in backup');
+            errors.push('Failed to upload images in backup');
         }
     } catch (error) {
         errors.push('An error occurred during the backup process');

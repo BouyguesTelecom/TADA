@@ -5,7 +5,11 @@ meta {
 }
 
 get {
-  url: {{URL_NGINX}}{{URL_API_PREFIX}}/catalog
+  url: http://localhost:3002/catalog
   body: none
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: NinjaDesIles
 }

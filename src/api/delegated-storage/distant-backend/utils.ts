@@ -21,7 +21,6 @@ interface UploadFileProps extends FileProps {
     file: Buffer | Blob | string;
 }
 
-
 interface UploadFilesProps extends FilesProps {
     files: Buffer[] | Blob[] | string[];
 }
@@ -34,10 +33,10 @@ interface ResponseBackup {
 
 export const headersUserAgentForBackup = (contentType: string | null = null) =>
     new Headers({
-        ...( process.env.DELEGATED_STORAGE_TOKEN && {
-            Authorization: `Bearer ${ process.env.DELEGATED_STORAGE_TOKEN }`
-        } ),
-        ...( contentType && { 'Content-Type': contentType } )
+        ...(process.env.DELEGATED_STORAGE_TOKEN && {
+            Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
+        }),
+        ...(contentType && { 'Content-Type': contentType })
     });
 
 const generateOptions = (method, contentTypeHeaders, body = null) => {
@@ -45,19 +44,17 @@ const generateOptions = (method, contentTypeHeaders, body = null) => {
         method: method,
         headers: headersUserAgentForBackup(contentTypeHeaders),
         redirect: 'follow',
-        ...( body && { body } )
+        ...(body && { body })
     };
 };
 
 const generateUrl = (filepath, version, mimetype, pathType = 'SINGLE') => {
-    const delegatedStoragePath = pathType === 'SINGLE' ?
-        process.env.DELEGATED_STORAGE_SINGLE_PATH ?? '' :
-        process.env.DELEGATED_STORAGE_MULTI_PATH ?? '';
-    console.log(`${ process.env.DELEGATED_STORAGE_HOST }${ delegatedStoragePath }${ filepath }`, 'HELLOOOOOOO!!!!');
+    const delegatedStoragePath = pathType === 'SINGLE' ? (process.env.DELEGATED_STORAGE_SINGLE_PATH ?? '') : (process.env.DELEGATED_STORAGE_MULTI_PATH ?? '');
+    console.log(`${process.env.DELEGATED_STORAGE_HOST}${delegatedStoragePath}${filepath}`, 'HELLOOOOOOO!!!!');
     if (version || mimetype) {
-        return `${ process.env.DELEGATED_STORAGE_HOST }${ delegatedStoragePath }${ filepath }&version=${ version }&mimetype=${ mimetype }`;
+        return `${process.env.DELEGATED_STORAGE_HOST}${delegatedStoragePath}${filepath}&version=${version}&mimetype=${mimetype}`;
     }
-    return `${ process.env.DELEGATED_STORAGE_HOST }${ delegatedStoragePath }${ filepath }`;
+    return `${process.env.DELEGATED_STORAGE_HOST}${delegatedStoragePath}${filepath}`;
 };
 
 export const getLastDump = async () => {
@@ -71,8 +68,8 @@ export const getLastDump = async () => {
             await addCatalogItems(files);
         }
         return { data: 'OK', errors: null };
-    } catch ( errMessage: any ) {
-        logger.error(`Error getting last dump: ${ errMessage }`);
+    } catch (errMessage: any) {
+        logger.error(`Error getting last dump: ${errMessage}`);
         return { data: null, errors: errMessage };
     }
 };
@@ -86,8 +83,8 @@ export const getFile = async ({ filepath, version, mimetype }: FileProps): Promi
             return { status: 200, stream };
         }
         return { status: backupGet.status, stream: null };
-    } catch ( errorMessage: any ) {
-        logger.error(`ERROR: ${ errorMessage }`);
+    } catch (errorMessage: any) {
+        logger.error(`ERROR: ${errorMessage}`);
     }
     return null;
 };
@@ -95,13 +92,13 @@ export const getFile = async ({ filepath, version, mimetype }: FileProps): Promi
 export const upload = async ({ filepath, file, version, mimetype }: UploadFileProps): Promise<BackupProps> => {
     try {
         const backupUpload: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype), generateOptions('POST', 'multipart/form-data', file));
-        console.log(backupUpload.status, 'BACKUP RESPONSE ???', generateUrl(filepath, version, mimetype, 'POST'));
+        console.log(backupUpload.status, 'BACKUP RESPONSE ???', generateUrl(filepath, version, mimetype));
         if (backupUpload.status === 201 || backupUpload.status === 200) {
             return { status: 200, stream: backupUpload.body };
         }
         return { status: backupUpload.status, stream: null };
-    } catch ( errorMessage: any ) {
-        logger.error(`ERROR: ${ errorMessage }`);
+    } catch (errorMessage: any) {
+        logger.error(`ERROR: ${errorMessage}`);
     }
     return null;
 };
@@ -113,15 +110,15 @@ export const uploads = async ({ filespath, files, version, mimetype }: UploadFil
             filespath,
             files
         });
-        console.log(params, 'PARAMS ICIIII')
+        console.log(params, 'PARAMS ICIIII');
         const backupUploads: ResponseBackup = await fetch(url, params);
         console.log(backupUploads.status, 'BACKUP RESPONSE ???', url);
         if (backupUploads.status === 201 || backupUploads.status === 200) {
             return { status: 200, stream: backupUploads.body };
         }
         return { status: backupUploads.status, stream: null };
-    } catch ( errorMessage: any ) {
-        logger.error(`ERROR: ${ errorMessage }`);
+    } catch (errorMessage: any) {
+        logger.error(`ERROR: ${errorMessage}`);
     }
     return null;
 };
@@ -134,8 +131,8 @@ export const update = async ({ filepath, file, version, mimetype }: UploadFilePr
             return { status: 200, stream: backupUptade.body };
         }
         return { status: backupUptade.status, stream: null };
-    } catch ( errorMessage: any ) {
-        logger.error(`ERROR: ${ errorMessage }`);
+    } catch (errorMessage: any) {
+        logger.error(`ERROR: ${errorMessage}`);
     }
     return null;
 };
@@ -153,8 +150,8 @@ export const updates = async ({ filespath, files, version, mimetype }: UploadFil
             return { status: 200, stream: backupUptades.body };
         }
         return { status: backupUptades.status, stream: null };
-    } catch ( errorMessage: any ) {
-        logger.error(`ERROR: ${ errorMessage }`);
+    } catch (errorMessage: any) {
+        logger.error(`ERROR: ${errorMessage}`);
     }
     return null;
 };
@@ -167,8 +164,8 @@ export const deleteFile = async ({ filepath, version, mimetype }: FileProps): Pr
             return { status: 200 };
         }
         return { status: backupDelete.status };
-    } catch ( errorMessage: any ) {
-        logger.error(`ERROR: ${ errorMessage }`);
+    } catch (errorMessage: any) {
+        logger.error(`ERROR: ${errorMessage}`);
     }
     return null;
 };
@@ -185,8 +182,8 @@ export const deleteFiles = async ({ filespath, version, mimetype }: FilesProps):
             return { status: 200 };
         }
         return { status: backupDeletes.status };
-    } catch ( errorMessage: any ) {
-        logger.error(`ERROR: ${ errorMessage }`);
+    } catch (errorMessage: any) {
+        logger.error(`ERROR: ${errorMessage}`);
     }
     return null;
 };
