@@ -55,8 +55,7 @@ export const formatItemForCatalog = async (
     mimetype: string,
     toWebp: boolean,
     signature: string,
-    size: string,
-    status: string
+    size: string
 ) => {
     const newUUID = await _generateUniqueUUIDcatalog();
 

@@ -25,8 +25,7 @@ export const postAssets = async (req: Request, res: Response) => {
                     file.mimetype,
                     file.toWebp,
                     signature,
-                    file.size,
-                    file.status
+                    file.size
                 );
 
                 const { status, error: errorCatalog, datum: catalogItem } = await addCatalogItem(newItem);

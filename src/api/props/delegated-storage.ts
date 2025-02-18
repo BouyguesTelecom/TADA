@@ -4,4 +4,5 @@ export interface BackupProps {
     status: number;
     message?: string;
     stream?: Readable;
+    error?: string;
 }

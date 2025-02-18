@@ -123,7 +123,7 @@ export const postAsset = async (req: Request, res: Response) => {
     const stream = await generateStream(file, uniqueName, toWebp);
     if (stream) {
         const signature = calculateSHA256(stream);
-        const newItem = await formatItemForCatalog(fileInfo, file.filename, namespace, uniqueName, fileInfo?.destination || '', file.mimetype, toWebp, signature, file.size, file.status);
+        const newItem = await formatItemForCatalog(fileInfo, file.filename, namespace, uniqueName, fileInfo?.destination || '', file.mimetype, toWebp, signature, file.size);
 
         const { status, error, datum } = await addCatalogItem(newItem);
         if (status !== 200) {
