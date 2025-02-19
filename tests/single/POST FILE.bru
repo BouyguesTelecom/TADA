@@ -5,18 +5,18 @@ meta {
 }
 
 post {
-  url: http://localhost:3002/file
+  url: http://staging.api.www.apps.ocp-3.ocp.euw3r53.nbyt.fr/file
   body: multipartForm
   auth: bearer
 }
 
 auth:bearer {
-  token: NinjaDesIles
+  token: 8hl7k32xdcc7iqhpa81vnv048fdzjiw-x0mygv3l3kglepybk0b3w8sjm31a2j2q8
 }
 
 body:multipart-form {
   namespace: DEV
-  file: @file(/Users/mlaversi/Document/images/luffy_chauve.webp)
+  file: @file(/Users/mlaversi/Document/images/dembele.jpg)
   destination: test
   ~expired: true
 }

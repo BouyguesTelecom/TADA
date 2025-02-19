@@ -149,7 +149,7 @@ export const postAsset = async (req: Request, res: Response) => {
                     return sendResponse({
                         res,
                         status: 400,
-                        data: ['Failed to upload in backup']
+                        data: ['Failed to upload in backup /file']
                     });
                 }
                 return sendResponse({ res, status: 200, data: [datum], purge: 'catalog' });

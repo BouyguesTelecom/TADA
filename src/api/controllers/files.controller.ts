@@ -95,7 +95,7 @@ export const patchAssets = async (req: Request, res: Response) => {
                         await deleteCatalogItem(file.catalogItem.unique_name);
                         return {
                             data,
-                            errors: [...errors, 'Failed to upload in backup']
+                            errors: [...errors, 'Failed to upload in backup /files']
                         };
                     }
                     signature = calculateSHA256(stream);
