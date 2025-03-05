@@ -136,13 +136,34 @@ export const postAsset = async (req: Request, res: Response) => {
         }
 
         if (datum) {
-            const form = new FormData();
-            form.append('file', stream, { filename: uniqueName, contentType: file.mimetype });
+            const formData = new FormData();
+
+            const metadata = {
+                unique_name: newItem.unique_name,
+                base_url: newItem.base_host,
+                destination: newItem.destination,
+                filename: newItem.filename,
+                mimetype: newItem.mimetype,
+                size: newItem.size,
+                namespace: newItem.namespace,
+                version: newItem.version
+            };
+            formData.append('metadata', JSON.stringify([metadata]));
+            formData.append('file', stream, { filename: uniqueName, contentType: file.mimetype });
+
             try {
-                console.log('posting file to backup');
-                const postBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${uniqueName}&version=1&mimetype=${file.mimetype}`, {
+                const apiUrl = `${process.env.DELEGATED_STORAGE_HOST}/file`;
+                console.log('Sending request to:', apiUrl);
+
+                console.log('===== Form : =====', formData);
+                const postBackupFile = await fetch(apiUrl, {
                     method: 'POST',
-                    body: form
+                    headers: {
+                        Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`,
+                        'x-version': req.query.version ? `${req.query.version}` : '',
+                        'x-mimetype': req.query.mimetype ? `${req.query.mimetype}` : ''
+                    },
+                    body: formData
                 });
                 if (postBackupFile.status !== 200) {
                     await deleteCatalogItem(uniqueName);

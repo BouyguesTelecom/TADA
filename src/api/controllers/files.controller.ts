@@ -10,12 +10,15 @@ import { addCatalogItem, deleteCatalogItem, updateCatalogItem } from '../catalog
 
 export const postAssets = async (req: Request, res: Response) => {
     const { validFiles, invalidFiles } = res.locals;
+    console.log('Starting postAssets with files:', validFiles?.length || 0);
     const accumulatedResult = await validFiles.reduce(
         async (accumulator, file) => {
             const { data, errors, forms } = await accumulator;
+            console.log('Processing file:', file.filename, 'uniqueName:', file.uniqueName);
             const stream = await generateStream(file, file.uniqueName, file.toWebp);
             if (stream) {
                 const signature = calculateSHA256(stream);
+                console.log('Generated signature for file:', signature);
                 const newItem = await formatItemForCatalog(
                     file.fileInfo,
                     file.filename,
@@ -29,19 +32,21 @@ export const postAssets = async (req: Request, res: Response) => {
                 );
 
                 const { status, error: errorCatalog, datum: catalogItem } = await addCatalogItem(newItem);
+                console.log('Catalog response:', { status, errorCatalog, itemAdded: !!catalogItem });
                 if (status !== 200) {
                     errors.push(errorCatalog);
                 }
                 if (catalogItem) {
-                    const form = new FormData();
-                    form.append('file', stream, {
+                    forms.push({
+                        stream,
+                        uniqueName: newItem.unique_name,
                         filename: file.uniqueName,
-                        contentType: file.mimetype
+                        mimetype: file.mimetype
                     });
-
-                    forms.push({ form, uniqueName: newItem.unique_name });
                     return { data: [...data, catalogItem], errors, forms };
                 }
+            } else {
+                console.log('Failed to generate stream for file:', file.filename);
             }
             return { data, errors: [...errors, file], forms };
         },
@@ -49,24 +54,75 @@ export const postAssets = async (req: Request, res: Response) => {
     );
 
     const { data, errors, forms } = accumulatedResult;
+    console.log('Accumulated result:', {
+        dataCount: data.length,
+        errorsCount: errors.length,
+        formsCount: forms.length
+    });
+
     try {
-        const response = await fetch(`${req.app.locals.PREFIXED_API_URL}/delegated-storage/files`, {
-            ...req,
+        const apiUrl = `${process.env.DELEGATED_STORAGE_HOST}/files`;
+        console.log('Sending request to:', apiUrl);
+
+        const formData = new FormData();
+
+        const filesData = forms.map(formItem => {
+            const catalogItem = data.find(item => item.unique_name === formItem.uniqueName);
+            if (!catalogItem) return null;
+
+            return {
+                file: formItem.stream,
+                metadata: {
+                    unique_name: catalogItem.unique_name,
+                    base_url: catalogItem.base_host,
+                    destination: catalogItem.destination,
+                    filename: catalogItem.filename,
+                    mimetype: catalogItem.mimetype,
+                    size: catalogItem.size,
+                    namespace: catalogItem.namespace,
+                    version: catalogItem.version
+                }
+            };
+        }).filter(Boolean);
+
+        formData.append('metadata', JSON.stringify(filesData.map(item => item.metadata)));
+
+        filesData.forEach(fileData => {
+            formData.append('file', fileData.file, {
+                filename: fileData.metadata.unique_name,
+                contentType: fileData.metadata.mimetype
+                });
+            });
+
+        console.log('===== API URL =====', apiUrl);
+        console.log('===== Form data ====', formData);
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`,
                 'x-version': req.query.version ? `${req.query.version}` : '',
                 'x-mimetype': req.query.mimetype ? `${req.query.mimetype}` : ''
-            }
+            },
+            body: formData
         });
 
+        console.log('Delegated storage response status:', response.status);
         if (response.status !== 200) {
+            const responseText = await response.text();
+            console.error('Delegated storage error response:', responseText);
+
             for (const form of forms) {
+                console.log('Deleting catalog item due to failed upload:', form.uniqueName);
                 await deleteCatalogItem(form.uniqueName);
             }
             errors.push('Failed to upload images in backup');
+        } else {
+            const responseData = await response.json().catch(() => ({}));
+            console.log('Delegated storage success response:', responseData);
         }
     } catch (error) {
+        console.error('Backup process error:', error);
+        console.error('Error details:', error instanceof Error ? error.stack : String(error));
         errors.push('An error occurred during the backup process');
     }
 
