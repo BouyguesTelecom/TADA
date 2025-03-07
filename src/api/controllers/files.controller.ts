@@ -66,33 +66,35 @@ export const postAssets = async (req: Request, res: Response) => {
 
         const formData = new FormData();
 
-        const filesData = forms.map(formItem => {
-            const catalogItem = data.find(item => item.unique_name === formItem.uniqueName);
-            if (!catalogItem) return null;
+        const filesData = forms
+            .map((formItem) => {
+                const catalogItem = data.find((item) => item.unique_name === formItem.uniqueName);
+                if (!catalogItem) return null;
 
-            return {
-                file: formItem.stream,
-                metadata: {
-                    unique_name: catalogItem.unique_name,
-                    base_url: catalogItem.base_host,
-                    destination: catalogItem.destination,
-                    filename: catalogItem.filename,
-                    mimetype: catalogItem.mimetype,
-                    size: catalogItem.size,
-                    namespace: catalogItem.namespace,
-                    version: catalogItem.version
-                }
-            };
-        }).filter(Boolean);
+                return {
+                    file: formItem.stream,
+                    metadata: {
+                        unique_name: catalogItem.unique_name,
+                        base_url: catalogItem.base_host,
+                        destination: catalogItem.destination,
+                        filename: catalogItem.filename,
+                        mimetype: catalogItem.mimetype,
+                        size: catalogItem.size,
+                        namespace: catalogItem.namespace,
+                        version: catalogItem.version
+                    }
+                };
+            })
+            .filter(Boolean);
 
-        formData.append('metadata', JSON.stringify(filesData.map(item => item.metadata)));
+        formData.append('metadata', JSON.stringify(filesData.map((item) => item.metadata)));
 
-        filesData.forEach(fileData => {
+        filesData.forEach((fileData) => {
             formData.append('file', fileData.file, {
                 filename: fileData.metadata.unique_name,
                 contentType: fileData.metadata.mimetype
-                });
             });
+        });
 
         console.log('===== API URL =====', apiUrl);
         console.log('===== Form data ====', formData);
@@ -108,25 +110,94 @@ export const postAssets = async (req: Request, res: Response) => {
 
         console.log('Delegated storage response status:', response.status);
         if (response.status !== 200) {
-            const responseText = await response.text();
-            console.error('Delegated storage error response:', responseText);
+            let errorDetails = 'Failed to upload images in backup';
 
+            try {
+                const errorResponse = await response.json().catch(() => response.text());
+                if (typeof errorResponse === 'object') {
+                    errorDetails = errorResponse.error || (errorResponse.details ? JSON.stringify(errorResponse.details) : null) || errorDetails;
+                    console.error('Delegated storage structured error:', errorResponse);
+                } else {
+                    errorDetails = errorResponse || errorDetails;
+                    console.error('Delegated storage text error:', errorResponse);
+                }
+            } catch (parseError) {
+                console.error('Error parsing error response:', parseError);
+            }
+
+            // Supprimer tous les éléments du catalogue en cas d'échec
             for (const form of forms) {
                 console.log('Deleting catalog item due to failed upload:', form.uniqueName);
                 await deleteCatalogItem(form.uniqueName);
             }
-            errors.push('Failed to upload images in backup');
+            errors.push(errorDetails);
+
+            return sendResponse({
+                res,
+                status: 400,
+                data: null,
+                errors
+            });
         } else {
             const responseData = await response.json().catch(() => ({}));
             console.log('Delegated storage success response:', responseData);
+
+            if (responseData.error || (responseData.result && responseData.result.status !== 200) || (responseData.status && responseData.status !== 200)) {
+                const errorMsg = responseData.error || (responseData.result && responseData.result.error) || 'Pipeline failed';
+
+                const errorDetails = responseData.details || (responseData.data && responseData.data.message) || (responseData.result && responseData.result.data);
+
+                console.error('Pipeline error:', { errorMsg, errorDetails });
+
+                for (const form of forms) {
+                    console.log('Deleting catalog item due to pipeline failure:', form.uniqueName);
+                    await deleteCatalogItem(form.uniqueName);
+                }
+
+                errors.push(errorMsg);
+                if (errorDetails) {
+                    errors.push(JSON.stringify(errorDetails));
+                }
+
+                return sendResponse({
+                    res,
+                    status: 400,
+                    data: null,
+                    errors
+                });
+            }
+
+            return sendResponse({
+                res,
+                status: 200,
+                data,
+                errors: errors.length > 0 ? errors : null,
+                purge: 'catalog'
+            });
         }
     } catch (error) {
         console.error('Backup process error:', error);
         console.error('Error details:', error instanceof Error ? error.stack : String(error));
-        errors.push('An error occurred during the backup process');
-    }
 
-    return sendResponse({ res, status: 200, data, errors, purge: 'catalog' });
+        for (const form of forms) {
+            try {
+                console.log('Deleting catalog item due to exception:', form.uniqueName);
+                await deleteCatalogItem(form.uniqueName);
+            } catch (deleteError) {
+                console.error('Error deleting catalog item:', deleteError);
+            }
+        }
+
+        const errorMessage = error instanceof Error ? `Backup process error: ${error.message}` : 'An unexpected error occurred during the backup process';
+
+        return sendResponse({
+            res,
+            status: 500,
+            data: null,
+            errors: [errorMessage],
+            purge: 'catalog'
+        });
+    }
 };
 
 export const patchAssets = async (req: Request, res: Response) => {

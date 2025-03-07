@@ -166,13 +166,36 @@ export const postAsset = async (req: Request, res: Response) => {
                     body: formData
                 });
                 if (postBackupFile.status !== 200) {
+                    let errorDetails = 'Failed to upload in backup /file';
+
+                    try {
+                        // Tenter de récupérer plus de détails sur l'erreur
+                        const errorResponse = await postBackupFile.json();
+                        errorDetails = errorResponse.error || errorResponse.details || errorDetails;
+                    } catch (parseError) {
+                        console.error('Error parsing error response:', parseError);
+                    }
+
                     await deleteCatalogItem(uniqueName);
                     return sendResponse({
                         res,
                         status: 400,
-                        data: ['Failed to upload in backup /file']
+                        data: ['Failed to upload in backup /file'],
+                        errors: [errorDetails]
                     });
                 }
+                const responseData = await postBackupFile.json().catch(() => ({}));
+
+                if (responseData.error || (responseData.result && responseData.result.status !== 200)) {
+                    await deleteCatalogItem(uniqueName);
+                    return sendResponse({
+                        res,
+                        status: 400,
+                        errors: [responseData.error || 'Pipeline failed'],
+                        data: responseData.details ? [responseData.details] : null
+                    });
+                }
+
                 return sendResponse({ res, status: 200, data: [datum], purge: 'catalog' });
             } catch (error) {
                 await deleteCatalogItem(uniqueName);
