@@ -33,6 +33,8 @@ router.use(redisConnectionMiddleware);
  *     responses:
  *       200:
  *         description: An asset
+ *       401:
+ *         description: You must be authenticated to do this
  */
 router.get(`/assets/media/:format/*`, [timeoutMiddleware, validatorGetAsset], getAsset);
 
@@ -66,6 +68,8 @@ router.get(`/assets/media/:format/*`, [timeoutMiddleware, validatorGetAsset], ge
  *     responses:
  *       200:
  *         description: The file was successfully posted
+ *       401:
+ *         description: You must be authenticated to do this
  */
 router.post(`/file`, [authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog], postAsset);
 
@@ -104,6 +108,8 @@ router.post(`/file`, [authMiddleware, validatorHeaders, validatorFile, validator
  *     responses:
  *       200:
  *         description: The file was successfully patched
+ *       401:
+ *         description: You must be authenticated to do this
  */
 router.patch(
     `/file/:uuid`,
@@ -135,6 +141,8 @@ router.patch(
  *     responses:
  *       200:
  *         description: The file was successfully deleted
+ *       401:
+ *         description: You must be authenticated to do this
  */
 router.delete(`/file/:uuid`, [authMiddleware, validatorHeaders, validatorParams, validatorNamespace, validatorFileCatalog], deleteAsset);
 

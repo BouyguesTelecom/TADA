@@ -23,6 +23,8 @@ router.use(redisConnectionMiddleware);
  *     responses:
  *       200:
  *         description: A list of files
+ *       401:
+ *         description: You must be authenticated to do this
  */
 router.get(`/catalog`, getFiles);
 
@@ -42,6 +44,8 @@ router.get(`/catalog`, getFiles);
  *     responses:
  *       200:
  *         description: A single file
+ *       401:
+ *         description: You must be authenticated to do this
  */
 router.get(`/catalog/:id`, getFile);
 
@@ -54,6 +58,8 @@ router.get(`/catalog/:id`, getFile);
  *     responses:
  *       201:
  *         description: File added
+ *       401:
+ *         description: You must be authenticated to do this
  */
 router.post(`/catalog`, addFileInCatalog);
 
@@ -73,6 +79,8 @@ router.post(`/catalog`, addFileInCatalog);
  *     responses:
  *       200:
  *         description: File updated
+ *       401:
+ *         description: You must be authenticated to do this
  */
 router.patch(`/catalog/:id`, updateFileInCatalog);
 
@@ -92,6 +100,8 @@ router.patch(`/catalog/:id`, updateFileInCatalog);
  *     responses:
  *       200:
  *         description: File deleted
+ *       401:
+ *         description: You must be authenticated to do this
  */
 router.delete(`/catalog/:id`, deleteCatalogItem);
 
@@ -104,6 +114,8 @@ router.delete(`/catalog/:id`, deleteCatalogItem);
  *     responses:
  *       200:
  *         description: All files deleted
+ *       401:
+ *         description: You must be authenticated to do this
  */
 router.delete(`/catalog`, deleteCatalog);
 

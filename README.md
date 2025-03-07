@@ -42,6 +42,22 @@ The user can either use the original image via a specific URL or process the ima
 
 ### Project structure and architecture
 
+To access the **API documentation** run :
+
+```
+cd src
+```
+
+```
+npm run dev:api
+```
+
+Then go to :
+
+```
+http://localhost:3001/api-docs/
+```
+
 The image service (more generally files) consists of a first Nginx server whose configuration contains 3 types of locations:
 
 - /catalog

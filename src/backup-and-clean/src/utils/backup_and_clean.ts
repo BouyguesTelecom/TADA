@@ -12,10 +12,19 @@ export async function callAPI(url: string, method: HttpMethod, data?: object, is
         const headers: HeadersInit = {};
         let body: BodyInit | null = null;
 
-        if (isMultipart && data) {
+        // create-dump
+        if (url.includes('/catalog/create-dump') && method === 'POST') {
+            logger.info('Special handling for catalog dump creation');
+        } else if (isMultipart && data) {
             const formData = new FormData();
-            Object.keys(data).forEach((key) => {
-                formData.append(key, data[key as keyof typeof data] as any);
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    if (typeof value === 'object' && value !== null && !(value instanceof Blob)) {
+                        formData.append(key, JSON.stringify(value));
+                    } else {
+                        formData.append(key, value as any);
+                    }
+                }
             });
             body = formData;
         } else if (data) {
@@ -23,23 +32,39 @@ export async function callAPI(url: string, method: HttpMethod, data?: object, is
             headers['Content-Type'] = 'application/json';
         }
 
+        if (process.env.API_TOKEN) {
+            headers['Authorization'] = `Bearer ${process.env.API_TOKEN}`;
+        }
+
         const options: RequestInit = { method, headers, body };
 
         if (body) {
-            logger.debug(`Request body: ${body}`);
+            logger.debug(`Request has body: ${body instanceof FormData ? '[FormData]' : body}`);
         }
 
         const response = await fetch(url, options);
-        const responseBody = await response.text();
 
-        if (!response.ok) {
-            logger.info(`Error calling API ${method} ${url}: ${response.statusText}`);
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        let responseBody;
+        try {
+            responseBody = await response.text();
+        } catch (err) {
+            logger.warn(`Cannot read response body: ${err.message}`);
+            responseBody = '';
         }
 
-        return responseBody ? JSON.parse(responseBody) : null;
+        if (!response.ok) {
+            logger.error(`Error calling API ${method} ${url}: ${response.status} ${response.statusText}`);
+            logger.error(`Response body: ${responseBody.substring(0, 500)}${responseBody.length > 500 ? '...' : ''}`);
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        try {
+            return responseBody ? JSON.parse(responseBody) : null;
+        } catch (parseError) {
+            logger.warn(`Response is not valid JSON, returning text: ${responseBody.substring(0, 100)}...`);
+            return responseBody;
+        }
     } catch (error) {
-        logger.info(`Error: ${(error as Error).message}`);
+        logger.error(`Error in API call to ${url}: ${(error as Error).message}`);
         throw error;
     }
 }
@@ -111,13 +136,17 @@ export const processCatalog = async () => {
         const apiServiceURL = process.env.API_PREFIX ? `${process.env.API_SERVICE}${process.env.API_PREFIX}` : process.env.API_SERVICE!;
         const catalogRoute = process.env.CATALOG_ROUTE!;
         const nginxServiceURL = process.env.NGINX_SERVICE!;
+        const apiToken = process.env.API_TOKEN;
 
+        if (!apiToken) {
+            logger.warn('No API token provided. Authentication might fail for secured endpoints.');
+        }
+
+        logger.info(`Fetching catalog from ${apiServiceURL}${catalogRoute}`);
         const files: File[] = await callAPI(`${apiServiceURL}${catalogRoute}`, 'GET');
 
         const { updatedFiles, itemDeletionLog } = await processFiles(files, apiServiceURL, nginxServiceURL);
-
         const remainingFiles = await deleteFilesFromCatalog(itemDeletionLog, updatedFiles, apiServiceURL);
-
         const remainingItems = itemDeletionLog.filter((uuid) => remainingFiles.some((file) => file.uuid === uuid));
 
         if (remainingItems.length === 0) {
@@ -126,10 +155,18 @@ export const processCatalog = async () => {
             logger.info(`Some items are still present in the catalog: ${remainingItems.join(', ')}`);
         }
 
-        logger.info('Creating a dump of the DB...');
-        await callAPI(`${apiServiceURL}${catalogRoute}/create-dump`, 'POST');
-        logger.info('Database dump created successfully.');
+        logger.info('Creating a dump of the catalog after cleanup...');
+        const dumpUrl = `${apiServiceURL}${catalogRoute}/create-dump`;
+        logger.info(`Calling dump creation endpoint: ${dumpUrl}`);
+
+        try {
+            await callAPI(dumpUrl, 'POST');
+            logger.info('Database dump created successfully.');
+        } catch (dumpError) {
+            logger.error(`Failed to create catalog dump: ${(dumpError as Error).message}`);
+        }
     } catch (error) {
-        logger.info(`Error in processCatalog: ${(error as Error).message}`);
+        logger.error(`Error in processCatalog: ${(error as Error).message}`);
+        logger.error(`Error stack: ${(error as Error).stack}`);
     }
 };

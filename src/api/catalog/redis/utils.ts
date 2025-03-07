@@ -132,38 +132,94 @@ export const deleteCatalog = async (): Promise<ICatalogResponseMulti> => {
 };
 
 export const createDump = async (): Promise<{ status: number; data: string[]; errors: string[] }> => {
-    const { data: catalog } = await getCatalog();
-    const fileVersion = getCurrentDateVersion();
-    const filePath = `${app.locals.PREFIXED_CATALOG}/${fileVersion}.json`;
-    if (!fileVersion) {
-        return {
-            status: 400,
-            data: ['Error generating dump.json from Redis client'],
-            errors: null
-        };
-    }
-    if (fileVersion) {
-        const postBackupFileJson = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${filePath}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(catalog)
-        });
-        if (postBackupFileJson.status !== 200) {
+    try {
+        const { data: catalog } = await getCatalog();
+        if (!catalog || catalog.length === 0) {
             return {
                 status: 400,
                 data: null,
-                errors: ['Failed to upload JSON  in backup']
+                errors: ['No catalog data to dump']
             };
         }
+
+        const fileVersion = getCurrentDateVersion();
+        const fileName = `${fileVersion}.json`;
+        const destination = 'catalog';
+        const namespace = 'DEV';
+        const uniqueName = `/${namespace}/${destination}/${fileName}`;
+
+        const catalogJson = JSON.stringify(catalog, null, 2);
+
+        const formData = new FormData();
+
+        const metadata = {
+            unique_name: uniqueName,
+            base_url: process.env.NGINX_INGRESS || 'http://localhost:8080',
+            destination: destination,
+            filename: fileName,
+            mimetype: 'application/json',
+            size: new Blob([catalogJson]).size,
+            namespace: namespace,
+            version: 1
+        };
+
+        formData.append('metadata', JSON.stringify([metadata]));
+
+        const blob = new Blob([catalogJson], { type: 'application/json' });
+        formData.append('file', blob, fileName);
+
+        console.log(`Creating dump file: ${uniqueName}`);
+        console.log('Metadata:', metadata);
+
+        const postBackupFileJson = await fetch(`${process.env.DELEGATED_STORAGE_HOST}/file`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN || ''}`
+            },
+            body: formData
+        });
+
+        if (postBackupFileJson.status !== 200) {
+            let errorDetails = 'Failed to upload catalog dump';
+
+            try {
+                const errorResponse = await postBackupFileJson.json();
+                errorDetails = errorResponse.error || (errorResponse.details ? JSON.stringify(errorResponse.details) : null) || errorDetails;
+                console.error('Error details from backup service:', errorResponse);
+            } catch (parseError) {
+                console.error('Error parsing error response:', parseError);
+            }
+
+            return {
+                status: postBackupFileJson.status,
+                data: null,
+                errors: [errorDetails]
+            };
+        }
+
+        const responseData = await postBackupFileJson.json().catch(() => ({}));
+
+        if (responseData.error || (responseData.result && responseData.result.status !== 200)) {
+            const errorMsg = responseData.error || (responseData.result && responseData.result.error) || 'Pipeline failed for catalog dump';
+
+            return {
+                status: 400,
+                data: null,
+                errors: [errorMsg]
+            };
+        }
+
         return {
             status: 200,
-            data: ['DUMP backup successfully'],
+            data: [`Catalog dump created successfully: ${uniqueName}`],
             errors: null
         };
+    } catch (error) {
+        console.error('Error creating catalog dump:', error);
+        return {
+            status: 500,
+            data: null,
+            errors: [`Error creating catalog dump: ${error.message}`]
+        };
     }
-    return {
-        status: 200,
-        data: ['Successfully generated dump.rdb from Redis client'],
-        errors: null
-    };
 };

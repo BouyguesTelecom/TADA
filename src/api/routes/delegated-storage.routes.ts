@@ -55,8 +55,10 @@ router.get(`/delegated-storage`, rateLimitMiddleware, getBackup);
  *     responses:
  *       201:
  *         description: Backup created
+ *       401:
+ *         description: You must be authenticated to do this
  */
-router.post(`/delegated-storage`, [ rateLimitMiddleware, validatorFile ], postFileBackup);
+router.post(`/delegated-storage`, [rateLimitMiddleware, validatorFile], postFileBackup);
 
 /**
  * @swagger
@@ -77,9 +79,10 @@ router.post(`/delegated-storage`, [ rateLimitMiddleware, validatorFile ], postFi
  *     responses:
  *       201:
  *         description: Backup created
+ *       401:
+ *         description: You must be authenticated to do this
  */
-router.post(`/delegated-storage/files`, [ rateLimitMiddleware, validatorFile ], postFilesBackup);
-
+router.post(`/delegated-storage/files`, [rateLimitMiddleware, validatorFile], postFilesBackup);
 
 /**
  * @swagger
@@ -100,8 +103,10 @@ router.post(`/delegated-storage/files`, [ rateLimitMiddleware, validatorFile ], 
  *     responses:
  *       200:
  *         description: Backup updated
+ *       401:
+ *         description: You must be authenticated to do this
  */
-router.patch(`/delegated-storage`, [ rateLimitMiddleware, validatorFile ], patchFileBackup);
+router.patch(`/delegated-storage`, [rateLimitMiddleware, validatorFile], patchFileBackup);
 
 /**
  * @swagger
@@ -122,9 +127,10 @@ router.patch(`/delegated-storage`, [ rateLimitMiddleware, validatorFile ], patch
  *     responses:
  *       200:
  *         description: Backup updated
+ *       401:
+ *         description: You must be authenticated to do this
  */
-router.patch(`/delegated-storage/files`, [ rateLimitMiddleware, validatorFile ], patchFilesBackup);
-
+router.patch(`/delegated-storage/files`, [rateLimitMiddleware, validatorFile], patchFilesBackup);
 
 /**
  * @swagger
@@ -135,6 +141,8 @@ router.patch(`/delegated-storage/files`, [ rateLimitMiddleware, validatorFile ],
  *     responses:
  *       200:
  *         description: Backup deleted
+ *       401:
+ *         description: You must be authenticated to do this
  */
 router.delete(`/delegated-storage`, rateLimitMiddleware, deleteFileBackup);
 
@@ -147,8 +155,9 @@ router.delete(`/delegated-storage`, rateLimitMiddleware, deleteFileBackup);
  *     responses:
  *       200:
  *         description: Backup deleted
+ *       401:
+ *         description: You must be authenticated to do this
  */
 router.delete(`/delegated-storage/files`, rateLimitMiddleware, deleteFilesBackup);
-
 
 export { router };
