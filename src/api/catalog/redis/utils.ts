@@ -171,7 +171,7 @@ export const createDump = async (): Promise<{ status: number; data: string[]; er
         console.log(`Creating dump file: ${uniqueName}`);
         console.log('Metadata:', metadata);
 
-        const postBackupFileJson = await fetch(`${process.env.DELEGATED_STORAGE_HOST}/file`, {
+        const postBackupFileJson = await fetch(`${process.env.DELEGATED_STORAGE_HOST}/dump`, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN || ''}`
