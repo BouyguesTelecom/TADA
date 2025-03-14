@@ -169,7 +169,6 @@ export const postAsset = async (req: Request, res: Response) => {
                     let errorDetails = 'Failed to upload in backup /file';
 
                     try {
-                        // Tenter de récupérer plus de détails sur l'erreur
                         const errorResponse = await postBackupFile.json();
                         errorDetails = errorResponse.error || errorResponse.details || errorDetails;
                     } catch (parseError) {

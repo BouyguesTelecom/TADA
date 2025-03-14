@@ -70,82 +70,77 @@ An important point is also the notion of catalog. The catalog serves as a refere
 
 ```bash
 src/
-├── core/                  # Logique métier centrale
-│   ├── models/            # Définitions des entités/classes
-│   ├── interfaces/        # Interfaces et types
-│   └── services/          # Services métier
-├── infrastructure/        # Implémentations techniques
-│   ├── storage/           # Adaptateurs de stockage (S3, etc.)
+├── core/                  # Core business logic
+│   ├── models/            # Entity/class definitions
+│   │   ├── file.model.ts        # File model representation
+│   │   ├── catalog.model.ts     # Catalog model representation
+│   │   ├── response.model.ts    # Response model representation
+│   │   ├── persistence.model.ts # Persistence model factory
+│   │   └── storage.model.ts     # Storage model factory
+│   ├── interfaces/        # Interfaces and types
+│   │   ├── Ifile.ts       # File interface
+│   │   ├── Icatalog.ts    # Catalog interface
+│   │   └── Istorage.ts    # Storage interface
+│   └── services/          # Business services
+│       ├── catalog.service.ts  # Catalog management service
+│       ├── file.service.ts     # File management service
+│       └── storage.service.ts  # Storage management service
+├── infrastructure/        # Technical implementations
+│   ├── storage/           # Storage adapters (S3, etc.)
+│   │   ├── baseStorage.ts    # Abstract storage class
+│   │   ├── factory.ts        # Storage factory
 │   │   ├── s3/
+│   │   │   ├── s3.storage.ts  # S3 specific implementation
+│   │   │   └── connection.ts  # S3 connection handler
 │   │   ├── standalone/
+│   │   │   └── standalone.storage.ts  # Local storage
 │   │   └── distant-backend/
-│   └── persistence/       # Adaptateurs de persistance
+│   │       └── distantBackend.storage.ts  # Remote storage
+│   └── persistence/       # Catalog persistence adapters
+│       ├── basePersistence.ts  # Abstract persistence class
+│       ├── factory.ts          # Persistence factory
 │       ├── redis/
-│       └── standalone/
-├── api/                   # Exposition de l'API
-│   ├── routes/            # Définition des routes
-│   ├── controllers/       # Contrôleurs REST
-│   ├── middlewares/       # Middlewares Express
-│   └── validators/        # Validation des requêtes
-├── utils/                 # Utilitaires partagés
-└── config/                # Configuration de l'application
-```
-
-OR with more details
-
-```bash
-src/
-├── core/                  # Logique métier centrale
-│   ├── models/            # Définitions des entités/classes
-│   │   ├── File.ts        # Modèle représentant un fichier
-│   │   └── Catalog.ts     # Modèle représentant le catalogue
-│   ├── interfaces/        # Interfaces et types
-│   │   ├── IFile.ts       # Interface pour les fichiers
-│   │   ├── ICatalog.ts    # Interface pour le catalogue
-│   │   └── IStorage.ts    # Interface pour le stockage
-│   └── services/          # Services métier
-│       ├── CatalogService.ts  # Service de gestion du catalogue
-│       └── FileService.ts     # Service de gestion des fichiers
-├── infrastructure/        # Implémentations techniques
-│   ├── storage/           # Adaptateurs de stockage (S3, etc.)
-│   │   ├── BaseStorage.ts    # Classe abstraite de stockage
-│   │   ├── s3/
-│   │   │   └── S3Storage.ts  # Implémentation spécifique à S3
-│   │   ├── standalone/
-│   │   │   └── StandaloneStorage.ts  # Stockage local
-│   │   └── distant-backend/
-│   │       └── DistantBackendStorage.ts  # Stockage distant
-│   └── persistence/       # Adaptateurs de persistance du catalogue
-│       ├── BasePersistence.ts  # Classe abstraite de persistance
-│       ├── redis/
-│       │   └── RedisPersistence.ts  # Persistance Redis
-│       └── standalone/
-│           └── StandalonePersistence.ts  # Persistance fichier
-├── api/                   # Exposition de l'API
-│   ├── routes/            # Définition des routes
-│   │   ├── Router.ts      # Classe abstraite pour les routes
-│   │   ├── CatalogRouter.ts  # Routes pour le catalogue
-│   │   └── FileRouter.ts     # Routes pour les fichiers
-│   ├── controllers/       # Contrôleurs REST
-│   │   ├── BaseController.ts  # Contrôleur de base
-│   │   ├── CatalogController.ts  # Contrôleur du catalogue
-│   │   └── FileController.ts     # Contrôleur des fichiers
-│   ├── middlewares/       # Middlewares Express
-│   │   ├── auth.ts        # Authentification
-│   │   ├── error.ts       # Gestion d'erreurs
-│   │   └── validators.ts  # Validation des requêtes
-│   └── validators/        # Validation des requêtes
-│       ├── catalogValidators.ts  # Validateurs pour le catalogue
-│       └── fileValidators.ts     # Validateurs pour les fichiers
-├── utils/                 # Utilitaires partagés
-│   ├── errors/            # Classes d'erreurs personnalisées
-│   ├── logger.ts          # Service de journalisation
-│   └── helpers.ts         # Fonctions utilitaires diverses
-├── config/                # Configuration de l'application
-│   ├── index.ts           # Configuration principale
-│   ├── storage.ts         # Configuration du stockage
-│   └── persistence.ts     # Configuration de la persistance
-└── app.ts                 # Point d'entrée de l'application
+│       │   ├── redis.persistence.ts  # Redis persistence
+│       │   ├── connection.ts         # Redis connection handler
+│       │   └── operation.ts          # Redis operations
+│       ├── standalone/
+│       │   ├── standalone.persistence.ts  # File-based persistence
+│       │   ├── operation.ts               # Standalone operations
+│       │   └── utils.ts                   # Standalone utilities
+│       └── validators/
+│           └── file.validator.ts          # File validation
+├── api/                   # API exposure
+│   ├── routes/            # Route definitions
+│   │   ├── catalog.routes.ts  # Catalog routes
+│   │   └── file.routes.ts     # File routes
+│   ├── controllers/       # REST controllers
+│   │   ├── catalog.controller.ts  # Catalog controller
+│   │   └── file.controller.ts     # File controller
+│   ├── middleware/        # Express middlewares
+│   │   ├── auth.ts        # Authentication
+│   │   ├── error.ts       # Error handling
+│   │   └── redisMiddleware.ts  # Redis connection middleware
+│   ├── validators/        # Request validation
+│   │   ├── catalog.validator.ts  # Catalog validators
+│   │   └── file.validator.ts     # File validators
+│   ├── app.ts             # Express application setup
+│   ├── server.ts          # Server startup
+│   └── swaggerConfig.ts   # API documentation config
+├── utils/                 # Shared utilities
+│   ├── logs/              # Logging utilities
+│   │   ├── winston.ts     # Winston logger configuration
+│   │   └── morgan.ts      # Morgan HTTP logger
+│   ├── catalog.ts         # Catalog utilities
+│   ├── file.ts            # File utilities
+│   ├── date.ts            # Date utilities
+│   └── index.ts           # Exported utilities
+├── backup-and-clean/      # Maintenance jobs
+│   └── src/
+│       ├── server.ts      # Job entry point
+│       └── utils/
+│           └── backup_and_clean.ts  # Backup and cleanup logic
+├── .env                   # Environment variables
+├── Dockerfile             # Docker build configuration
 ```
 
 ### Global flow architecture

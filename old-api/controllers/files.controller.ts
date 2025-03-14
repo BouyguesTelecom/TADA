@@ -125,7 +125,7 @@ export const postAssets = async (req: Request, res: Response) => {
                 console.error('Error parsing error response:', parseError);
             }
 
-            // Supprimer tous les éléments du catalogue en cas d'échec
+            // Delete catalog items if upload fail
             for (const form of forms) {
                 console.log('Deleting catalog item due to failed upload:', form.uniqueName);
                 await deleteCatalogItem(form.uniqueName);
