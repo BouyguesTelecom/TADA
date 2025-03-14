@@ -74,7 +74,6 @@ export const isUniqueNameUnique = (files: IFile[], uniqueName: string): boolean 
     return !files.some((file) => file.unique_name === uniqueName);
 };
 
-// Composite validation for adding a file
 export const validateFileForAdd = (file: unknown, existingFiles: IFile[]): ValidationErrorDetail[] | null => {
     const formatErrors = validateFile(file);
     if (formatErrors) {

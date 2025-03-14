@@ -3,14 +3,12 @@ import path from 'path';
 import { logger } from '../../../utils/logs/winston';
 
 export class StandaloneUtils {
-    // Remove the last part of a path
     public static removeLastPartPath(url: string): string {
         const segments = url.split('/');
         segments.pop();
         return segments.join('/');
     }
 
-    // Create a folder in the standalone storage
     public static createFolder(folderPath: string): { status: number } {
         if (folderPath && !fs.existsSync(`/tmp/standalone${folderPath}`)) {
             logger.info(`Creating folder: ${folderPath} under /tmp/standalone`);
@@ -35,7 +33,6 @@ export class StandaloneUtils {
         return { status: 200 };
     }
 
-    // Write a file to the standalone storage
     public static async writeFileInPV(resourcePath: string, data: Buffer | string): Promise<boolean> {
         try {
             // Create directory structure if it doesn't exist
@@ -53,7 +50,6 @@ export class StandaloneUtils {
         }
     }
 
-    // Delete a file from the standalone storage
     public static async deleteFile(filePath: string): Promise<boolean> {
         try {
             await fs.promises.unlink(filePath);
@@ -65,7 +61,6 @@ export class StandaloneUtils {
         }
     }
 
-    // Read a file from the standalone storage
     public static async readFile(filePath: string): Promise<Buffer | null> {
         try {
             return await fs.promises.readFile(filePath);
@@ -75,7 +70,6 @@ export class StandaloneUtils {
         }
     }
 
-    // Check if a file exists in the standalone storage
     public static fileExists(filePath: string): boolean {
         return fs.existsSync(filePath);
     }

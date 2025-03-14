@@ -135,7 +135,6 @@ export class FileService {
         try {
             logger.info(`Updating file with UUID: ${uuid}`);
 
-            // Récupérer les détails du fichier existant
             const existingFileResponse = await this.catalogService.getFile({ uuid });
 
             if (existingFileResponse.status !== 200 || !existingFileResponse.datum) {

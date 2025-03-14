@@ -9,7 +9,6 @@ import { validateFile, validateFiles } from '../validators/file.validator';
 export class StandaloneOperations {
     private static catalogPath = '/tmp/standalone/catalog.json';
 
-    // Read the catalog file from disk
     public static readCatalog(): IFile[] {
         try {
             if (!fs.existsSync(this.catalogPath)) {
@@ -26,7 +25,6 @@ export class StandaloneOperations {
         }
     }
 
-    // Write the catalog file to disk
     public static writeCatalog(files: IFile[]): boolean {
         try {
             // Ensure the directory exists
@@ -43,7 +41,6 @@ export class StandaloneOperations {
         }
     }
 
-    // Get all files from the catalog
     public static getAllFiles(): ICatalogResponseMulti {
         try {
             const files = this.readCatalog();
@@ -64,7 +61,6 @@ export class StandaloneOperations {
         }
     }
 
-    // Get a specific file by UUID
     public static getOneFile(uuid: string): ICatalogResponse {
         try {
             if (!uuid || typeof uuid !== 'string') {
@@ -101,22 +97,18 @@ export class StandaloneOperations {
         }
     }
 
-    // Check if a unique_name already exists
     public static isUniqueNameExists(uniqueName: string): boolean {
         const files = this.readCatalog();
         return files.some((file) => file.unique_name === uniqueName);
     }
 
-    // Check if a UUID already exists
     public static isUuidExists(uuid: string): boolean {
         const files = this.readCatalog();
         return files.some((file) => file.uuid === uuid);
     }
 
-    // Add a single file to the catalog
     public static addOneFile(file: IFile): ICatalogResponse {
         try {
-            // Validate file
             const validationErrors = validateFile(file);
             if (validationErrors) {
                 logger.error(`Validation errors: ${JSON.stringify(validationErrors)}`);
@@ -127,7 +119,6 @@ export class StandaloneOperations {
                 };
             }
 
-            // Check if UUID exists
             if (file.uuid && this.isUuidExists(file.uuid)) {
                 return {
                     status: 409,
@@ -136,7 +127,6 @@ export class StandaloneOperations {
                 };
             }
 
-            // Check if unique_name exists
             if (file.unique_name && this.isUniqueNameExists(file.unique_name)) {
                 return {
                     status: 409,
@@ -173,7 +163,6 @@ export class StandaloneOperations {
         }
     }
 
-    // Add multiple files to the catalog
     public static addMultipleFiles(files: IFile[]): ICatalogResponseMulti {
         try {
             if (!Array.isArray(files)) {
@@ -192,7 +181,6 @@ export class StandaloneOperations {
                 };
             }
 
-            // Validate files
             const validationErrors = validateFiles(files);
             if (validationErrors) {
                 const errorMessages = validationErrors.map((error) => `${error.path.join('.')}: ${error.message}`);
@@ -232,7 +220,6 @@ export class StandaloneOperations {
         }
     }
 
-    // Update a file in the catalog
     public static updateOneFile(uuid: string, fileData: Partial<IFile>): ICatalogResponse {
         try {
             if (!uuid || typeof uuid !== 'string') {
@@ -243,7 +230,6 @@ export class StandaloneOperations {
                 };
             }
 
-            // Check if file exists
             const files = this.readCatalog();
             const fileIndex = files.findIndex((f) => f.uuid === uuid);
 
@@ -255,7 +241,6 @@ export class StandaloneOperations {
                 };
             }
 
-            // Update file
             const updatedFile = { ...files[fileIndex], ...fileData };
             files[fileIndex] = updatedFile;
 
@@ -283,7 +268,6 @@ export class StandaloneOperations {
         }
     }
 
-    // Delete a file from the catalog
     public static deleteOneFile(uuid: string): ICatalogResponse {
         try {
             if (!uuid || typeof uuid !== 'string') {
@@ -331,7 +315,6 @@ export class StandaloneOperations {
         }
     }
 
-    // Delete all files from the catalog
     public static deleteAllFiles(): ICatalogResponseMulti {
         try {
             const success = this.writeCatalog([]);
@@ -359,12 +342,10 @@ export class StandaloneOperations {
         }
     }
 
-    // Create a backup of the catalog
     public static createCatalogDump(version: string): ICatalogResponseMulti {
         try {
             const backupPath = path.join('/tmp/standalone', `catalog-backup-${version}.json`);
 
-            // Copy the file
             fs.copyFileSync(this.catalogPath, backupPath);
 
             return {

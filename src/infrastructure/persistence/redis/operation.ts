@@ -6,7 +6,6 @@ import { validateFile, validateFiles } from '../validators/file.validator';
 import { File } from '../../../core/models/file.model';
 
 export class RedisOperations {
-    // Get a single file by its ID/UUID
     public static async getOneFile(id: string): Promise<ICatalogResponse> {
         try {
             await redisHandler.connectClient();
@@ -45,7 +44,6 @@ export class RedisOperations {
         }
     }
 
-    // Get all files from Redis
     public static async getAllFiles(): Promise<ICatalogResponseMulti> {
         try {
             await redisHandler.connectClient();
@@ -81,11 +79,10 @@ export class RedisOperations {
         }
     }
 
-    // Check if a file with the same unique_name already exists
     public static async filePathIsUnique(file: IFile): Promise<boolean> {
         const allFilesResponse = await this.getAllFiles();
         if (allFilesResponse.status !== 200 || !allFilesResponse.data) {
-            return true; // Assume unique if we can't get the files
+            return true;
         }
 
         const existingFile = allFilesResponse.data.find((existingFile) => existingFile.unique_name === file.unique_name);
@@ -93,7 +90,6 @@ export class RedisOperations {
         return !existingFile;
     }
 
-    // Add a single file to Redis
     public static async addOneFile(file: IFile): Promise<ICatalogResponse> {
         try {
             // Check if file has required properties
@@ -105,7 +101,6 @@ export class RedisOperations {
                 };
             }
 
-            // Check if the file path is unique
             if (!(await this.filePathIsUnique(file))) {
                 return {
                     status: 409,
@@ -114,7 +109,6 @@ export class RedisOperations {
                 };
             }
 
-            // Validate file
             const validationErrors = validateFile(file);
             if (validationErrors) {
                 return {
@@ -151,10 +145,8 @@ export class RedisOperations {
         }
     }
 
-    // Add multiple files to Redis
     public static async addMultipleFiles(files: IFile[]): Promise<ICatalogResponseMulti> {
         try {
-            // Validate files
             const validationErrors = validateFiles(files);
             if (validationErrors) {
                 return {
@@ -176,7 +168,6 @@ export class RedisOperations {
                 }
             }
 
-            // Return appropriate response based on results
             if (failedUploadFiles.length === 0) {
                 return {
                     status: 201,
@@ -192,7 +183,7 @@ export class RedisOperations {
             } else {
                 // Some succeeded, some failed
                 return {
-                    status: 207, // Multi-Status
+                    status: 207,
                     data: successfulUploadFiles,
                     errors: failedUploadFiles
                 };
@@ -207,7 +198,6 @@ export class RedisOperations {
         }
     }
 
-    // Update a file in Redis
     public static async updateOneFile(fileId: string, updateData: Partial<IFile>): Promise<ICatalogResponse> {
         try {
             await redisHandler.connectClient();
