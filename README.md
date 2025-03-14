@@ -66,6 +66,88 @@ And finally an Express Node API whose roles are:
 
 An important point is also the notion of catalog. The catalog serves as a reference & truth for the express API, containing information indicating not to serve it (either it has been deleted from the catalog, or it has expired for example).
 
+### API architecture
+
+```bash
+src/
+├── core/                  # Logique métier centrale
+│   ├── models/            # Définitions des entités/classes
+│   ├── interfaces/        # Interfaces et types
+│   └── services/          # Services métier
+├── infrastructure/        # Implémentations techniques
+│   ├── storage/           # Adaptateurs de stockage (S3, etc.)
+│   │   ├── s3/
+│   │   ├── standalone/
+│   │   └── distant-backend/
+│   └── persistence/       # Adaptateurs de persistance
+│       ├── redis/
+│       └── standalone/
+├── api/                   # Exposition de l'API
+│   ├── routes/            # Définition des routes
+│   ├── controllers/       # Contrôleurs REST
+│   ├── middlewares/       # Middlewares Express
+│   └── validators/        # Validation des requêtes
+├── utils/                 # Utilitaires partagés
+└── config/                # Configuration de l'application
+```
+
+OR with more details
+
+```bash
+src/
+├── core/                  # Logique métier centrale
+│   ├── models/            # Définitions des entités/classes
+│   │   ├── File.ts        # Modèle représentant un fichier
+│   │   └── Catalog.ts     # Modèle représentant le catalogue
+│   ├── interfaces/        # Interfaces et types
+│   │   ├── IFile.ts       # Interface pour les fichiers
+│   │   ├── ICatalog.ts    # Interface pour le catalogue
+│   │   └── IStorage.ts    # Interface pour le stockage
+│   └── services/          # Services métier
+│       ├── CatalogService.ts  # Service de gestion du catalogue
+│       └── FileService.ts     # Service de gestion des fichiers
+├── infrastructure/        # Implémentations techniques
+│   ├── storage/           # Adaptateurs de stockage (S3, etc.)
+│   │   ├── BaseStorage.ts    # Classe abstraite de stockage
+│   │   ├── s3/
+│   │   │   └── S3Storage.ts  # Implémentation spécifique à S3
+│   │   ├── standalone/
+│   │   │   └── StandaloneStorage.ts  # Stockage local
+│   │   └── distant-backend/
+│   │       └── DistantBackendStorage.ts  # Stockage distant
+│   └── persistence/       # Adaptateurs de persistance du catalogue
+│       ├── BasePersistence.ts  # Classe abstraite de persistance
+│       ├── redis/
+│       │   └── RedisPersistence.ts  # Persistance Redis
+│       └── standalone/
+│           └── StandalonePersistence.ts  # Persistance fichier
+├── api/                   # Exposition de l'API
+│   ├── routes/            # Définition des routes
+│   │   ├── Router.ts      # Classe abstraite pour les routes
+│   │   ├── CatalogRouter.ts  # Routes pour le catalogue
+│   │   └── FileRouter.ts     # Routes pour les fichiers
+│   ├── controllers/       # Contrôleurs REST
+│   │   ├── BaseController.ts  # Contrôleur de base
+│   │   ├── CatalogController.ts  # Contrôleur du catalogue
+│   │   └── FileController.ts     # Contrôleur des fichiers
+│   ├── middlewares/       # Middlewares Express
+│   │   ├── auth.ts        # Authentification
+│   │   ├── error.ts       # Gestion d'erreurs
+│   │   └── validators.ts  # Validation des requêtes
+│   └── validators/        # Validation des requêtes
+│       ├── catalogValidators.ts  # Validateurs pour le catalogue
+│       └── fileValidators.ts     # Validateurs pour les fichiers
+├── utils/                 # Utilitaires partagés
+│   ├── errors/            # Classes d'erreurs personnalisées
+│   ├── logger.ts          # Service de journalisation
+│   └── helpers.ts         # Fonctions utilitaires diverses
+├── config/                # Configuration de l'application
+│   ├── index.ts           # Configuration principale
+│   ├── storage.ts         # Configuration du stockage
+│   └── persistence.ts     # Configuration de la persistance
+└── app.ts                 # Point d'entrée de l'application
+```
+
 ### Global flow architecture
 
 ![global.png](readme/global.png)
