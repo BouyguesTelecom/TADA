@@ -1,8 +1,8 @@
-import { BaseStorage, StorageResponse, StorageFileProps, StorageFilesProps } from '../baseStorage';
-import { logger } from '../../../utils/logs/winston';
-import fetch, { Headers } from 'node-fetch';
 import FormData from 'form-data';
+import fetch, { Headers } from 'node-fetch';
 import { CatalogService } from '../../../core/services/catalog.service';
+import { logger } from '../../../utils/logs/winston';
+import { BaseStorage, StorageFileProps, StorageFilesProps, StorageResponse } from '../baseStorage';
 
 export class DistantBackendStorage extends BaseStorage {
     private baseUrl: string;
@@ -63,7 +63,8 @@ export class DistantBackendStorage extends BaseStorage {
 
             if (file) {
                 if (Buffer.isBuffer(file) || typeof file === 'string') {
-                    form.append('file', Buffer.from(file), {
+                    const buffer = Buffer.isBuffer(file) ? file : Buffer.from(file, 'utf-8');
+                    form.append('file', buffer, {
                         filename: filepath.split('/').pop(),
                         contentType: 'application/octet-stream'
                     });
@@ -82,7 +83,8 @@ export class DistantBackendStorage extends BaseStorage {
                     const filepath = filespath[index];
 
                     if (Buffer.isBuffer(file) || typeof file === 'string') {
-                        form.append(`file${index}`, Buffer.from(file), {
+                        const buffer = Buffer.isBuffer(file) ? file : Buffer.from(file, 'utf-8');
+                        form.append(`file${index}`, buffer, {
                             filename: filepath.split('/').pop(),
                             contentType: 'application/octet-stream'
                         });

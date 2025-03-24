@@ -1,17 +1,20 @@
-import { IStorage, IStorageResponse } from '../interfaces/Istorage';
-import { IFile } from '../interfaces/Ifile';
-import { File } from '../models/file.model';
-import { ICatalogService, ICatalogResponse, ICatalogResponseMulti } from '../interfaces/Icatalog';
-import { logger } from '../../utils/logs/winston';
-import { calculateSHA256 } from '../../utils/catalog';
-import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
+import { v4 as uuidv4 } from 'uuid';
+import { calculateSHA256 } from '../../utils/catalog';
+import { logger } from '../../utils/logs/winston';
+import { ICatalogResponse, ICatalogResponseMulti, ICatalogService } from '../interfaces/Icatalog';
+import { IFile } from '../interfaces/Ifile';
+import { IStorage } from '../interfaces/Istorage';
+import { File } from '../models/file.model';
 
 export class FileService {
-    constructor(
-        private storage: IStorage,
-        private catalogService: ICatalogService
-    ) {}
+    private storage: IStorage;
+    private catalogService: ICatalogService;
+
+    constructor(storage: IStorage, catalogService: ICatalogService) {
+        this.storage = storage;
+        this.catalogService = catalogService;
+    }
 
     async uploadFile(
         fileBuffer: Buffer,

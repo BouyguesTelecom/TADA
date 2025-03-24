@@ -1,9 +1,8 @@
-import { BaseStorage, StorageResponse, StorageFileProps, StorageFilesProps } from '../baseStorage';
-import { logger } from '../../../utils/logs/winston';
-import { s3Connection } from './connection';
-import { getCurrentDateVersion } from '../../../utils/date';
 import { CatalogService } from '../../../core/services/catalog.service';
-import { Readable } from 'stream';
+import { getCurrentDateVersion } from '../../../utils/date';
+import { logger } from '../../../utils/logs/winston';
+import { BaseStorage, StorageFileProps, StorageFilesProps, StorageResponse } from '../baseStorage';
+import { s3Connection } from './connection';
 
 export class S3Storage extends BaseStorage {
     private bucketName: string;

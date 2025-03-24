@@ -1,8 +1,8 @@
-import { ICatalogService, ICatalogResponse, ICatalogResponseMulti, ICatalogRepository } from '../interfaces/Icatalog';
+import { PersistenceFactory } from '../../infrastructure/persistence/factory';
+import { logger } from '../../utils/logs/winston';
+import { ICatalogRepository, ICatalogResponse, ICatalogResponseMulti, ICatalogService } from '../interfaces/Icatalog';
 import { IFile } from '../interfaces/Ifile';
 import { File } from '../models/file.model';
-import { logger } from '../../utils/logs/winston';
-import { PersistenceFactory } from '../../infrastructure/persistence/factory';
 
 export class CatalogService implements ICatalogService {
     private repository: ICatalogRepository;

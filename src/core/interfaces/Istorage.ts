@@ -11,4 +11,5 @@ export interface IStorage {
     getFile(identifier: string): Promise<Buffer | null>;
     deleteFile(identifier: string): Promise<boolean>;
     getPublicUrl(identifier: string): string | null;
+    getLastDump(): Promise<IFile[]>;
 }
