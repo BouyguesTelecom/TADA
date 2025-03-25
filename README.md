@@ -109,23 +109,27 @@ src/
 │       │   └── utils.ts                   # Standalone utilities
 │       └── validators/
 │           └── file.validator.ts          # File validation
-├── api/                   # API exposure
-│   ├── routes/            # Route definitions
-│   │   ├── catalog.routes.ts  # Catalog routes
-│   │   └── file.routes.ts     # File routes
-│   ├── controllers/       # REST controllers
-│   │   ├── catalog.controller.ts  # Catalog controller
-│   │   └── file.controller.ts     # File controller
-│   ├── middleware/        # Express middlewares
-│   │   ├── auth.ts        # Authentication
-│   │   ├── error.ts       # Error handling
-│   │   └── redisMiddleware.ts  # Redis connection middleware
-│   ├── validators/        # Request validation
-│   │   ├── catalog.validator.ts  # Catalog validators
-│   │   └── file.validator.ts     # File validators
-│   ├── app.ts             # Express application setup
-│   ├── server.ts          # Server startup
-│   └── swaggerConfig.ts   # API documentation config
+├── api/                  # API layer
+│   ├── routes/           # Route definitions
+│   │   ├── base.route.ts      # Base route class
+│   │   ├── catalog.route.ts   # Catalog routes
+│   │   ├── file.route.ts      # Single file routes
+│   │   ├── files.route.ts     # Multiple files routes
+│   │   └── index.ts           # Routes aggregation
+│   ├── controllers/      # REST controllers
+│   │   ├── catalog.controller.ts  # Catalog operations
+│   │   ├── file.controller.ts     # Single file operations
+│   │   └── files.controller.ts    # Multiple files operations
+│   ├── middleware/       # Express middlewares
+│   │   ├── auth.ts           # Authentication middleware
+│   │   ├── redisMiddleware.ts # Redis connection
+│   │   ├── timeoutMiddleware.ts # Request timeout
+│   │   └── validators/       # Request validation
+│   │       ├── oneFileValidators.ts    # Single file validation
+│   │       └── multipleFilesValidators.ts # Multiple files validation
+│   ├── app.ts            # Express application setup
+│   ├── server.ts         # Server startup
+│   └── swaggerConfig.ts  # API documentation
 ├── utils/                 # Shared utilities
 │   ├── logs/              # Logging utilities
 │   │   ├── winston.ts     # Winston logger configuration

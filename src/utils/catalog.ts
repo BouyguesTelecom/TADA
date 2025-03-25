@@ -27,7 +27,7 @@ export const isExpired = (itemBody: IFile): boolean => {
     const currentDate = Date.now();
     const dateToCompare = itemBody.expiration_date && new Date(itemBody.expiration_date).getTime();
     const expired = itemBody.expired === true || (dateToCompare && !isNaN(dateToCompare) && dateToCompare <= currentDate);
-    return expired;
+    return expired || false;
 };
 
 const _generateUniqueUUIDcatalog = async () => {
@@ -85,6 +85,6 @@ export const formatItemForCatalog = async (
 export const findFileInCatalog = async (key_value: string, key_name: string) => {
     const catalogService = new CatalogService();
     const { data: catalog } = await catalogService.getFiles();
-    const isUnique = catalog.filter((item) => item[`${key_name}`] === key_value).length === 1;
+    const isUnique = catalog && catalog.filter((item) => item[`${key_name}`] === key_value).length === 1;
     return isUnique ? catalog.find((item) => item[`${key_name}`] === key_value) : undefined;
 };
