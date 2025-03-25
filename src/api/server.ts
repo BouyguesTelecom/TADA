@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { Server } from 'http';
 import fetch from 'node-fetch';
-import { CatalogService } from '../core/services/catalog.service';
+import catalogService from '../core/services/catalog.service';
 import { StorageService } from '../core/services/storage.service';
 import { RedisHandler } from '../infrastructure/persistence/redis/connection';
 import { logger } from '../utils/logs/winston';
@@ -11,7 +11,6 @@ export class ApplicationServer {
     private readonly port: number;
     private readonly isStandalone: boolean;
     private readonly app: Application;
-    private readonly catalogService: CatalogService;
     private readonly storageService: StorageService;
     private readonly redisConnection: RedisHandler;
     private server: Server | null = null;
@@ -20,9 +19,16 @@ export class ApplicationServer {
         this.port = parseInt(process.env.PORT || '3001', 10);
         this.isStandalone = process.env.DELEGATED_STORAGE_METHOD === 'STANDALONE';
         this.app = new Application();
-        this.catalogService = new CatalogService();
-        this.storageService = new StorageService();
-        this.redisConnection = RedisHandler.getInstance();
+
+        try {
+            console.log('Initializing services in ApplicationServer');
+            this.storageService = new StorageService();
+            this.redisConnection = RedisHandler.getInstance();
+            console.log('Services initialized successfully');
+        } catch (error) {
+            console.error('Error initializing services:', error);
+            throw error;
+        }
     }
 
     private async checkAccessToBackup(): Promise<void> {
@@ -47,7 +53,7 @@ export class ApplicationServer {
         while (attempts < maxRetries) {
             try {
                 await this.redisConnection.connectClient();
-                await this.catalogService.getFiles();
+                await catalogService.getFiles();
                 return;
             } catch (error) {
                 attempts++;

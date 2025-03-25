@@ -1,4 +1,4 @@
-import { CatalogService } from '../../../core/services/catalog.service';
+import catalogService from '../../../core/services/catalog.service';
 import { getCurrentDateVersion } from '../../../utils/date';
 import { logger } from '../../../utils/logs/winston';
 import { BaseStorage, StorageFileProps, StorageFilesProps, StorageResponse } from '../baseStorage';
@@ -6,12 +6,10 @@ import { s3Connection } from './connection';
 
 export class S3Storage extends BaseStorage {
     private bucketName: string;
-    private catalogService: CatalogService;
 
     constructor() {
         super('S3');
         this.bucketName = process.env.S3_BUCKET_NAME || 'media';
-        this.catalogService = new CatalogService();
         this.initBucket();
     }
 
@@ -180,7 +178,7 @@ export class S3Storage extends BaseStorage {
             const parsedData = JSON.parse(data);
 
             if (Array.isArray(parsedData) && parsedData.length > 0) {
-                await this.catalogService.addFiles(parsedData);
+                await catalogService.addFiles(parsedData);
             }
 
             return this.createSuccessResponse(parsedData, `Loaded dump from ${latestDump}`);

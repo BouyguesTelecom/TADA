@@ -1,24 +1,28 @@
 import { Request, Response } from 'express';
-import { ICatalogService } from '../../core/interfaces/Icatalog';
-import { CatalogService } from '../../core/services/catalog.service';
+import catalogService from '../../core/services/catalog.service';
 import { FileService } from '../../core/services/file.service';
 import { StorageFactory } from '../../infrastructure/storage/factory';
 
 export class FileController {
     private fileService: FileService;
-    private catalogService: ICatalogService;
 
     constructor() {
-        const storage = StorageFactory.createStorage();
-        this.catalogService = new CatalogService();
-        this.fileService = new FileService(storage, this.catalogService);
+        console.log('Initializing FileController...');
+        try {
+            const storage = StorageFactory.createStorage();
+            this.fileService = new FileService(storage, catalogService);
+            console.log('FileController initialized successfully');
+        } catch (error) {
+            console.error('Error initializing FileController:', error);
+            throw error;
+        }
     }
 
     async getAsset(req: Request, res: Response): Promise<void> {
         try {
             const { format, ...params } = req.params;
             const uuid = params['0'];
-            const result = await this.catalogService.getFile({ uuid });
+            const result = await catalogService.getFile({ uuid });
 
             if (result.status !== 200 || !result.datum) {
                 res.status(result.status || 404).json({ error: result.error || 'File not found' });
@@ -68,7 +72,7 @@ export class FileController {
     async patchAsset(req: Request, res: Response): Promise<void> {
         try {
             const { uuid } = req.params;
-            const fileResult = await this.catalogService.getFile({ uuid });
+            const fileResult = await catalogService.getFile({ uuid });
 
             if (fileResult.status !== 200 || !fileResult.datum) {
                 res.status(fileResult.status || 404).json({ error: fileResult.error || 'File not found' });
@@ -101,7 +105,7 @@ export class FileController {
     async deleteAsset(req: Request, res: Response): Promise<void> {
         try {
             const { uuid } = req.params;
-            const fileResult = await this.catalogService.getFile({ uuid });
+            const fileResult = await catalogService.getFile({ uuid });
 
             if (fileResult.status !== 200 || !fileResult.datum) {
                 res.status(fileResult.status || 404).json({ error: fileResult.error || 'File not found' });
@@ -115,3 +119,6 @@ export class FileController {
         }
     }
 }
+
+const fileController = new FileController();
+export default fileController;

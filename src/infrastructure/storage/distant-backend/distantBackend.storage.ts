@@ -1,12 +1,11 @@
 import FormData from 'form-data';
 import fetch, { Headers } from 'node-fetch';
-import { CatalogService } from '../../../core/services/catalog.service';
+import catalogService from '../../../core/services/catalog.service';
 import { logger } from '../../../utils/logs/winston';
 import { BaseStorage, StorageFileProps, StorageFilesProps, StorageResponse } from '../baseStorage';
 
 export class DistantBackendStorage extends BaseStorage {
     private baseUrl: string;
-    private catalogService: CatalogService;
     private token: string;
     private singlePath: string;
     private multiPath: string;
@@ -17,7 +16,6 @@ export class DistantBackendStorage extends BaseStorage {
         this.token = process.env.DELEGATED_STORAGE_TOKEN || '';
         this.singlePath = process.env.DELEGATED_STORAGE_SINGLE_PATH || '';
         this.multiPath = process.env.DELEGATED_STORAGE_MULTI_PATH || '';
-        this.catalogService = new CatalogService();
         logger.info(`DistantBackendStorage initialized with host: ${this.baseUrl}`);
     }
 
@@ -371,7 +369,7 @@ export class DistantBackendStorage extends BaseStorage {
             const files = await response.json();
 
             if (Array.isArray(files) && files.length > 0) {
-                await this.catalogService.addFiles(files);
+                await catalogService.addFiles(files);
             }
 
             return this.createSuccessResponse(files, 'Successfully loaded latest dump');

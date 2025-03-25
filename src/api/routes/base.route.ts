@@ -8,6 +8,9 @@ export abstract class BaseRoute {
     constructor(path: string) {
         this.router = Router();
         this.path = path;
+    }
+
+    public initialize(): void {
         this.initializeMiddlewares();
         this.initializeRoutes();
     }
@@ -16,9 +19,13 @@ export abstract class BaseRoute {
         return this.router;
     }
 
+    public getPath(): string {
+        return this.path;
+    }
+
     protected abstract initializeRoutes(): void;
 
-    protected abstract initializeMiddlewares(): void;
+    protected initializeMiddlewares(): void {}
 
     protected logRoute(method: string, path: string): void {
         logger.info(`Route registered: [${method}] ${this.path}${path}`);

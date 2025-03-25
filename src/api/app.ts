@@ -1,7 +1,7 @@
 import cors from 'cors';
 import express, { Application as ExpressApplication, NextFunction, Request, Response } from 'express';
 import { morganMiddleware } from '../utils/logs/morgan';
-import { Routes } from './routes';
+import { initRoutes } from './routes';
 
 export class Application {
     private readonly app: ExpressApplication;
@@ -15,6 +15,8 @@ export class Application {
         this.initializeGlobalMiddleware();
         this.initializeHealthCheck();
         this.initializeRoutes();
+
+        console.log('Application initialisée');
     }
 
     private sanitizeAndConvertToRegex(str: string): RegExp | string {
@@ -50,7 +52,9 @@ export class Application {
     }
 
     private initializeRoutes(): void {
-        Routes.init(this.app, this.apiPrefix);
+        console.log("Initialisation de toutes les routes de l'application...");
+        initRoutes(this.app, this.apiPrefix);
+        console.log("Routes de l'application initialisées");
     }
 
     public getApp(): ExpressApplication {

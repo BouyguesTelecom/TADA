@@ -3,7 +3,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import app from '../api/app';
 import { IFile } from '../core/interfaces/Ifile';
-import { CatalogService } from '../core/services/catalog.service';
+import catalogService from '../core/services/catalog.service';
 
 export const calculateSHA256 = (buffer: Buffer) => {
     return crypto.createHash('sha256').update(buffer).digest('hex');
@@ -83,7 +83,6 @@ export const formatItemForCatalog = async (
 };
 
 export const findFileInCatalog = async (key_value: string, key_name: string) => {
-    const catalogService = new CatalogService();
     const { data: catalog } = await catalogService.getFiles();
     const isUnique = catalog && catalog.filter((item) => item[`${key_name}`] === key_value).length === 1;
     return isUnique ? catalog.find((item) => item[`${key_name}`] === key_value) : undefined;

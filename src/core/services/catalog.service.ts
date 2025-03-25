@@ -7,10 +7,12 @@ import { File } from '../models/file.model';
 export class CatalogService implements ICatalogService {
     private repository: ICatalogRepository;
 
-    constructor(repository?: ICatalogRepository) {
+    constructor() {
         // If repository is not provided, create one using factory
-        this.repository = repository || PersistenceFactory.createRepository();
+        console.log('init catalog repository in catalog service');
+        this.repository = PersistenceFactory.createRepository();
     }
+
     async getFiles(): Promise<ICatalogResponseMulti> {
         try {
             logger.info('Getting all files from catalog');
@@ -189,3 +191,7 @@ export class CatalogService implements ICatalogService {
         }
     }
 }
+
+const catalogService = new CatalogService();
+
+export default catalogService;

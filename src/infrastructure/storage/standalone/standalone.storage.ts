@@ -1,17 +1,15 @@
-import { BaseStorage, StorageResponse, StorageFileProps, StorageFilesProps } from '../baseStorage';
-import { logger } from '../../../utils/logs/winston';
 import fs from 'fs';
 import path from 'path';
-import { CatalogService } from '../../../core/services/catalog.service';
+import catalogService from '../../../core/services/catalog.service';
+import { logger } from '../../../utils/logs/winston';
+import { BaseStorage, StorageFileProps, StorageFilesProps, StorageResponse } from '../baseStorage';
 
 export class StandaloneStorage extends BaseStorage {
     private basePath: string;
-    private catalogService: CatalogService;
 
     constructor() {
         super('STANDALONE');
         this.basePath = '/tmp/standalone';
-        this.catalogService = new CatalogService();
         this.ensureBaseDirectoryExists();
     }
 
@@ -78,7 +76,7 @@ export class StandaloneStorage extends BaseStorage {
             const parsedData = JSON.parse(data);
 
             if (Array.isArray(parsedData) && parsedData.length > 0) {
-                await this.catalogService.addFiles(parsedData);
+                await catalogService.addFiles(parsedData);
             }
 
             return this.createSuccessResponse(parsedData, `Loaded dump from ${latestDump.name}`);

@@ -1,14 +1,14 @@
 import { Application } from 'express';
-import { CatalogRoute } from './catalog.route';
-import { FileRoute } from './file.route';
-import { FilesRoute } from './files.route';
+import catalogRouter from './catalog.route';
+import fileRouter from './file.route';
+import filesRouter from './files.route';
 
-export class Routes {
-    public static init(app: Application, apiPrefix: string = ''): void {
-        const routes = [new CatalogRoute(), new FileRoute(), new FilesRoute()];
+export function initRoutes(app: Application, apiPrefix: string = ''): void {
+    console.log('Initialisation des routes...');
 
-        routes.forEach((route) => {
-            app.use(apiPrefix, route.getRouter());
-        });
-    }
+    app.use(`${apiPrefix}/catalog`, catalogRouter);
+    app.use(`${apiPrefix}/file`, fileRouter);
+    app.use(`${apiPrefix}/files`, filesRouter);
+
+    console.log('Routes initialisées avec succès');
 }

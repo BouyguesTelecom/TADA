@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { CatalogService } from '../../core/services/catalog.service';
+import catalogService from '../../core/services/catalog.service';
 import { FileService } from '../../core/services/file.service';
 import { StorageFactory } from '../../infrastructure/storage/factory';
 
@@ -8,7 +8,6 @@ export class FilesController {
 
     constructor() {
         const storage = StorageFactory.createStorage();
-        const catalogService = new CatalogService();
         this.fileService = new FileService(storage, catalogService);
     }
 
@@ -87,3 +86,6 @@ export class FilesController {
         }
     }
 }
+
+const filesController = new FilesController();
+export default filesController;
