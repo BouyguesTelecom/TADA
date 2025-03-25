@@ -2,15 +2,15 @@
     "name": "bouyguestelecom-api",
     "version": "0.1.0",
     "description": "description",
-    "main": "app.js",
+    "main": "api/server.js",
     "scripts": {
-        "dev": "npm run decrypt-env && export NODE_TLS_REJECT_UNAUTHORIZED='0' && export PORT=3001 && export DELEGATED_STORAGE_METHOD=STANDALONE && ts-node server.ts",
-        "start": "node dist/server.js",
-        "build": "tsc",
+        "dev": "npm run decrypt-env && export NODE_TLS_REJECT_UNAUTHORIZED='0' && export PORT=3001 && export DELEGATED_STORAGE_METHOD=STANDALONE && ts-node api/server.ts",
+        "start": "node dist/api/server.js",
+        "build": "tsc -p tsconfig.json",
         "encrypt-env": "openssl enc -aes-256-cbc -salt -in .env -out .env.enc -k \"media\" -pbkdf2",
         "decrypt-env": "openssl enc -aes-256-cbc -d -in .env.enc -out .env -k \"media\" -pbkdf2",
-        "docker:start": "docker-compose -f ../../docker-compose.yml up --build -d",
-        "docker:stop": "docker-compose -f ../../docker-compose.yml down"
+        "docker:start": "docker-compose -f ../docker-compose.yml up --build -d",
+        "docker:stop": "docker-compose -f ../docker-compose.yml down"
     },
     "author": "Bouygues Telecom",
     "license": "ISC",
