@@ -76,8 +76,8 @@ services:
 
     images-provider:
         build:
-            context: src/api
-            dockerfile: Dockerfile.dev
+            context: ./src
+            dockerfile: api/Dockerfile.dev
         ports:
             - 3001:3001
         networks:

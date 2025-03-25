@@ -15,7 +15,7 @@ export class StorageFactory {
 
             case 'DISTANT':
             case 'DISTANT-BACKEND':
-                logger.warn('DISTANT storage not fully implemented, falling back to STANDALONE');
+                logger.warning('DISTANT storage not fully implemented, falling back to STANDALONE');
                 return new DistantBackendStorage() as unknown as IStorage;
 
             case 'STANDALONE':

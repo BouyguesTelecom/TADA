@@ -1,7 +1,7 @@
 import { ICatalogRepository } from '../../core/interfaces/Icatalog';
+import { logger } from '../../utils/logs/winston';
 import { RedisCatalogRepository } from './redis/redis.persistence';
 import { StandaloneCatalogRepository } from './standalone/standalone.persistence';
-import { logger } from '../../utils/logs/winston';
 
 export class PersistenceFactory {
     public static createRepository(): ICatalogRepository {
@@ -14,7 +14,7 @@ export class PersistenceFactory {
             case 'REDIS':
                 return new RedisCatalogRepository();
             default:
-                logger.warn(`Unknown storage method ${storageMethod}, falling back to STANDALONE`);
+                logger.warning(`Unknown storage method ${storageMethod}, falling back to STANDALONE`);
                 return new StandaloneCatalogRepository();
         }
     }

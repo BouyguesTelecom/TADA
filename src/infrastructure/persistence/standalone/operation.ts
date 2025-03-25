@@ -1,9 +1,9 @@
+import fs from 'fs';
+import path from 'path';
 import { ICatalogResponse, ICatalogResponseMulti } from '../../../core/interfaces/Icatalog';
 import { IFile } from '../../../core/interfaces/Ifile';
 import { File } from '../../../core/models/file.model';
 import { logger } from '../../../utils/logs/winston';
-import fs from 'fs';
-import path from 'path';
 import { validateFile, validateFiles } from '../validators/file.validator';
 
 export class StandaloneOperations {
@@ -12,7 +12,7 @@ export class StandaloneOperations {
     public static readCatalog(): IFile[] {
         try {
             if (!fs.existsSync(this.catalogPath)) {
-                logger.warn('Catalog file does not exist, returning empty array');
+                logger.warning('Catalog file does not exist, returning empty array');
                 return [];
             }
 
