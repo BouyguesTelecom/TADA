@@ -4,6 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY . .
 RUN npm set strict-ssl false && npm install
+RUN npm install typescript -g
 
 RUN npm run build
 
