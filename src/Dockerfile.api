@@ -1,10 +1,14 @@
 FROM node:18-alpine AS builder
 WORKDIR /app
-COPY ../package*.json ./
+
+COPY package*.json ./
 RUN npm set strict-ssl false && npm install
-COPY .. ./
+
+COPY . .
 RUN npm run build
-RUN mkdir -p ./tmp/images
+
+WORKDIR /app/images
+COPY ./api/images .
 
 FROM node:18-alpine
 WORKDIR /app
@@ -12,6 +16,7 @@ WORKDIR /app
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/tmp ./tmp
+RUN mkdir -p ./tmp/images
+COPY --from=builder /app/images ./tmp/images
 
 CMD ["node", "dist/api/server.js"]

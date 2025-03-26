@@ -121,9 +121,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ hashFiles('src/api/Dockerfile', 'src/api/.dockerignore') }}-${{ github.sha }}
+          key: ${{ runner.os }}-buildx-${{ hashFiles('src/Dockerfile.api', 'src/.dockerignore') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-${{ hashFiles('src/api/Dockerfile', 'src/api/.dockerignore') }}-
+            ${{ runner.os }}-buildx-${{ hashFiles('src/Dockerfile.api', 'src/.dockerignore') }}-
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -154,9 +154,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ hashFiles('src/Dockerfile', 'src/.dockerignore') }}-${{ github.sha }}
+          key: ${{ runner.os }}-buildx-${{ hashFiles('src/Dockerfile.job', 'src/.dockerignore') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-${{ hashFiles('src/Dockerfile', 'src/.dockerignore') }}-
+            ${{ runner.os }}-buildx-${{ hashFiles('src/Dockerfile.job', 'src/.dockerignore') }}-
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
