@@ -7,8 +7,9 @@ RUN npm set strict-ssl false && npm install
 COPY . .
 RUN npm run build
 
-WORKDIR /app/images
-COPY ./api/images .
+RUN mkdir -p ./api/images
+WORKDIR /app/api/images
+COPY ./api/images ./
 
 FROM node:18-alpine
 WORKDIR /app
@@ -17,6 +18,6 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 RUN mkdir -p ./tmp/images
-COPY --from=builder /app/images ./tmp/images
+COPY --from=builder /app/api/images ./tmp/images 
 
 CMD ["node", "dist/api/server.js"]

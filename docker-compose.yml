@@ -126,7 +126,7 @@ services:
             - images-provider
     job:
         build:
-            context: src/
+            context: ./src
             dockerfile: Dockerfile.job
         ports:
             - 3006:3006

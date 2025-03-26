@@ -2,11 +2,18 @@
     "compilerOptions": {
         "module": "commonjs",
         "esModuleInterop": true,
-        "target": "es2022", // "es6
+        "target": "es2022",
         "moduleResolution": "node",
         "sourceMap": true,
-        "outDir": "dist"
+        "outDir": "./dist",
+        "baseUrl": ".",
+        "paths": {
+            "*": ["*"]
+        },
+        "resolveJsonModule": true,
+        "strict": false,
+        "skipLibCheck": true
     },
-    "lib": ["es2015"],
-    "include": ["server.ts"]
+    "include": ["./*.ts", "./utils/**/*.ts"],
+    "exclude": ["node_modules"]
 }

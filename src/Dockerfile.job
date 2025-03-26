@@ -1,11 +1,12 @@
 FROM node:18-alpine AS builder
 
 WORKDIR /app
-COPY package*.json ./
+
+COPY backup-and-clean/src ./
+COPY utils/logs ./utils/logs
+
 RUN npm install --strict-ssl=false
 
-COPY backup-and-clean /app/backup-and-clean
-COPY utils /app/utils
 RUN npm run build
 
 FROM node:18-alpine
@@ -15,4 +16,4 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "/app/dist/server.js"]
