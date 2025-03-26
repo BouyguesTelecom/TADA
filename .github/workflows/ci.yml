@@ -3,7 +3,7 @@ name: CI Docker and Helm
 on:
   push:
     branches:
-      - add/multi-delegated-storage
+      - codebase/class-oriented
 
 env:
   IMAGE_NAME: bouyguestelecom/tada
