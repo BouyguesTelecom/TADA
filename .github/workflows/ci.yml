@@ -135,7 +135,8 @@ jobs:
         run: |
           new_version=${{ needs.determine-version.outputs.new_version }}
           echo "Docker api with version $new_version"
-          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:api-${new_version} -t ${{ env.IMAGE_NAME }}:api-latest --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max -f ./src/Dockerfile.api ./src
+          cd src
+          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:api-${new_version} -t ${{ env.IMAGE_NAME }}:api-latest --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max -f Dockerfile.api .
 
   build-and-push-docker-job:
     runs-on: ubuntu-latest

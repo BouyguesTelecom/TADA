@@ -2,9 +2,14 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-COPY . .
+
 RUN npm set strict-ssl false && npm install
-RUN npm install typescript -g
+
+COPY api/ api/
+COPY core/ core/
+COPY infrastructure/ infrastructure/
+COPY utils/ utils/
+COPY tsconfig.json .
 
 RUN npm run build
 
