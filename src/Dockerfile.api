@@ -4,6 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 
 RUN npm set strict-ssl false && npm install
+RUN npm install typescript@5.8.2 -g
 
 COPY api/ api/
 COPY core/ core/
