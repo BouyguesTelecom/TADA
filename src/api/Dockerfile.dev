@@ -1,31 +1,23 @@
 FROM node:18-alpine AS builder
 WORKDIR /app/src
 
-# Copier le package.json depuis le contexte de build
 COPY package*.json ./
 RUN npm set strict-ssl false && npm install
 
-# Copier tous les fichiers source
 COPY . ./
 
-# Décrypter le fichier .env
 RUN npm run decrypt-env || true
 
-# Compiler le projet
 RUN npm run build
 
-# Créer le dossier images
 RUN mkdir -p ./images
 
 FROM node:18-alpine
 WORKDIR /app
 
-# Copier les fichiers nécessaires
 COPY --from=builder /app/src/package*.json ./
 COPY --from=builder /app/src/node_modules ./node_modules
 COPY --from=builder /app/src/dist ./dist
-# Créer le dossier tmp/images
 RUN mkdir -p ./tmp/images
 
-# Démarrer le serveur avec node
 CMD ["node", "dist/api/server.js"]
