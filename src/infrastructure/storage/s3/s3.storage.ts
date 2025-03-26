@@ -64,19 +64,23 @@ export class S3Storage extends BaseStorage {
     }
 
     async uploads(props: StorageFilesProps): Promise<StorageResponse> {
-        const { filespath, files } = props;
-
         try {
-            if (!Array.isArray(filespath) || !Array.isArray(files) || filespath.length !== files.length) {
-                return this.createErrorResponse(400, 'Invalid files or paths provided');
+            const { files } = props;
+
+            if (!Array.isArray(files) || !files.length) {
+                return this.createErrorResponse(400, 'Invalid files provided');
             }
 
             const results: string[] = [];
             const errors: string[] = [];
 
-            for (let i = 0; i < filespath.length; i++) {
-                const filepath = filespath[i];
-                const file = files[i];
+            for (const fileProps of files) {
+                const { filepath, file } = fileProps;
+
+                if (!file) {
+                    errors.push(filepath);
+                    continue;
+                }
 
                 try {
                     await s3Connection.putObject(this.bucketName, filepath, file);
@@ -89,6 +93,7 @@ export class S3Storage extends BaseStorage {
 
             return {
                 status: 200,
+                data: null,
                 message: `Uploaded ${results.length} files, failed ${errors.length} files`,
                 results: { success: results, errors }
             };
@@ -121,17 +126,19 @@ export class S3Storage extends BaseStorage {
     }
 
     async deleteFiles(props: StorageFilesProps): Promise<StorageResponse> {
-        const { filespath } = props;
-
         try {
-            if (!Array.isArray(filespath)) {
-                return this.createErrorResponse(400, 'No file paths provided or invalid format');
+            const { files } = props;
+
+            if (!Array.isArray(files) || !files.length) {
+                return this.createErrorResponse(400, 'Invalid files provided');
             }
 
             const results: string[] = [];
             const errors: string[] = [];
 
-            for (const filepath of filespath) {
+            for (const fileProps of files) {
+                const { filepath } = fileProps;
+
                 try {
                     await s3Connection.removeObject(this.bucketName, filepath);
                     results.push(filepath);
@@ -143,6 +150,7 @@ export class S3Storage extends BaseStorage {
 
             return {
                 status: 200,
+                data: null,
                 message: `Deleted ${results.length} files, failed ${errors.length} files`,
                 results: { success: results, errors }
             };

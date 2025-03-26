@@ -1,9 +1,9 @@
-import { IFile } from '../../../core/interfaces/Ifile';
 import { ICatalogResponse, ICatalogResponseMulti } from '../../../core/interfaces/Icatalog';
-import { logger } from '../../../utils/logs/winston';
-import { redisHandler } from './connection';
-import { validateFile, validateFiles } from '../validators/file.validator';
+import { IFile } from '../../../core/interfaces/Ifile';
 import { File } from '../../../core/models/file.model';
+import { logger } from '../../../utils/logs/winston';
+import { validateFile, validateFiles } from '../validators/file.validator';
+import { redisHandler } from './connection';
 
 export class RedisOperations {
     public static async getOneFile(id: string): Promise<ICatalogResponse> {
@@ -276,6 +276,14 @@ export class RedisOperations {
                 error: `Error deleting file: ${err}`
             };
         }
+    }
+
+    public static async cleanCatalog(): Promise<void> {
+        await redisHandler.connectClient();
+
+        await redisHandler.delAsync('catalog');
+
+        await redisHandler.setAsync('catalog', JSON.stringify([]));
     }
 
     public static async getCatalog(): Promise<ICatalogResponseMulti> {

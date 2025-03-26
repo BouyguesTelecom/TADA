@@ -9,7 +9,6 @@ export class CatalogService implements ICatalogService {
 
     constructor() {
         // If repository is not provided, create one using factory
-        console.log('init catalog repository in catalog service');
         this.repository = PersistenceFactory.createRepository();
     }
 

@@ -56,6 +56,7 @@ export class FileService {
             }
 
             const signature = calculateSHA256(processedBuffer);
+            const baseHost = process.env.NGINX_INGRESS || 'http://localhost:8080';
 
             const fileMetadata: Partial<IFile> = {
                 ...metadata,
@@ -66,9 +67,12 @@ export class FileService {
                 size: processedBuffer.length,
                 mimetype: shouldConvertToWebp ? 'image/webp' : metadata.mimetype,
                 original_mimetype: metadata.mimetype,
-                version: 1
+                version: 1,
+                base_host: baseHost,
+                destination: destination
             };
 
+            logger.info(`Sending file to storage with metadata: ${JSON.stringify(fileMetadata)}`);
             const storageResponse = await this.storage.uploadFile(processedBuffer, fileMetadata);
 
             if (!storageResponse.success || !storageResponse.file) {
@@ -79,7 +83,18 @@ export class FileService {
                 };
             }
 
-            return await this.catalogService.addFile(storageResponse.file);
+            if (!this.catalogService || !this.catalogService.addFile) {
+                logger.error('CatalogService or addFile method is not available');
+                return {
+                    status: 500,
+                    datum: null,
+                    error: 'CatalogService is not properly initialized'
+                };
+            }
+
+            const catalogResponse = await this.catalogService.addFile(storageResponse.file);
+            logger.info(`Catalog response: ${JSON.stringify(catalogResponse)}`);
+            return catalogResponse;
         } catch (error) {
             logger.error(`Error in FileService.uploadFile: ${error}`);
             return {

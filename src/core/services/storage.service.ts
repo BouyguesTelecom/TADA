@@ -23,6 +23,7 @@ export class StorageService {
             logger.error(`Error in StorageService.getFile: ${error}`);
             return {
                 status: 500,
+                data: Response,
                 message: `Failed to get file: ${error}`
             };
         }
@@ -42,6 +43,7 @@ export class StorageService {
             logger.error(`Error in StorageService.uploadFile: ${error}`);
             return {
                 status: 500,
+                data: null,
                 message: `Failed to upload file: ${error}`
             };
         }
@@ -60,6 +62,7 @@ export class StorageService {
             logger.error(`Error in StorageService.uploadFiles: ${error}`);
             return {
                 status: 500,
+                data: null,
                 message: `Failed to upload files: ${error}`
             };
         }
@@ -79,6 +82,7 @@ export class StorageService {
             logger.error(`Error in StorageService.updateFile: ${error}`);
             return {
                 status: 500,
+                data: null,
                 message: `Failed to update file: ${error}`
             };
         }
@@ -97,6 +101,7 @@ export class StorageService {
             logger.error(`Error in StorageService.updateFiles: ${error}`);
             return {
                 status: 500,
+                data: null,
                 message: `Failed to update files: ${error}`
             };
         }
@@ -115,6 +120,7 @@ export class StorageService {
             logger.error(`Error in StorageService.deleteFile: ${error}`);
             return {
                 status: 500,
+                data: null,
                 message: `Failed to delete file: ${error}`
             };
         }
@@ -133,6 +139,7 @@ export class StorageService {
             logger.error(`Error in StorageService.deleteFiles: ${error}`);
             return {
                 status: 500,
+                data: null,
                 message: `Failed to delete files: ${error}`
             };
         }
@@ -151,6 +158,7 @@ export class StorageService {
             logger.error(`Error in StorageService.getLastDump: ${error}`);
             return {
                 status: 500,
+                data: null,
                 message: `Failed to get last dump: ${error}`
             };
         }

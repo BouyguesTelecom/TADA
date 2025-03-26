@@ -16,4 +16,5 @@ export interface IFile {
     mimetype?: string;
     signature?: string;
     size?: number | string;
+    base_host?: string;
 }

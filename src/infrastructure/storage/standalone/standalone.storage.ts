@@ -93,8 +93,8 @@ export class StandaloneStorage extends BaseStorage {
                 return this.createNotFoundResponse(filepath);
             }
 
-            const fileStream = fs.createReadStream(fullPath);
-            return this.createSuccessResponse(fileStream);
+            const data = await fs.promises.readFile(fullPath);
+            return this.createSuccessResponse(data);
         } catch (error) {
             return this.createErrorResponse(500, `Failed to get file ${filepath}: ${error}`);
         }
@@ -123,21 +123,25 @@ export class StandaloneStorage extends BaseStorage {
     }
 
     async uploads(props: StorageFilesProps): Promise<StorageResponse> {
-        const { filespath, files } = props;
-
         try {
-            if (!Array.isArray(filespath) || !Array.isArray(files) || filespath.length !== files.length) {
-                return this.createErrorResponse(400, 'Invalid files or paths provided');
+            const { files } = props;
+
+            if (!Array.isArray(files) || !files.length) {
+                return this.createErrorResponse(400, 'Invalid files provided');
             }
 
             const results: string[] = [];
             const errors: string[] = [];
 
-            for (let i = 0; i < filespath.length; i++) {
-                const filepath = filespath[i];
-                const file = files[i];
+            for (const fileProps of files) {
+                const { filepath, file } = fileProps;
 
                 if (!this.createDirectoryForFile(filepath)) {
+                    errors.push(filepath);
+                    continue;
+                }
+
+                if (!file) {
                     errors.push(filepath);
                     continue;
                 }
@@ -152,6 +156,7 @@ export class StandaloneStorage extends BaseStorage {
 
             return {
                 status: 200,
+                data: null,
                 message: `Uploaded ${results.length} files, failed ${errors.length} files`,
                 results: { success: results, errors }
             };
@@ -184,16 +189,18 @@ export class StandaloneStorage extends BaseStorage {
     }
 
     async deleteFiles(props: StorageFilesProps): Promise<StorageResponse> {
-        const { filespath } = props;
         try {
-            if (!Array.isArray(filespath)) {
-                return this.createErrorResponse(400, 'No file paths provided or invalid format');
+            const { files } = props;
+
+            if (!Array.isArray(files) || !files.length) {
+                return this.createErrorResponse(400, 'Invalid files provided');
             }
 
             const results: string[] = [];
             const errors: string[] = [];
 
-            for (const filepath of filespath) {
+            for (const fileProps of files) {
+                const { filepath } = fileProps;
                 const fullPath = path.join(this.basePath, filepath);
 
                 if (!fs.existsSync(fullPath)) {
@@ -211,6 +218,7 @@ export class StandaloneStorage extends BaseStorage {
 
             return {
                 status: 200,
+                data: null,
                 message: `Deleted ${results.length} files, failed ${errors.length} files`,
                 results: { success: results, errors }
             };

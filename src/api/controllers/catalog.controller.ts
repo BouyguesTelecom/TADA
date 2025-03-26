@@ -66,6 +66,5 @@ export class CatalogController {
     }
 }
 
-// Créer une instance du contrôleur pour l'exporter
 const catalogController = new CatalogController();
 export default catalogController;

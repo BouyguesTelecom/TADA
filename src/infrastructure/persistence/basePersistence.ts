@@ -14,7 +14,6 @@ export abstract class BasePersistence implements ICatalogRepository {
     abstract deleteAll(): Promise<ICatalogResponseMulti>;
     abstract createDump(): Promise<ICatalogResponseMulti>;
 
-    // Validation helpers
     protected validateFileBeforeAdd(file: unknown): ValidationErrorDetail[] | null {
         return validateFile(file);
     }

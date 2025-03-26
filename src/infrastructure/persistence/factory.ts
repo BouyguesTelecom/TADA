@@ -13,6 +13,9 @@ export class PersistenceFactory {
                 return new StandaloneCatalogRepository();
             case 'REDIS':
                 return new RedisCatalogRepository();
+            case 'DISTANT_BACKEND':
+                logger.info('Using Redis catalog repository for DISTANT_BACKEND mode');
+                return new RedisCatalogRepository();
             default:
                 logger.warning(`Unknown storage method ${storageMethod}, falling back to STANDALONE`);
                 return new StandaloneCatalogRepository();

@@ -1,30 +1,32 @@
 import fs from 'fs';
 import { Server } from 'http';
 import fetch from 'node-fetch';
+import { IStorage } from '../core/interfaces/Istorage';
 import catalogService from '../core/services/catalog.service';
-import { StorageService } from '../core/services/storage.service';
 import { RedisHandler } from '../infrastructure/persistence/redis/connection';
+import { StorageFactory } from '../infrastructure/storage/factory';
 import { logger } from '../utils/logs/winston';
 import { Application } from './app';
 
 export class ApplicationServer {
     private readonly port: number;
+    private readonly storageMethod: string;
     private readonly isStandalone: boolean;
     private readonly app: Application;
-    private readonly storageService: StorageService;
+    private readonly storage: IStorage;
     private readonly redisConnection: RedisHandler;
     private server: Server | null = null;
 
     constructor() {
         this.port = parseInt(process.env.PORT || '3001', 10);
-        this.isStandalone = process.env.DELEGATED_STORAGE_METHOD === 'STANDALONE';
+        this.storageMethod = (process.env.DELEGATED_STORAGE_METHOD || 'STANDALONE').toUpperCase();
+        this.isStandalone = this.storageMethod === 'STANDALONE';
         this.app = new Application();
 
         try {
-            console.log('Initializing services in ApplicationServer');
-            this.storageService = new StorageService();
+            logger.info(`Initializing application with storage method: ${this.storageMethod}`);
+            this.storage = StorageFactory.createStorage();
             this.redisConnection = RedisHandler.getInstance();
-            console.log('Services initialized successfully');
         } catch (error) {
             console.error('Error initializing services:', error);
             throw error;
@@ -91,10 +93,10 @@ export class ApplicationServer {
 
             if (!dbDump) {
                 logger.info("dump.rdb doesn't exist: getting latest dump from backup ✅");
-                const dumpResponse = await this.storageService.getLastDump();
+                const lastDump = await this.storage.getLastDump();
 
-                if (dumpResponse.status !== 200) {
-                    throw new Error(`Failed to get last dump: ${dumpResponse.message}`);
+                if (!lastDump || !lastDump.length) {
+                    throw new Error(`Failed to get last dump`);
                 }
 
                 await this.redisConnection.generateDump();

@@ -1,19 +1,20 @@
 import { Request, Response } from 'express';
+import { v4 as uuidv4 } from 'uuid';
 import catalogService from '../../core/services/catalog.service';
 import { FileService } from '../../core/services/file.service';
 import { StorageFactory } from '../../infrastructure/storage/factory';
+import { calculateSHA256 } from '../../utils/catalog';
+import { logger } from '../../utils/logs/winston';
 
 export class FileController {
     private fileService: FileService;
 
     constructor() {
-        console.log('Initializing FileController...');
         try {
             const storage = StorageFactory.createStorage();
             this.fileService = new FileService(storage, catalogService);
-            console.log('FileController initialized successfully');
         } catch (error) {
-            console.error('Error initializing FileController:', error);
+            logger.error(`Error initializing FileController: ${error}`);
             throw error;
         }
     }
@@ -48,24 +49,38 @@ export class FileController {
                 return;
             }
 
+            logger.info(`Processing file upload: ${req.file.originalname}, size: ${req.file.size}, type: ${req.file.mimetype}`);
+
+            const namespace = req.body.namespace || 'DEV';
+            const uuid = uuidv4();
+            const signature = calculateSHA256(req.file.buffer);
+
             const result = await this.fileService.uploadFile(
                 req.file.buffer,
                 {
+                    uuid,
                     filename: req.file.originalname,
                     mimetype: req.file.mimetype,
                     size: req.file.size,
+                    signature,
+                    namespace,
+                    destination: req.body.destination || null,
+                    information: req.body.information || null,
+                    version: 1,
+                    base_host: process.env.NGINX_INGRESS || 'http://localhost:8080',
                     ...req.body
                 },
                 {
-                    namespace: req.body.namespace,
+                    namespace,
                     stripMetadata: true,
-                    convertToWebp: req.body.toWebp
+                    convertToWebp: req.body.toWebp === 'true' || req.body.toWebp === true
                 }
             );
 
             res.status(result.status).json(result);
         } catch (error) {
-            res.status(500).json({ error: 'Failed to upload file' });
+            logger.error(`Error in postAsset: ${error}`);
+            res.status(500).json({ error: 'Failed to upload file', details: error.message });
         }
     }
 

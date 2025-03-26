@@ -1,26 +1,36 @@
 import { IStorage } from '../../core/interfaces/Istorage';
 import { logger } from '../../utils/logs/winston';
-import { DistantBackendStorage } from './distant-backend/distantBackend.storage';
-import { S3Storage } from './s3/s3.storage';
-import { StandaloneStorage } from './standalone/standalone.storage';
+import { StorageAdapter } from './adapter/storage.adapter';
+import { BaseStorage } from './baseStorage';
 
 export class StorageFactory {
-    public static createStorage(): IStorage {
-        const storageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
-        logger.info(`Creating storage with method: ${storageMethod}`);
+    static createStorage(storageType: string = process.env.DELEGATED_STORAGE_METHOD || 'STANDALONE'): IStorage {
+        logger.info(`Creating storage with method: ${storageType}`);
 
-        switch (storageMethod.toUpperCase()) {
+        let baseStorage: BaseStorage;
+
+        switch (storageType.toUpperCase()) {
             case 'S3':
-                return new S3Storage() as unknown as IStorage;
+                const { S3Storage } = require('./s3/s3.storage');
+                baseStorage = new S3Storage();
+                break;
 
             case 'DISTANT':
             case 'DISTANT-BACKEND':
-                logger.warning('DISTANT storage not fully implemented, falling back to STANDALONE');
-                return new DistantBackendStorage() as unknown as IStorage;
+            case 'DISTANT_BACKEND':
+                const { DistantBackendStorage } = require('./distant-backend/distantBackend.storage');
+                baseStorage = new DistantBackendStorage();
+                logger.info('Using DISTANT_BACKEND storage');
+                break;
 
             case 'STANDALONE':
             default:
-                return new StandaloneStorage() as unknown as IStorage;
+                const { StandaloneStorage } = require('./standalone/standalone.storage');
+                baseStorage = new StandaloneStorage();
+                logger.info('Using STANDALONE storage');
+                break;
         }
+
+        return new StorageAdapter(baseStorage);
     }
 }

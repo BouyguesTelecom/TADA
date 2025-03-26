@@ -15,8 +15,6 @@ export class Application {
         this.initializeGlobalMiddleware();
         this.initializeHealthCheck();
         this.initializeRoutes();
-
-        console.log('Application initialisée');
     }
 
     private sanitizeAndConvertToRegex(str: string): RegExp | string {
@@ -52,9 +50,7 @@ export class Application {
     }
 
     private initializeRoutes(): void {
-        console.log("Initialisation de toutes les routes de l'application...");
         initRoutes(this.app, this.apiPrefix);
-        console.log("Routes de l'application initialisées");
     }
 
     public getApp(): ExpressApplication {

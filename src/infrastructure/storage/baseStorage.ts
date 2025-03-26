@@ -1,19 +1,27 @@
-import { ReadStream } from 'fs';
-
 export interface StorageFileProps {
     filepath: string;
-    file?: Buffer | string;
+    file?: Buffer;
+    metadata?: {
+        unique_name?: string;
+        base_url?: string;
+        destination?: string;
+        filename?: string;
+        mimetype?: string;
+        size?: number;
+        namespace?: string;
+        version?: number;
+        [key: string]: any;
+    };
 }
 
 export interface StorageFilesProps {
-    filespath: string[];
-    files?: Array<Buffer | string>;
+    files: StorageFileProps[];
 }
 
 export interface StorageResponse {
     status: number;
-    message?: string;
-    data?: any;
+    data: any;
+    message: string;
     results?: {
         success?: string[];
         errors?: string[];
@@ -52,13 +60,14 @@ export abstract class BaseStorage implements IStorageService {
         return {
             status: 200,
             data,
-            message
+            message: message || 'Operation successful'
         };
     }
 
     protected createErrorResponse(status: number, message: string): StorageResponse {
         return {
             status,
+            data: null,
             message
         };
     }
@@ -66,7 +75,8 @@ export abstract class BaseStorage implements IStorageService {
     protected createNotFoundResponse(filepath: string): StorageResponse {
         return {
             status: 404,
-            message: `File ${filepath} not found`
+            data: null,
+            message: `File not found: ${filepath}`
         };
     }
 }
