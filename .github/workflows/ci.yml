@@ -107,20 +107,16 @@ jobs:
             cache: 'npm'
             cache-dependency-path: src/package.json
 
-        - name: Install npm dependencies
-          working-directory: src
-          run: npm install
-
-        - name: Install types
+        - name: List src directory content
+          run: ls -la src/
+          
+        - name: Build
           working-directory: src
           run: |
-            npm install --save-dev @types/body-parser @types/connect @types/cors @types/express @types/express-serve-static-core @types/http-errors @types/json-schema @types/mime @types/morgan @types/multer @types/qs @types/range-parser @types/send @types/serve-static @types/swagger-jsdoc @types/swagger-ui-express
+            npm install
+            npm run build
 
-        - name: Build API
-          working-directory: src
-          run: npm run build
-
-        - name: Archive dist and node_modules
+        - name: Archive dist and node_modules for Docker
           working-directory: src
           run: |
             tar -czvf dist.tar.gz dist
@@ -132,7 +128,7 @@ jobs:
             cp -r src/api/images tmp_images/images || true
             tar -czvf api-images.tar.gz -C tmp_images .
 
-        - name: Upload dist artifact
+        - name: Upload artifacts
           uses: actions/upload-artifact@v4
           with:
             name: api-dist
