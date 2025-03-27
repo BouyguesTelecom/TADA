@@ -122,27 +122,21 @@ jobs:
             npm install --save-dev @types/mime @types/qs @types/range-parser @types/send @types/serve-static @types/triple-beam @types/uuid 
             npm install --save-dev @types/node-fetch @types/form-data @types/minio @types/winston @types/express-rate-limit @types/sharp 
             npm install --save-dev undici-types @types/winston @types/redis @types/express-rate-limit
-
-            cat > tsconfig.build.json << EOF
-            {
-              "extends": "./tsconfig.json",
-              "compilerOptions": {
-                "skipLibCheck": true,
-                "esModuleInterop": true,
-                "allowSyntheticDefaultImports": true
-              }
-            }
-            EOF
         
         - name: Build typescript project
           working-directory: src
           run: |
             npm run build
 
-        - name: Archive dist and node_modules for Docker
+        - name: Archive dist for Docker
           working-directory: src
           run: |
             tar -czvf dist.tar.gz dist
+            tar -czvf node_modules.tar.gz node_modules
+
+        - name: Archive node_modules for Docker
+          working-directory: src
+          run: |
             tar -czvf node_modules.tar.gz node_modules
 
         - name: Archive images directory
