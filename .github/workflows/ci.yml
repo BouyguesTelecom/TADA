@@ -110,7 +110,7 @@ jobs:
         - name: List src directory content
           run: ls -la src/
         
-        - name: Install dependencies
+        - name: Install dependencie
           working-directory: src
           run: |
             npm install
