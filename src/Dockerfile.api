@@ -1,13 +1,11 @@
 FROM node:18-alpine
 WORKDIR /app
 
-# Copier uniquement les fichiers nécessaires
 COPY package*.json ./
-COPY node_modules/ ./node_modules/
-COPY dist/ ./dist/
+COPY dist/ ./dist
+COPY node_modules/ ./node_modules
 
-# Créer le répertoire d'images
 RUN mkdir -p ./tmp/images
+COPY api/images ./tmp/images
 
-# Exécuter l'application
 CMD ["node", "dist/api/server.js"]
