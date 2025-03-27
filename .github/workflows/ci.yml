@@ -114,7 +114,7 @@ jobs:
           working-directory: src
           run: |
             npm install
-            npm install --save-dev @types/body-parser @types/connect @types/cors @types/express @types/http-errors @types/json-schema @types/mime @types/qs @types/range-parser @types/send @types/serve-static @types/triple-beam
+            npm install --save-dev @types/body-parser @types/connect @types/cors @types/express @types/express-serve-static-core @types/morgan @types/multer @types/node @types/swagger-jsdoc @types/swagger-ui-express @types/http-errors @types/json-schema @types/mime @types/qs @types/range-parser @types/send @types/serve-static @types/triple-beam
 
         - name: Build
           working-directory: src
