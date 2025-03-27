@@ -115,7 +115,7 @@ jobs:
           run: |
             npm ci
             npm install --save @redis/client joi pdf-lib winston express-rate-limit
-            npm install --save-dev @types/body-parser @types/connect @types/cors @types/express @types/express-serve-static-core @types/morgan @types/multer @types/node @types/swagger-jsdoc @types/swagger-ui-express @types/http-errors @types/json-schema @types/mime @types/qs @types/range-parser @types/send @types/serve-static @types/triple-beam @types/uuid @types/node-fetch @types/form-data @types/minio @types/winston @types/express-rate-limit @types/sharp undici-types @types/winston @types/pdf-lib @types/redis @types/express-rate-limit
+            npm install --save-dev @types/body-parser @types/connect @types/cors @types/express @types/express-serve-static-core @types/morgan @types/multer @types/node @types/swagger-jsdoc @types/swagger-ui-express @types/http-errors @types/json-schema @types/mime @types/qs @types/range-parser @types/send @types/serve-static @types/triple-beam @types/uuid @types/node-fetch @types/form-data @types/minio @types/winston @types/express-rate-limit @types/sharp undici-types @types/winston @types/redis @types/express-rate-limit
 
         
         - name: Build typescript project
