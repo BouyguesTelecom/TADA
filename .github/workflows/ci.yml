@@ -100,16 +100,28 @@ jobs:
         - name: Checkout repository
           uses: actions/checkout@v3
 
-        - name: Install npm dependencies for API
-          working-directory: src/api
+        - name: Setup Node.js
+          uses: actions/setup-node@v3
+          with:
+            node-version: '18'
+            cache: 'npm'
+            cache-dependency-path: src/package.json
+
+        - name: Install npm dependencies
+          working-directory: src
           run: npm install
 
+        - name: Install types
+          working-directory: src
+          run: |
+            npm install --save-dev @types/body-parser @types/connect @types/cors @types/express @types/express-serve-static-core @types/http-errors @types/json-schema @types/mime @types/morgan @types/multer @types/qs @types/range-parser @types/send @types/serve-static @types/swagger-jsdoc @types/swagger-ui-express
+
         - name: Build API
-          working-directory: src/api
+          working-directory: src
           run: npm run build
 
         - name: Archive dist and node_modules
-          working-directory: src/api
+          working-directory: src
           run: |
             tar -czvf dist.tar.gz dist
             tar -czvf node_modules.tar.gz node_modules
@@ -124,13 +136,13 @@ jobs:
           uses: actions/upload-artifact@v4
           with:
             name: api-dist
-            path: src/api/dist.tar.gz
+            path: src/dist.tar.gz
             
         - name: Upload node_modules artifact 
           uses: actions/upload-artifact@v4
           with: 
             name: api-node_modules
-            path: src/api/node_modules.tar.gz
+            path: src/node_modules.tar.gz
             
         - name: Upload images artifact
           uses: actions/upload-artifact@v4
