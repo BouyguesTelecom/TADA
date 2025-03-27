@@ -121,19 +121,19 @@ jobs:
             tar -czvf api-images.tar.gz -C tmp_images .
 
         - name: Upload dist artifact
-          uses: actions/upload-artifact@v3
+          uses: actions/upload-artifact@v4
           with:
             name: api-dist
             path: src/api/dist.tar.gz
             
         - name: Upload node_modules artifact 
-          uses: actions/upload-artifact@v3
+          uses: actions/upload-artifact@v4
           with: 
             name: api-node_modules
             path: src/api/node_modules.tar.gz
             
         - name: Upload images artifact
-          uses: actions/upload-artifact@v3
+          uses: actions/upload-artifact@v4
           with:
             name: api-images
             path: api-images.tar.gz
@@ -153,28 +153,28 @@ jobs:
         run: cp src/package.json docker-context/
 
       - name: Download and extract dist artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: api-dist
           path: dist-artifact
       - run: tar -xzvf dist-artifact/dist.tar.gz -C docker-context/
       
       - name: Download and extract node_modules artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: api-node_modules
           path: node_modules-artifact
       - run: tar -xzvf node_modules-artifact/node_modules.tar.gz -C docker-context/
 
       - name: Prepare images directory
-        run: mkdir -p docker-context/api/images
+        run: mkdir -p docker-context/tmp/images
 
       - name: Download and extract images artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: api-images
           path: images-artifact
-      - run: tar -xzvf images-artifact/api-images.tar.gz -C docker-context/api/
+      - run: tar -xzvf images-artifact/api-images.tar.gz -C docker-context/tmp/
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
