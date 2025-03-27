@@ -114,13 +114,12 @@ jobs:
           working-directory: src
           run: |
             npm ci
-            npm install --save-dev @types/body-parser @types/connect @types/cors @types/express @types/express-serve-static-core @types/morgan @types/multer @types/node @types/swagger-jsdoc @types/swagger-ui-express @types/http-errors @types/json-schema @types/mime @types/qs @types/range-parser @types/send @types/serve-static @types/triple-beam @types/uuid @types/node-fetch @types/form-data @types/minio @types/winston @types/express-rate-limit @types/pdf-lib @types/sharp undici-types
+            npm install --save-dev @types/body-parser @types/connect @types/cors @types/express @types/express-serve-static-core @types/morgan @types/multer @types/node @types/swagger-jsdoc @types/swagger-ui-express @types/http-errors @types/json-schema @types/mime @types/qs @types/range-parser @types/send @types/serve-static @types/triple-beam @types/uuid @types/node-fetch @types/form-data @types/minio @types/winston @types/express-rate-limit @types/sharp undici-types
         
         - name: Build typescript project
           working-directory: src
           run: |
-            echo "Installing missing dependencies..."
-            npm install --save uuid node-fetch sharp express-rate-limit joi form-data minio pdf-lib winston undici-types @redis/client
+            npm install --save uuid node-fetch sharp express-rate-limit joi form-data minio winston undici-types @redis/client
             npx tsc -p tsconfig.json
 
         - name: Archive dist and node_modules for Docker
