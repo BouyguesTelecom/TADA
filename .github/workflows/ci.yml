@@ -109,12 +109,16 @@ jobs:
 
         - name: List src directory content
           run: ls -la src/
-          
-        - name: Build
+        
+        - name: Install dependencies
           working-directory: src
           run: |
             npm install
-            npm run build
+            npm install --save-dev @types/body-parser @types/connect @types/cors @types/express @types/http-errors @types/json-schema @types/mime @types/qs @types/range-parser @types/send @types/serve-static @types/triple-beam
+
+        - name: Build
+          working-directory: src
+          run: npm run build
 
         - name: Archive dist and node_modules for Docker
           working-directory: src
