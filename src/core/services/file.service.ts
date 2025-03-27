@@ -6,6 +6,7 @@ import { ICatalogResponse, ICatalogResponseMulti, ICatalogService } from '../int
 import { IFile } from '../interfaces/Ifile';
 import { IStorage } from '../interfaces/Istorage';
 import { File } from '../models/file.model';
+import { ApiResponse } from '../models/response.model';
 
 export class FileService {
     private storage: IStorage;
@@ -51,11 +52,7 @@ export class FileService {
             logger.info(`Uploading file: ${metadata.filename}`);
 
             if (!metadata.filename || !options.namespace) {
-                return {
-                    status: 400,
-                    datum: null,
-                    error: 'Filename and namespace are required'
-                };
+                return ApiResponse.createErrorResponse('Filename and namespace are required', 400);
             }
 
             const destination = metadata.destination || '';
@@ -79,20 +76,29 @@ export class FileService {
 
             const signature = calculateSHA256(processedBuffer);
             const baseHost = process.env.NGINX_INGRESS || 'http://localhost:8080';
+            const publicUrl = `${baseHost}/assets/media/full${uniqueName}`;
 
             const fileMetadata: Partial<IFile> = {
                 ...metadata,
-                uuid: uuidv4(),
+                uuid: metadata.uuid || uuidv4(),
                 namespace: options.namespace,
                 unique_name: uniqueName,
                 signature,
                 size: processedBuffer.length,
                 mimetype: shouldConvertToWebp ? 'image/webp' : metadata.mimetype,
                 original_mimetype: metadata.mimetype,
-                version: 1,
+                version: metadata.version || 1,
                 base_host: baseHost,
-                destination: destination
+                public_url: publicUrl,
+                destination: destination,
+                toWebp: undefined
             };
+
+            Object.keys(fileMetadata).forEach((key) => {
+                if (fileMetadata[key] === undefined) {
+                    delete fileMetadata[key];
+                }
+            });
 
             logger.info(`Sending file to storage with metadata: ${JSON.stringify(fileMetadata)}`);
             const storageResponse = await this.storage.uploadFile(processedBuffer, fileMetadata);
@@ -105,26 +111,12 @@ export class FileService {
                 };
             }
 
-            if (!this.catalogService) {
-                logger.error('CatalogService is not properly initialized in FileService');
-                return {
-                    status: 500,
-                    datum: null,
-                    error: 'CatalogService is not properly initialized'
-                };
-            }
-
-            if (typeof this.catalogService.addFile !== 'function') {
-                logger.error('catalogService.addFile is not a function');
-                return {
-                    status: 500,
-                    datum: null,
-                    error: 'CatalogService.addFile method is not available'
-                };
-            }
-
             try {
-                const catalogResponse = await this.catalogService.addFile(storageResponse.file);
+                // Clean the file object before sending it to catalog
+                const catalogFile = { ...storageResponse.file };
+                delete catalogFile.toWebp;
+
+                const catalogResponse = await this.catalogService.addFile(catalogFile);
                 logger.info(`Catalog response: ${JSON.stringify(catalogResponse)}`);
                 return catalogResponse;
             } catch (catalogError) {
@@ -366,10 +358,6 @@ export class FileService {
     }
 
     private createErrorResponse(message: string, status: number = 500): ICatalogResponse {
-        return {
-            status,
-            datum: null,
-            error: message
-        };
+        return ApiResponse.createErrorResponse(message, status);
     }
 }

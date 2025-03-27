@@ -1,5 +1,6 @@
 import { ICatalogResponse, ICatalogResponseMulti } from '../../../core/interfaces/Icatalog';
 import { IFile } from '../../../core/interfaces/Ifile';
+import { ApiResponse } from '../../../core/models/response.model';
 import { getCurrentDateVersion } from '../../../utils/date';
 import { logger } from '../../../utils/logs/winston';
 import { BasePersistence } from '../basePersistence';
@@ -156,11 +157,7 @@ export class StandaloneCatalogRepository extends BasePersistence {
             return StandaloneOperations.createCatalogDump(fileVersion);
         } catch (error) {
             logger.error(`Error creating dump: ${error}`);
-            return {
-                status: 500,
-                data: null,
-                errors: [`Failed to create dump: ${error}`]
-            };
+            return ApiResponse.createMultiErrorResponse([`Failed to create dump: ${error}`]);
         }
     }
 }

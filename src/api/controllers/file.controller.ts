@@ -87,28 +87,28 @@ export class FileController {
             const namespace = req.body.namespace || 'DEV';
             const uuid = uuidv4();
             const signature = calculateSHA256(req.file.buffer);
+            const baseHost = process.env.NGINX_INGRESS || 'http://localhost:8080';
 
-            const result = await this.fileService.uploadFile(
-                req.file.buffer,
-                {
-                    uuid,
-                    filename: req.file.originalname,
-                    mimetype: req.file.mimetype,
-                    size: req.file.size,
-                    signature,
-                    namespace,
-                    destination: req.body.destination || null,
-                    information: req.body.information || null,
-                    version: 1,
-                    base_host: process.env.NGINX_INGRESS || 'http://localhost:8080',
-                    ...req.body
-                },
-                {
-                    namespace,
-                    stripMetadata: true,
-                    convertToWebp: req.body.toWebp === 'true' || req.body.toWebp === true
-                }
-            );
+            const metadata = {
+                uuid,
+                filename: req.file.originalname,
+                mimetype: req.file.mimetype,
+                size: req.file.size,
+                signature,
+                namespace,
+                destination: req.body.destination || null,
+                information: req.body.information || null,
+                version: 1,
+                base_host: baseHost
+            };
+
+            const uploadOptions = {
+                namespace,
+                stripMetadata: true,
+                convertToWebp: req.body.toWebp === 'true' || req.body.toWebp === true
+            };
+
+            const result = await this.fileService.uploadFile(req.file.buffer, metadata, uploadOptions);
 
             res.status(result.status).json(result);
         } catch (error) {

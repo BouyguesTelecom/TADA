@@ -1,13 +1,13 @@
-import { BasePersistence } from '../basePersistence';
+import app from '../../../api/app';
 import { ICatalogResponse, ICatalogResponseMulti } from '../../../core/interfaces/Icatalog';
 import { IFile } from '../../../core/interfaces/Ifile';
-import { File } from '../../../core/models/file.model';
+import { ApiResponse } from '../../../core/models/response.model';
+import { getCurrentDateVersion } from '../../../utils/date';
 import { logger } from '../../../utils/logs/winston';
+import { BasePersistence } from '../basePersistence';
+import { validateFileForAdd } from '../validators/file.validator';
 import { redisHandler } from './connection';
 import { RedisOperations } from './operation';
-import { getCurrentDateVersion } from '../../../utils/date';
-import { validateFileForAdd } from '../validators/file.validator';
-import app from '../../../api/app';
 
 export class RedisCatalogRepository extends BasePersistence {
     protected storageType = 'REDIS';
@@ -201,17 +201,13 @@ export class RedisCatalogRepository extends BasePersistence {
             });
 
             if (postBackupFileJson.status !== 200) {
-                return this.createMultiErrorResponse(['Failed to upload JSON in backup']);
+                return ApiResponse.createMultiErrorResponse(['Failed to upload JSON in backup']);
             }
 
-            return {
-                status: 200,
-                data: [],
-                errors: [`Dump created successfully at ${filePath}`]
-            };
+            return ApiResponse.createMultiErrorResponse([`Dump created successfully at ${filePath}`], 200);
         } catch (error) {
             logger.error(`Error creating dump: ${error}`);
-            return this.createMultiErrorResponse([`Failed to create dump: ${error}`]);
+            return ApiResponse.createMultiErrorResponse([`Failed to create dump: ${error}`]);
         }
     }
 }

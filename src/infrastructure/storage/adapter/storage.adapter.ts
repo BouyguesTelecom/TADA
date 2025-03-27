@@ -17,21 +17,39 @@ export class StorageAdapter implements IStorage {
             const filepath = metadata.unique_name || metadata.filename || '';
             logger.info(`StorageAdapter: Uploading file ${filepath} with metadata: ${JSON.stringify(metadata)}`);
 
+            const storageMetadata = {
+                ...metadata,
+                destination: metadata.destination || '',
+                filename: metadata.filename || filepath.split('/').pop() || 'file',
+                mimetype: metadata.mimetype || 'application/octet-stream',
+                size: fileBuffer.length,
+                namespace: metadata.namespace || 'default',
+                version: metadata.version || 1
+            };
+
+            const cleanMetadata = { ...storageMetadata };
+            delete cleanMetadata.toWebp;
+
             const response = await this.baseStorage.upload({
                 filepath,
                 file: fileBuffer,
-                metadata: {
-                    ...metadata,
-                    destination: metadata.destination || '',
-                    filename: metadata.filename || filepath.split('/').pop() || 'file',
-                    mimetype: metadata.mimetype || 'application/octet-stream',
-                    size: fileBuffer.length,
-                    namespace: metadata.namespace || 'default',
-                    version: metadata.version || 1
-                }
+                metadata: cleanMetadata
             });
 
             logger.info(`Storage response status: ${response.status}`);
+
+            if (response.status >= 400) {
+                return {
+                    success: false,
+                    error: response.message || `Failed with status ${response.status}`,
+                    file: null
+                };
+            }
+
+            if (!metadata.public_url) {
+                const baseUrl = process.env.NGINX_INGRESS || 'http://localhost:8080';
+                metadata.public_url = `${baseUrl}/assets/media/full${filepath}`;
+            }
 
             return {
                 success: response.status >= 200 && response.status < 300,
@@ -42,7 +60,8 @@ export class StorageAdapter implements IStorage {
             logger.error(`Error in storage adapter uploadFile: ${error}`);
             return {
                 success: false,
-                error: `Error uploading file: ${error}`
+                error: `Error uploading file: ${error}`,
+                file: null
             };
         }
     }

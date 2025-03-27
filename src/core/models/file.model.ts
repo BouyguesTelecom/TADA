@@ -1,66 +1,60 @@
 import { IFile } from '../interfaces/Ifile';
 
 export class File implements IFile {
-    uuid?: string;
-    filename?: string;
-    namespace?: string;
-    unique_name?: string;
-    expiration_date?: string;
-    expired: boolean = false;
-    external_id?: string;
-    version: number = 1;
-    public_url?: string;
-    original_filename?: string;
-    base_url?: string;
-    information: string | null = null;
-    destination: string | null = null;
+    uuid: string;
+    namespace: string;
+    unique_name: string;
+    filename: string;
+    mimetype: string;
+    size: number;
+    signature: string;
+    public_url: string;
+    base_host: string;
+    version: number;
+    destination?: string;
+    information?: string | null;
+    expiration_date?: string | null;
+    expired?: boolean;
     original_mimetype?: string;
-    mimetype?: string;
-    signature?: string;
-    size?: number | string;
 
-    constructor(props: Partial<IFile> = {}) {
-        Object.assign(this, props);
+    constructor(file: Partial<IFile>) {
+        this.uuid = file.uuid || '';
+        this.namespace = file.namespace || '';
+        this.unique_name = file.unique_name || '';
+        this.filename = file.filename || '';
+        this.mimetype = file.mimetype || '';
+        this.size = file.size || 0;
+        this.signature = file.signature || '';
+        this.version = file.version || 1;
+        this.destination = file.destination;
+        this.information = file.information;
+        this.expiration_date = file.expiration_date;
+        this.expired = file.expired || false;
+        this.original_mimetype = file.original_mimetype;
+        this.base_host = file.base_host || process.env.NGINX_INGRESS || 'http://localhost:8080';
 
-        if (!this.uuid) {
-            this.uuid = this.generateUUID();
-        }
-
-        this.expired = this.isExpired();
+        this.public_url = file.public_url || `${this.base_host}/assets/media/full${this.unique_name}`;
     }
 
     isExpired(): boolean {
-        if (!this.expiration_date) {
-            return false;
+        if (this.expired) return true;
+
+        if (this.expiration_date) {
+            const expirationDate = new Date(this.expiration_date);
+            const currentDate = new Date();
+            return expirationDate <= currentDate;
         }
-        return new Date(this.expiration_date) < new Date();
+
+        return false;
     }
 
-    getPublicUrl(): string | undefined {
-        if (this.public_url) {
-            return this.public_url;
-        }
-
-        if (this.base_url && this.unique_name) {
-            return `${this.base_url}/${this.unique_name}`;
-        }
-
-        return undefined;
-    }
-
-    private generateUUID(): string {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-            const r = (Math.random() * 16) | 0,
-                v = c === 'x' ? r : (r & 0x3) | 0x8;
-            return v.toString(16);
+    toJSON(): IFile {
+        const obj: any = { ...this };
+        Object.keys(obj).forEach((key) => {
+            if (obj[key] === undefined) {
+                delete obj[key];
+            }
         });
-    }
-
-    toJSON(): Record<string, any> {
-        return {
-            ...this,
-            expired: this.isExpired(),
-            public_url: this.getPublicUrl()
-        };
+        return obj;
     }
 }

@@ -3,6 +3,7 @@ import { logger } from '../../utils/logs/winston';
 import { ICatalogRepository, ICatalogResponse, ICatalogResponseMulti, ICatalogService } from '../interfaces/Icatalog';
 import { IFile } from '../interfaces/Ifile';
 import { File } from '../models/file.model';
+import { ApiResponse } from '../models/response.model';
 
 export class CatalogService implements ICatalogService {
     private repository: ICatalogRepository;
@@ -56,14 +57,19 @@ export class CatalogService implements ICatalogService {
             logger.info('Adding file to catalog');
 
             if (!fileData.filename) {
-                return {
-                    status: 400,
-                    datum: null,
-                    error: 'Filename is required'
-                };
+                return ApiResponse.createErrorResponse('Filename is required', 400);
             }
 
-            const file = new File(fileData);
+            const cleanedData = { ...fileData };
+
+            delete cleanedData.toWebp;
+
+            if (!cleanedData.public_url && cleanedData.unique_name) {
+                const baseHost = cleanedData.base_host || process.env.NGINX_INGRESS || 'http://localhost:8080';
+                cleanedData.public_url = `${baseHost}/assets/media/full${cleanedData.unique_name}`;
+            }
+
+            const file = new File(cleanedData);
 
             return await this.repository.add(file);
         } catch (error) {

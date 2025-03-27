@@ -112,9 +112,9 @@ export class RedisRepository extends BasePersistence implements ICatalogReposito
 
     async add(file: IFile): Promise<ICatalogResponse> {
         try {
-            const validationErrors = this.validateFileBeforeAdd(file);
+            const validationErrors = this.validateFilesBeforeAdd([file]);
             if (validationErrors) {
-                return this.createValidationErrorResponse(validationErrors);
+                return this.createValidationErrorResponse(validationErrors.join(', '));
             }
 
             await redisHandler.connectClient();

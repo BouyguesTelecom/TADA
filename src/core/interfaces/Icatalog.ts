@@ -10,6 +10,7 @@ export interface ICatalogResponseMulti {
     status: number;
     data: IFile[] | null;
     errors: string[] | null;
+    message?: string | null;
 }
 
 export interface ICatalogService {

@@ -2,7 +2,7 @@ import { ICatalogResponse, ICatalogResponseMulti } from '../../../core/interface
 import { IFile } from '../../../core/interfaces/Ifile';
 import { File } from '../../../core/models/file.model';
 import { logger } from '../../../utils/logs/winston';
-import { validateFile, validateFiles } from '../validators/file.validator';
+import { validateFileBeforeUpdate, validateFiles } from '../validators/file.validator';
 import { redisHandler } from './connection';
 
 export class RedisOperations {
@@ -109,7 +109,7 @@ export class RedisOperations {
                 };
             }
 
-            const validationErrors = validateFile(file);
+            const validationErrors = validateFileBeforeUpdate(file);
             if (validationErrors) {
                 return {
                     status: 400,
