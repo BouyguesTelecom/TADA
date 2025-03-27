@@ -114,6 +114,11 @@ jobs:
           working-directory: src
           run: |
             npm ci
+        
+        - name: Build typescript project
+          working-directory: src
+          run: |
+            npm run build
 
         - name: Archive dist and node_modules for Docker
           working-directory: src
