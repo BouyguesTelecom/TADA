@@ -1,8 +1,8 @@
-import { BasePersistence } from '../basePersistence';
 import { ICatalogResponse, ICatalogResponseMulti } from '../../../core/interfaces/Icatalog';
 import { IFile } from '../../../core/interfaces/Ifile';
-import { logger } from '../../../utils/logs/winston';
 import { getCurrentDateVersion } from '../../../utils/date';
+import { logger } from '../../../utils/logs/winston';
+import { BasePersistence } from '../basePersistence';
 import { validateFileForAdd } from '../validators/file.validator';
 import { StandaloneOperations } from './operation';
 import { StandaloneUtils } from './utils';
@@ -57,6 +57,11 @@ export class StandaloneCatalogRepository extends BasePersistence {
     async add(file: IFile): Promise<ICatalogResponse> {
         try {
             logger.info(`Adding file ${file.filename} to standalone catalog`);
+
+            if (!file || typeof file !== 'object') {
+                logger.error('Invalid file object provided');
+                return this.createErrorResponse('Invalid file object provided', 400);
+            }
 
             const files = StandaloneOperations.readCatalog();
 

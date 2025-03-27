@@ -1,24 +1,32 @@
 import { ICatalogRepository } from '../../core/interfaces/Icatalog';
 import { logger } from '../../utils/logs/winston';
-import { RedisCatalogRepository } from './redis/redis.persistence';
 import { StandaloneCatalogRepository } from './standalone/standalone.persistence';
 
 export class PersistenceFactory {
-    public static createRepository(): ICatalogRepository {
-        const storageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
-        logger.info(`Creating catalog repository with storage method: ${storageMethod}`);
+    static createRepository(storageType: string = process.env.PERSISTENCE_METHOD || 'STANDALONE'): ICatalogRepository {
+        try {
+            logger.info(`Creating repository with method: ${storageType}`);
 
-        switch (storageMethod) {
-            case 'STANDALONE':
-                return new StandaloneCatalogRepository();
-            case 'REDIS':
-                return new RedisCatalogRepository();
-            case 'DISTANT_BACKEND':
-                logger.info('Using Redis catalog repository for DISTANT_BACKEND mode');
-                return new RedisCatalogRepository();
-            default:
-                logger.warning(`Unknown storage method ${storageMethod}, falling back to STANDALONE`);
-                return new StandaloneCatalogRepository();
+            switch (storageType.toUpperCase()) {
+                case 'STANDALONE':
+                    return new StandaloneCatalogRepository();
+                default:
+                    logger.warn(`Unknown repository type: ${storageType}, defaulting to STANDALONE`);
+                    return new StandaloneCatalogRepository();
+            }
+        } catch (error) {
+            logger.error(`Error creating repository: ${error}`);
+            const errorRepo: ICatalogRepository = {
+                getAll: async () => ({ status: 500, data: null, errors: ['Repository not initialized'] }),
+                getByUuid: async () => ({ status: 500, datum: null, error: 'Repository not initialized' }),
+                add: async () => ({ status: 500, datum: null, error: 'Repository not initialized' }),
+                addMany: async () => ({ status: 500, data: null, errors: ['Repository not initialized'] }),
+                update: async () => ({ status: 500, datum: null, error: 'Repository not initialized' }),
+                delete: async () => ({ status: 500, datum: null, error: 'Repository not initialized' }),
+                deleteAll: async () => ({ status: 500, data: null, errors: ['Repository not initialized'] }),
+                createDump: async () => ({ status: 500, data: null, errors: ['Repository not initialized'] })
+            };
+            return errorRepo;
         }
     }
 }

@@ -7,9 +7,20 @@ import { File } from '../models/file.model';
 export class CatalogService implements ICatalogService {
     private repository: ICatalogRepository;
 
-    constructor() {
-        // If repository is not provided, create one using factory
-        this.repository = PersistenceFactory.createRepository();
+    constructor(repository?: ICatalogRepository) {
+        try {
+            this.repository = repository || PersistenceFactory.createRepository();
+
+            if (!this.repository) {
+                logger.error('Failed to initialize repository in CatalogService');
+                throw new Error('Failed to initialize repository');
+            }
+
+            logger.info('CatalogService initialized successfully');
+        } catch (error) {
+            logger.error(`Error in CatalogService constructor: ${error}`);
+            throw new Error(`Failed to initialize CatalogService: ${error}`);
+        }
     }
 
     async getFiles(): Promise<ICatalogResponseMulti> {
@@ -191,6 +202,12 @@ export class CatalogService implements ICatalogService {
     }
 }
 
-const catalogService = new CatalogService();
+let catalogService: CatalogService;
+try {
+    catalogService = new CatalogService();
+    logger.info('Default catalogService instance created successfully');
+} catch (error) {
+    logger.error(`Failed to create default catalogService instance: ${error}`);
+}
 
 export default catalogService;

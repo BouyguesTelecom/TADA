@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import catalogService from '../../core/services/catalog.service';
+import catalogService, { CatalogService } from '../../core/services/catalog.service';
 import { FileService } from '../../core/services/file.service';
+import { PersistenceFactory } from '../../infrastructure/persistence/factory';
 import { StorageFactory } from '../../infrastructure/storage/factory';
 import { calculateSHA256 } from '../../utils/catalog';
 import { logger } from '../../utils/logs/winston';
@@ -12,10 +13,42 @@ export class FileController {
     constructor() {
         try {
             const storage = StorageFactory.createStorage();
-            this.fileService = new FileService(storage, catalogService);
+            let catalogServiceInstance;
+
+            try {
+                const catalogService = require('../../core/services/catalog.service').default;
+                catalogServiceInstance = catalogService;
+
+                if (!catalogServiceInstance) {
+                    logger.warn('Default catalogService not available, trying to create a new instance');
+                    catalogServiceInstance = new CatalogService();
+                }
+            } catch (importError) {
+                logger.warn(`Error importing catalogService: ${importError}, creating new instance`);
+                catalogServiceInstance = new CatalogService();
+            }
+
+            if (!catalogServiceInstance) {
+                logger.error('Failed to create or import CatalogService');
+                throw new Error('Failed to initialize CatalogService');
+            }
+
+            logger.info('CatalogService initialized successfully');
+
+            this.fileService = new FileService(storage, catalogServiceInstance);
+
+            if (!this.fileService) {
+                logger.error('FileService initialization failed');
+                throw new Error('Failed to initialize FileService');
+            }
+
+            logger.info('FileController initialized successfully');
         } catch (error) {
             logger.error(`Error initializing FileController: ${error}`);
-            throw error;
+            const storage = StorageFactory.createStorage();
+            const repository = PersistenceFactory.createRepository();
+            this.fileService = new FileService(storage, new CatalogService());
+            logger.info('FileController initialized with minimal functionality due to error');
         }
     }
 

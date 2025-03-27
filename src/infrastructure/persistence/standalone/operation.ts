@@ -4,7 +4,7 @@ import { ICatalogResponse, ICatalogResponseMulti } from '../../../core/interface
 import { IFile } from '../../../core/interfaces/Ifile';
 import { File } from '../../../core/models/file.model';
 import { logger } from '../../../utils/logs/winston';
-import { validateFile, validateFiles } from '../validators/file.validator';
+import { validateFiles } from '../validators/file.validator';
 
 export class StandaloneOperations {
     private static catalogPath = '/tmp/standalone/catalog.json';
@@ -109,15 +109,7 @@ export class StandaloneOperations {
 
     public static addOneFile(file: IFile): ICatalogResponse {
         try {
-            const validationErrors = validateFile(file);
-            if (validationErrors) {
-                logger.error(`Validation errors: ${JSON.stringify(validationErrors)}`);
-                return {
-                    status: 400,
-                    datum: null,
-                    error: `Validation errors: ${JSON.stringify(validationErrors)}`
-                };
-            }
+            const files = this.readCatalog();
 
             if (file.uuid && this.isUuidExists(file.uuid)) {
                 return {
@@ -135,7 +127,6 @@ export class StandaloneOperations {
                 };
             }
 
-            const files = this.readCatalog();
             const fileInstance = new File(file);
             files.push(fileInstance);
 

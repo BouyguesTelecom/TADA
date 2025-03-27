@@ -12,8 +12,30 @@ export class FileService {
     private catalogService: ICatalogService;
 
     constructor(storage: IStorage, catalogService: ICatalogService) {
-        this.storage = storage;
-        this.catalogService = catalogService;
+        try {
+            this.storage = storage;
+            this.catalogService = catalogService;
+
+            if (!this.catalogService) {
+                logger.error('CatalogService is not provided in FileService constructor');
+                throw new Error('CatalogService is required');
+            }
+
+            if (!this.storage) {
+                logger.error('Storage is not provided in FileService constructor');
+                throw new Error('Storage is required');
+            }
+
+            if (typeof this.catalogService.addFile !== 'function') {
+                logger.error('catalogService.addFile is not a function');
+                throw new Error('CatalogService missing required methods');
+            }
+
+            logger.info('FileService initialized successfully');
+        } catch (error) {
+            logger.error(`Error in FileService constructor: ${error}`);
+            throw new Error(`Failed to initialize FileService: ${error}`);
+        }
     }
 
     async uploadFile(
@@ -83,8 +105,8 @@ export class FileService {
                 };
             }
 
-            if (!this.catalogService || !this.catalogService.addFile) {
-                logger.error('CatalogService or addFile method is not available');
+            if (!this.catalogService) {
+                logger.error('CatalogService is not properly initialized in FileService');
                 return {
                     status: 500,
                     datum: null,
@@ -92,9 +114,27 @@ export class FileService {
                 };
             }
 
-            const catalogResponse = await this.catalogService.addFile(storageResponse.file);
-            logger.info(`Catalog response: ${JSON.stringify(catalogResponse)}`);
-            return catalogResponse;
+            if (typeof this.catalogService.addFile !== 'function') {
+                logger.error('catalogService.addFile is not a function');
+                return {
+                    status: 500,
+                    datum: null,
+                    error: 'CatalogService.addFile method is not available'
+                };
+            }
+
+            try {
+                const catalogResponse = await this.catalogService.addFile(storageResponse.file);
+                logger.info(`Catalog response: ${JSON.stringify(catalogResponse)}`);
+                return catalogResponse;
+            } catch (catalogError) {
+                logger.error(`Error calling catalogService.addFile: ${catalogError}`);
+                return {
+                    status: 500,
+                    datum: storageResponse.file,
+                    error: `File uploaded to storage but failed to add to catalog: ${catalogError}`
+                };
+            }
         } catch (error) {
             logger.error(`Error in FileService.uploadFile: ${error}`);
             return {
@@ -323,5 +363,13 @@ export class FileService {
             logger.error(`Error stripping metadata: ${error}`);
             return buffer;
         }
+    }
+
+    private createErrorResponse(message: string, status: number = 500): ICatalogResponse {
+        return {
+            status,
+            datum: null,
+            error: message
+        };
     }
 }

@@ -106,9 +106,6 @@ jobs:
             node-version: '18'
             cache: 'npm'
             cache-dependency-path: src/package.json
-
-        - name: List src directory content
-          run: ls -la src/
         
         - name: Install dependencies
           working-directory: src
