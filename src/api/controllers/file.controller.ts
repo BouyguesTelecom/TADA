@@ -1,54 +1,24 @@
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import catalogService, { CatalogService } from '../../core/services/catalog.service';
+import { catalogService } from '../../core/services/catalog.service';
 import { FileService } from '../../core/services/file.service';
-import { PersistenceFactory } from '../../infrastructure/persistence/factory';
 import { StorageFactory } from '../../infrastructure/storage/factory';
 import { calculateSHA256 } from '../../utils/catalog';
 import { logger } from '../../utils/logs/winston';
+import { BaseController } from './base.controller';
 
-export class FileController {
+export class FileController extends BaseController {
     private fileService: FileService;
 
     constructor() {
+        super();
         try {
             const storage = StorageFactory.createStorage();
-            let catalogServiceInstance;
-
-            try {
-                const catalogService = require('../../core/services/catalog.service').default;
-                catalogServiceInstance = catalogService;
-
-                if (!catalogServiceInstance) {
-                    logger.warn('Default catalogService not available, trying to create a new instance');
-                    catalogServiceInstance = new CatalogService();
-                }
-            } catch (importError) {
-                logger.warn(`Error importing catalogService: ${importError}, creating new instance`);
-                catalogServiceInstance = new CatalogService();
-            }
-
-            if (!catalogServiceInstance) {
-                logger.error('Failed to create or import CatalogService');
-                throw new Error('Failed to initialize CatalogService');
-            }
-
-            logger.info('CatalogService initialized successfully');
-
-            this.fileService = new FileService(storage, catalogServiceInstance);
-
-            if (!this.fileService) {
-                logger.error('FileService initialization failed');
-                throw new Error('Failed to initialize FileService');
-            }
-
+            this.fileService = new FileService(storage, catalogService);
             logger.info('FileController initialized successfully');
         } catch (error) {
             logger.error(`Error initializing FileController: ${error}`);
-            const storage = StorageFactory.createStorage();
-            const repository = PersistenceFactory.createRepository();
-            this.fileService = new FileService(storage, new CatalogService());
-            logger.info('FileController initialized with minimal functionality due to error');
+            throw error;
         }
     }
 
@@ -56,29 +26,41 @@ export class FileController {
         try {
             const { format, ...params } = req.params;
             const uuid = params['0'];
-            const result = await catalogService.getFile({ uuid });
+            const result = await catalogService.getFile(uuid);
 
-            if (result.status !== 200 || !result.datum) {
-                res.status(result.status || 404).json({ error: result.error || 'File not found' });
+            if (result.error) {
+                this.sendResponse(res, {
+                    status: 404,
+                    data: null,
+                    error: `File not found: ${uuid}`
+                });
                 return;
             }
 
             const fileData = await this.fileService.getFile(result.datum.uuid);
             if (!fileData.buffer) {
-                res.status(404).json({ error: 'File content not found' });
+                this.sendResponse(res, {
+                    status: 404,
+                    data: null,
+                    error: `File content not found: ${uuid}`
+                });
                 return;
             }
 
             res.status(200).send(fileData.buffer);
         } catch (error) {
-            res.status(500).json({ error: 'Failed to get asset' });
+            this.handleError(error as Error, res);
         }
     }
 
     async postAsset(req: Request, res: Response): Promise<void> {
         try {
             if (!req.file) {
-                res.status(400).json({ error: 'No file provided' });
+                this.sendResponse(res, {
+                    status: 400,
+                    data: null,
+                    error: 'No file provided'
+                });
                 return;
             }
 
@@ -109,21 +91,36 @@ export class FileController {
             };
 
             const result = await this.fileService.uploadFile(req.file.buffer, metadata, uploadOptions);
+            if (result.error) {
+                this.sendResponse(res, {
+                    status: 400,
+                    data: null,
+                    error: result.error
+                });
+                return;
+            }
 
-            res.status(result.status).json(result);
+            this.sendResponse(res, {
+                status: 201,
+                data: result.datum,
+                error: null
+            });
         } catch (error) {
-            logger.error(`Error in postAsset: ${error}`);
-            res.status(500).json({ error: 'Failed to upload file', details: error.message });
+            this.handleError(error as Error, res);
         }
     }
 
     async patchAsset(req: Request, res: Response): Promise<void> {
         try {
             const { uuid } = req.params;
-            const fileResult = await catalogService.getFile({ uuid });
+            const fileResult = await catalogService.getFile(uuid);
 
-            if (fileResult.status !== 200 || !fileResult.datum) {
-                res.status(fileResult.status || 404).json({ error: fileResult.error || 'File not found' });
+            if (fileResult.error) {
+                this.sendResponse(res, {
+                    status: 404,
+                    data: null,
+                    error: `File not found: ${uuid}`
+                });
                 return;
             }
 
@@ -144,29 +141,58 @@ export class FileController {
                 }
             );
 
-            res.status(result.status).json(result);
+            if (result.error) {
+                this.sendResponse(res, {
+                    status: 400,
+                    data: null,
+                    error: result.error
+                });
+                return;
+            }
+
+            this.sendResponse(res, {
+                status: 200,
+                data: result.datum,
+                error: null
+            });
         } catch (error) {
-            res.status(500).json({ error: 'Failed to update file' });
+            this.handleError(error as Error, res);
         }
     }
 
     async deleteAsset(req: Request, res: Response): Promise<void> {
         try {
             const { uuid } = req.params;
-            const fileResult = await catalogService.getFile({ uuid });
+            const fileResult = await catalogService.getFile(uuid);
 
-            if (fileResult.status !== 200 || !fileResult.datum) {
-                res.status(fileResult.status || 404).json({ error: fileResult.error || 'File not found' });
+            if (fileResult.error) {
+                this.sendResponse(res, {
+                    status: 404,
+                    data: null,
+                    error: `File not found: ${uuid}`
+                });
                 return;
             }
 
             const result = await this.fileService.deleteFile(uuid);
-            res.status(result.status).json(result);
+            if (result.error) {
+                this.sendResponse(res, {
+                    status: 400,
+                    data: null,
+                    error: result.error
+                });
+                return;
+            }
+
+            this.sendResponse(res, {
+                status: 200,
+                data: null,
+                error: null
+            });
         } catch (error) {
-            res.status(500).json({ error: 'Failed to delete file' });
+            this.handleError(error as Error, res);
         }
     }
 }
 
-const fileController = new FileController();
-export default fileController;
+export const fileController = new FileController();

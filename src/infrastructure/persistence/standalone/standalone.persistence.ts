@@ -1,6 +1,5 @@
 import { ICatalogResponse, ICatalogResponseMulti } from '../../../core/interfaces/Icatalog';
 import { IFile } from '../../../core/interfaces/Ifile';
-import { ApiResponse } from '../../../core/models/response.model';
 import { getCurrentDateVersion } from '../../../utils/date';
 import { logger } from '../../../utils/logs/winston';
 import { BasePersistence } from '../basePersistence';
@@ -126,17 +125,17 @@ export class StandaloneCatalogRepository extends BasePersistence {
         }
     }
 
-    async delete(uuid: string): Promise<ICatalogResponse> {
+    async delete(uuid: string): Promise<void> {
         try {
             if (!uuid || typeof uuid !== 'string') {
-                return this.createErrorResponse('Invalid UUID format', 400);
+                return;
             }
 
             logger.info(`Deleting file with UUID ${uuid} from standalone catalog`);
-            return StandaloneOperations.deleteOneFile(uuid);
+            await StandaloneOperations.deleteOneFile(uuid);
         } catch (error) {
             logger.error(`Error deleting file: ${error}`);
-            return this.createErrorResponse(`Failed to delete file: ${error}`);
+            throw error;
         }
     }
 
@@ -150,14 +149,39 @@ export class StandaloneCatalogRepository extends BasePersistence {
         }
     }
 
-    async createDump(): Promise<ICatalogResponseMulti> {
+    async createDump(): Promise<{ status: number; data: string[]; errors: string[] }> {
         try {
             logger.info('Creating dump of standalone catalog');
             const fileVersion = getCurrentDateVersion();
-            return StandaloneOperations.createCatalogDump(fileVersion);
+            const response = await StandaloneOperations.createCatalogDump(fileVersion);
+
+            return {
+                status: response.status,
+                data: response.data ? response.data.map((file) => JSON.stringify(file)) : [],
+                errors: response.errors || []
+            };
         } catch (error) {
             logger.error(`Error creating dump: ${error}`);
-            return ApiResponse.createMultiErrorResponse([`Failed to create dump: ${error}`]);
+            return {
+                status: 500,
+                data: [],
+                errors: [`Failed to create dump: ${error}`]
+            };
         }
+    }
+
+    async find(id: string): Promise<IFile | null> {
+        const response = await this.getByUuid(id);
+        return response.datum || null;
+    }
+
+    async findAll(): Promise<IFile[]> {
+        const response = await this.getAll();
+        return response.data || [];
+    }
+
+    async save(file: IFile): Promise<IFile> {
+        const response = await this.add(file);
+        return response.datum;
     }
 }

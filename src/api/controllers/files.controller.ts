@@ -1,20 +1,33 @@
 import { Request, Response } from 'express';
-import catalogService from '../../core/services/catalog.service';
+import { catalogService } from '../../core/services/catalog.service';
 import { FileService } from '../../core/services/file.service';
 import { StorageFactory } from '../../infrastructure/storage/factory';
+import { logger } from '../../utils/logs/winston';
+import { BaseController } from './base.controller';
 
-export class FilesController {
+export class FilesController extends BaseController {
     private fileService: FileService;
 
     constructor() {
-        const storage = StorageFactory.createStorage();
-        this.fileService = new FileService(storage, catalogService);
+        super();
+        try {
+            const storage = StorageFactory.createStorage();
+            this.fileService = new FileService(storage, catalogService);
+            logger.info('FilesController initialized successfully');
+        } catch (error) {
+            logger.error(`Error initializing FilesController: ${error}`);
+            throw error;
+        }
     }
 
     async postAssets(req: Request, res: Response): Promise<void> {
         try {
             if (!req.files || !Array.isArray(req.files)) {
-                res.status(400).json({ error: 'No files provided' });
+                this.sendResponse(res, {
+                    status: 400,
+                    data: null,
+                    error: 'No files provided'
+                });
                 return;
             }
 
@@ -34,9 +47,22 @@ export class FilesController {
                 convertToWebp: req.body.toWebp
             });
 
-            res.status(result.status).json(result);
+            if (result.errors?.length) {
+                this.sendResponse(res, {
+                    status: 400,
+                    data: null,
+                    error: 'Failed to upload some files'
+                });
+                return;
+            }
+
+            this.sendResponse(res, {
+                status: 201,
+                data: result.data,
+                error: null
+            });
         } catch (error) {
-            res.status(500).json({ error: 'Failed to upload files' });
+            this.handleError(error as Error, res);
         }
     }
 
@@ -44,6 +70,15 @@ export class FilesController {
         try {
             const { uuids, ...updateData } = req.body;
             const files = req.files as Express.Multer.File[];
+
+            if (!Array.isArray(uuids)) {
+                this.sendResponse(res, {
+                    status: 400,
+                    data: null,
+                    error: 'uuids must be an array'
+                });
+                return;
+            }
 
             const results = await Promise.all(
                 uuids.map(async (uuid: string) => {
@@ -55,37 +90,52 @@ export class FilesController {
                 })
             );
 
-            const successResults = results.filter((r) => r.status === 200);
-            const errorResults = results.filter((r) => r.status !== 200);
+            const successResults = results.filter((r) => !r.error);
+            const errorResults = results.filter((r) => r.error);
 
-            res.status(errorResults.length ? 207 : 200).json({
-                status: errorResults.length ? 207 : 200,
-                data: successResults.map((r) => r.datum),
-                errors: errorResults.map((r) => r.error)
+            this.sendResponse(res, {
+                status: 200,
+                data: {
+                    success: successResults.map((r) => r.datum),
+                    errors: errorResults.map((r) => r.error)
+                },
+                error: null
             });
         } catch (error) {
-            res.status(500).json({ error: 'Failed to update files' });
+            this.handleError(error as Error, res);
         }
     }
 
     async deleteAssets(req: Request, res: Response): Promise<void> {
         try {
             const { uuids } = req.body;
+
+            if (!Array.isArray(uuids)) {
+                this.sendResponse(res, {
+                    status: 400,
+                    data: null,
+                    error: 'uuids must be an array'
+                });
+                return;
+            }
+
             const results = await Promise.all(uuids.map((uuid) => this.fileService.deleteFile(uuid)));
 
-            const successResults = results.filter((r) => r.status === 200);
-            const errorResults = results.filter((r) => r.status !== 200);
+            const successResults = results.filter((r) => !r.error);
+            const errorResults = results.filter((r) => r.error);
 
-            res.status(errorResults.length ? 207 : 200).json({
-                status: errorResults.length ? 207 : 200,
-                data: successResults.map((r) => r.datum),
-                errors: errorResults.map((r) => r.error)
+            this.sendResponse(res, {
+                status: 200,
+                data: {
+                    success: successResults.map((r) => r.datum),
+                    errors: errorResults.map((r) => r.error)
+                },
+                error: null
             });
         } catch (error) {
-            res.status(500).json({ error: 'Failed to delete files' });
+            this.handleError(error as Error, res);
         }
     }
 }
 
-const filesController = new FilesController();
-export default filesController;
+export const filesController = new FilesController();

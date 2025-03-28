@@ -7,11 +7,31 @@ import { logger } from '../../../utils/logs/winston';
 import { BasePersistence } from '../basePersistence';
 import { validateFileForAdd } from '../validators/file.validator';
 import { redisHandler } from './connection';
-import { RedisOperations } from './operation';
 
 export class RedisCatalogRepository extends BasePersistence {
     protected storageType = 'REDIS';
     private isConnected = false;
+    private readonly catalogKey: string = 'catalog';
+
+    constructor() {
+        super();
+        this.initCatalogIfEmpty();
+    }
+
+    private async initCatalogIfEmpty(): Promise<void> {
+        try {
+            await redisHandler.connectClient();
+            const catalogData = await redisHandler.getAsync(this.catalogKey);
+            if (!catalogData) {
+                logger.info('Initializing empty catalog in Redis');
+                await redisHandler.setAsync(this.catalogKey, JSON.stringify([]));
+            }
+        } catch (error) {
+            logger.error(`Error initializing catalog: ${error}`);
+        } finally {
+            await redisHandler.disconnectClient();
+        }
+    }
 
     private async ensureConnected(): Promise<void> {
         if (!this.isConnected) {
@@ -30,14 +50,24 @@ export class RedisCatalogRepository extends BasePersistence {
     async getAll(): Promise<ICatalogResponseMulti> {
         try {
             logger.info('Getting all files from Redis catalog');
-
             await this.ensureConnected();
+            const catalogData = await redisHandler.getAsync(this.catalogKey);
 
-            const result = await RedisOperations.getAllFiles();
-            return result;
+            if (!catalogData) {
+                await this.initCatalogIfEmpty();
+                return ApiResponse.successMulti([]);
+            }
+
+            try {
+                const files = JSON.parse(catalogData);
+                return ApiResponse.successMulti(files);
+            } catch (parseError) {
+                logger.error(`Error parsing catalog data: ${parseError}`);
+                return ApiResponse.errorMulti(`Failed to parse catalog data: ${parseError}`, []);
+            }
         } catch (error) {
-            logger.error(`Error getting all files from Redis: ${error}`);
-            return this.createMultiErrorResponse([`Failed to get catalog from Redis: ${error}`]);
+            logger.error(`Error getting catalog: ${error}`);
+            return ApiResponse.errorMulti(`Failed to get catalog: ${error}`, []);
         }
     }
 
@@ -48,14 +78,24 @@ export class RedisCatalogRepository extends BasePersistence {
             }
 
             logger.info(`Getting file with UUID ${uuid} from Redis catalog`);
-
             await this.ensureConnected();
+            const catalogData = await redisHandler.getAsync(this.catalogKey);
 
-            const result = await RedisOperations.getOneFile(uuid);
-            return result;
+            if (!catalogData) {
+                return ApiResponse.notFound(`File with UUID ${uuid} not found`);
+            }
+
+            const files = JSON.parse(catalogData);
+            const file = files.find((f) => f.uuid === uuid);
+
+            if (!file) {
+                return ApiResponse.notFound(`File with UUID ${uuid} not found`);
+            }
+
+            return ApiResponse.successWithDatum(file);
         } catch (error) {
-            logger.error(`Error getting file from Redis: ${error}`);
-            return this.createErrorResponse(`Failed to get file from Redis: ${error}`);
+            logger.error(`Error getting file by UUID: ${error}`);
+            return this.createErrorResponse(`Failed to get file: ${error}`);
         }
     }
 
@@ -63,11 +103,9 @@ export class RedisCatalogRepository extends BasePersistence {
         try {
             logger.info(`Adding file ${file.filename} to Redis catalog`);
 
-            // Get all files for validation
             const allFilesResponse = await this.getAll();
             const existingFiles = allFilesResponse.data || [];
 
-            // Validate file
             const validationErrors = validateFileForAdd(file, existingFiles);
             if (validationErrors) {
                 logger.error(`Validation errors when adding file: ${JSON.stringify(validationErrors)}`);
@@ -75,12 +113,24 @@ export class RedisCatalogRepository extends BasePersistence {
             }
 
             await this.ensureConnected();
+            const catalogData = await redisHandler.getAsync(this.catalogKey);
 
-            const result = await RedisOperations.addOneFile(file);
-            return result;
+            let files = [];
+            if (catalogData) {
+                files = JSON.parse(catalogData);
+            }
+
+            if (file.uuid && files.some((f) => f.uuid === file.uuid)) {
+                return ApiResponse.errorWithDatum(`File with UUID ${file.uuid} already exists`);
+            }
+
+            files.push(file);
+            await redisHandler.setAsync(this.catalogKey, JSON.stringify(files));
+
+            return ApiResponse.successWithDatum(file);
         } catch (error) {
             logger.error(`Error adding file to Redis: ${error}`);
-            return this.createErrorResponse(`Failed to add file to Redis: ${error}`);
+            return this.createErrorResponse(`Failed to add file: ${error}`);
         }
     }
 
@@ -96,7 +146,6 @@ export class RedisCatalogRepository extends BasePersistence {
                 return this.createMultiErrorResponse(['No files provided for addition']);
             }
 
-            // Validate files
             const validationErrors = this.validateFilesBeforeAdd(files);
             if (validationErrors) {
                 logger.error(`Validation errors when adding files: ${JSON.stringify(validationErrors)}`);
@@ -104,12 +153,20 @@ export class RedisCatalogRepository extends BasePersistence {
             }
 
             await this.ensureConnected();
+            const catalogData = await redisHandler.getAsync(this.catalogKey);
 
-            const result = await RedisOperations.addMultipleFiles(files);
-            return result;
+            let existingFiles = [];
+            if (catalogData) {
+                existingFiles = JSON.parse(catalogData);
+            }
+
+            const newFiles = [...existingFiles, ...files];
+            await redisHandler.setAsync(this.catalogKey, JSON.stringify(newFiles));
+
+            return ApiResponse.successMulti(files);
         } catch (error) {
             logger.error(`Error adding multiple files to Redis: ${error}`);
-            return this.createMultiErrorResponse([`Failed to add files to Redis: ${error}`]);
+            return this.createMultiErrorResponse([`Failed to add files: ${error}`]);
         }
     }
 
@@ -126,70 +183,85 @@ export class RedisCatalogRepository extends BasePersistence {
             }
 
             logger.info(`Updating file with UUID ${uuid} in Redis catalog`);
-
             await this.ensureConnected();
+            const catalogData = await redisHandler.getAsync(this.catalogKey);
 
-            const result = await RedisOperations.updateOneFile(uuid, fileData);
-            return result;
+            if (!catalogData) {
+                return ApiResponse.notFound(`File with UUID ${uuid} not found`);
+            }
+
+            const files = JSON.parse(catalogData);
+            const fileIndex = files.findIndex((f) => f.uuid === uuid);
+
+            if (fileIndex === -1) {
+                return ApiResponse.notFound(`File with UUID ${uuid} not found`);
+            }
+
+            const updatedFile = { ...files[fileIndex], ...fileData };
+            files[fileIndex] = updatedFile;
+
+            await redisHandler.setAsync(this.catalogKey, JSON.stringify(files));
+
+            return ApiResponse.successWithDatum(updatedFile);
         } catch (error) {
             logger.error(`Error updating file in Redis: ${error}`);
-            return this.createErrorResponse(`Failed to update file in Redis: ${error}`);
+            return this.createErrorResponse(`Failed to update file: ${error}`);
         }
     }
 
-    async delete(uuid: string): Promise<ICatalogResponse> {
+    async delete(uuid: string): Promise<void> {
         try {
             if (!uuid || typeof uuid !== 'string') {
-                return this.createErrorResponse('Invalid UUID format', 400);
+                return;
             }
 
             logger.info(`Deleting file with UUID ${uuid} from Redis catalog`);
-
             await this.ensureConnected();
+            const catalogData = await redisHandler.getAsync(this.catalogKey);
 
-            const result = await RedisOperations.deleteOneFile(uuid);
-            return result;
+            if (!catalogData) {
+                return;
+            }
+
+            const files = JSON.parse(catalogData);
+            const fileIndex = files.findIndex((f) => f.uuid === uuid);
+
+            if (fileIndex === -1) {
+                return;
+            }
+
+            files.splice(fileIndex, 1);
+            await redisHandler.setAsync(this.catalogKey, JSON.stringify(files));
         } catch (error) {
             logger.error(`Error deleting file from Redis: ${error}`);
-            return this.createErrorResponse(`Failed to delete file from Redis: ${error}`);
+            throw error;
         }
     }
 
     async deleteAll(): Promise<ICatalogResponseMulti> {
         try {
             logger.info('Deleting all files from Redis catalog');
-
-            const filesResponse = await this.getAll();
-
-            if (filesResponse.status !== 200 || !filesResponse.data) {
-                return filesResponse;
-            }
-
             await this.ensureConnected();
-
-            for (const file of filesResponse.data) {
-                if (file.uuid) {
-                    await redisHandler.delAsync(file.uuid);
-                }
-            }
-
-            return this.createMultiSuccessResponse([]);
+            await redisHandler.setAsync(this.catalogKey, JSON.stringify([]));
+            return ApiResponse.successMulti([]);
         } catch (error) {
             logger.error(`Error deleting all files from Redis: ${error}`);
-            return this.createMultiErrorResponse([`Failed to delete all files from Redis: ${error}`]);
+            return this.createMultiErrorResponse([`Failed to delete all files: ${error}`]);
         }
     }
 
-    async createDump(): Promise<ICatalogResponseMulti> {
+    async createDump(): Promise<{ status: number; data: string[]; errors: string[] }> {
         try {
             logger.info('Creating dump of Redis catalog');
-
             const fileVersion = getCurrentDateVersion();
-
             const filesResponse = await this.getAll();
 
             if (filesResponse.status !== 200 || !filesResponse.data) {
-                return filesResponse;
+                return {
+                    status: filesResponse.status,
+                    data: [],
+                    errors: filesResponse.errors || []
+                };
             }
 
             const filePath = `${app.locals.PREFIXED_CATALOG}/${fileVersion}.json`;
@@ -201,13 +273,40 @@ export class RedisCatalogRepository extends BasePersistence {
             });
 
             if (postBackupFileJson.status !== 200) {
-                return ApiResponse.createMultiErrorResponse(['Failed to upload JSON in backup']);
+                return {
+                    status: 500,
+                    data: [],
+                    errors: ['Failed to upload JSON in backup']
+                };
             }
 
-            return ApiResponse.createMultiErrorResponse([`Dump created successfully at ${filePath}`], 200);
+            return {
+                status: 200,
+                data: filesResponse.data.map((file) => JSON.stringify(file)),
+                errors: []
+            };
         } catch (error) {
             logger.error(`Error creating dump: ${error}`);
-            return ApiResponse.createMultiErrorResponse([`Failed to create dump: ${error}`]);
+            return {
+                status: 500,
+                data: [],
+                errors: [`Failed to create dump: ${error}`]
+            };
         }
+    }
+
+    async find(id: string): Promise<IFile | null> {
+        const response = await this.getByUuid(id);
+        return response.datum || null;
+    }
+
+    async findAll(): Promise<IFile[]> {
+        const response = await this.getAll();
+        return response.data || [];
+    }
+
+    async save(file: IFile): Promise<IFile> {
+        const response = await this.add(file);
+        return response.datum;
     }
 }

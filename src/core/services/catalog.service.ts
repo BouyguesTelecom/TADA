@@ -2,66 +2,70 @@ import { PersistenceFactory } from '../../infrastructure/persistence/factory';
 import { logger } from '../../utils/logs/winston';
 import { ICatalogRepository, ICatalogResponse, ICatalogResponseMulti, ICatalogService } from '../interfaces/Icatalog';
 import { IFile } from '../interfaces/Ifile';
+import { Catalog } from '../models/catalog.model';
 import { File } from '../models/file.model';
 import { ApiResponse } from '../models/response.model';
 
 export class CatalogService implements ICatalogService {
     private repository: ICatalogRepository;
+    private catalog: Catalog;
 
     constructor(repository?: ICatalogRepository) {
+        this.repository = repository || PersistenceFactory.createRepository();
+        this.catalog = new Catalog();
+    }
+
+    private async refreshCatalog(): Promise<void> {
         try {
-            this.repository = repository || PersistenceFactory.createRepository();
-
-            if (!this.repository) {
-                logger.error('Failed to initialize repository in CatalogService');
-                throw new Error('Failed to initialize repository');
-            }
-
-            logger.info('CatalogService initialized successfully');
+            logger.info('Refreshing catalog...');
+            const files = await this.repository.findAll();
+            logger.info(`Found ${files.length} files in repository`);
+            this.catalog = new Catalog(files);
+            logger.info('Catalog refreshed successfully');
         } catch (error) {
-            logger.error(`Error in CatalogService constructor: ${error}`);
-            throw new Error(`Failed to initialize CatalogService: ${error}`);
+            logger.error(`Error refreshing catalog: ${error.message}`);
+            throw error;
         }
     }
 
     async getFiles(): Promise<ICatalogResponseMulti> {
         try {
-            logger.info('Getting all files from catalog');
-            return await this.repository.getAll();
+            logger.info('Getting all files from catalog...');
+            await this.refreshCatalog();
+            const files = this.catalog.getAllFiles();
+            logger.info(`Successfully retrieved ${files.length} files from catalog`);
+            return ApiResponse.successMulti(files);
         } catch (error) {
-            logger.error(`Error in CatalogService.getFiles: ${error}`);
-            return {
-                status: 500,
-                data: [],
-                errors: [`Failed to get files: ${error}`]
-            };
+            logger.error(`Error getting files: ${error.message}`);
+            return ApiResponse.errorMulti(`Failed to get files: ${error.message}`, []);
         }
     }
 
-    async getFile({ uuid }: { uuid: string }): Promise<ICatalogResponse> {
+    async getFile(uuid: string): Promise<ICatalogResponse> {
         try {
-            logger.info(`Getting file with UUID: ${uuid}`);
-            return await this.repository.getByUuid(uuid);
+            if (!uuid) {
+                return ApiResponse.validationError('UUID is required');
+            }
+
+            const file = await this.repository.find(uuid);
+            if (!file) {
+                return ApiResponse.notFound(`File with UUID ${uuid} not found`);
+            }
+
+            return ApiResponse.successWithDatum(file);
         } catch (error) {
-            logger.error(`Error in CatalogService.getFile: ${error}`);
-            return {
-                status: 500,
-                datum: null,
-                error: `Failed to get file: ${error}`
-            };
+            logger.error(`Error getting file: ${error.message}`);
+            return ApiResponse.errorWithDatum(error.message);
         }
     }
 
-    async addFile(fileData: IFile): Promise<ICatalogResponse> {
+    async addFile(fileData: Partial<IFile>): Promise<ICatalogResponse> {
         try {
-            logger.info('Adding file to catalog');
-
             if (!fileData.filename) {
-                return ApiResponse.createErrorResponse('Filename is required', 400);
+                return ApiResponse.validationError('Filename is required');
             }
 
             const cleanedData = { ...fileData };
-
             delete cleanedData.toWebp;
 
             if (!cleanedData.public_url && cleanedData.unique_name) {
@@ -69,151 +73,104 @@ export class CatalogService implements ICatalogService {
                 cleanedData.public_url = `${baseHost}/assets/media/full${cleanedData.unique_name}`;
             }
 
-            const file = new File(cleanedData);
+            const file = await File.create(cleanedData);
+            const savedFile = await this.repository.save(file);
+            await this.refreshCatalog();
 
-            return await this.repository.add(file);
+            return ApiResponse.successWithDatum(savedFile, 201);
         } catch (error) {
-            logger.error(`Error in CatalogService.addFile: ${error}`);
-            return {
-                status: 500,
-                datum: null,
-                error: `Failed to add file: ${error}`
-            };
+            logger.error(`Error adding file: ${error.message}`);
+            return ApiResponse.errorWithDatum(error.message);
         }
     }
 
     async addFiles(filesData: IFile[]): Promise<ICatalogResponseMulti> {
         try {
-            logger.info('Adding multiple files to catalog');
-
-            if (!filesData || !filesData.length) {
-                return {
-                    status: 400,
-                    data: null,
-                    errors: ['No files provided for addition']
-                };
+            if (!filesData?.length) {
+                return ApiResponse.errorMulti('No files provided for addition', []);
             }
 
-            const files = filesData.map((fileData) => new File(fileData));
+            const files = await Promise.all(filesData.map((fileData) => File.from(fileData)));
+            const result = await this.repository.addMany(files);
 
-            return await this.repository.addMany(files);
+            if (result.status === 201 && result.data) {
+                await this.refreshCatalog();
+            }
+
+            return result;
         } catch (error) {
             logger.error(`Error in CatalogService.addFiles: ${error}`);
-            return {
-                status: 500,
-                data: null,
-                errors: [`Failed to add files: ${error}`]
-            };
+            return ApiResponse.errorMulti(`Failed to add files: ${error}`, []);
         }
     }
 
     async updateFile(uuid: string, fileData: Partial<IFile>): Promise<ICatalogResponse> {
         try {
-            logger.info(`Updating file with UUID: ${uuid}`);
-
             if (!uuid) {
-                return {
-                    status: 400,
-                    datum: null,
-                    error: 'UUID is required'
-                };
+                return ApiResponse.validationError('UUID is required');
             }
 
-            return await this.repository.update(uuid, fileData);
+            const existingFile = await this.repository.find(uuid);
+            if (!existingFile) {
+                return ApiResponse.notFound(`File with UUID ${uuid} not found`);
+            }
+
+            const updatedFile = await this.repository.save({ ...existingFile, ...fileData });
+            await this.refreshCatalog();
+
+            return ApiResponse.successWithDatum(updatedFile);
         } catch (error) {
-            logger.error(`Error in CatalogService.updateFile: ${error}`);
-            return {
-                status: 500,
-                datum: null,
-                error: `Failed to update file: ${error}`
-            };
+            logger.error(`Error updating file: ${error.message}`);
+            return ApiResponse.errorWithDatum(error.message);
         }
     }
 
-    async deleteFile(uniqueName: string): Promise<ICatalogResponse> {
+    async deleteFile(uuid: string): Promise<ICatalogResponse> {
         try {
-            logger.info(`Deleting file with unique name: ${uniqueName}`);
-
-            if (!uniqueName) {
-                return {
-                    status: 400,
-                    datum: null,
-                    error: 'Unique name is required'
-                };
+            if (!uuid) {
+                return ApiResponse.validationError('UUID is required');
             }
 
-            const catalog = await this.getFiles();
-
-            if (catalog.status !== 200 || !catalog.data) {
-                return {
-                    status: 500,
-                    datum: null,
-                    error: 'Failed to access catalog'
-                };
+            const file = await this.repository.find(uuid);
+            if (!file) {
+                return ApiResponse.notFound(`File with UUID ${uuid} not found`);
             }
 
-            const file = catalog.data.find((item) => item.unique_name === uniqueName);
+            await this.repository.delete(uuid);
+            await this.refreshCatalog();
 
-            if (!file || !file.uuid) {
-                return {
-                    status: 404,
-                    datum: null,
-                    error: 'File not found'
-                };
-            }
-
-            return await this.repository.delete(file.uuid);
+            return ApiResponse.successWithDatum(file);
         } catch (error) {
-            logger.error(`Error in CatalogService.deleteFile: ${error}`);
-            return {
-                status: 500,
-                datum: null,
-                error: `Failed to delete file: ${error}`
-            };
+            logger.error(`Error deleting file: ${error.message}`);
+            return ApiResponse.errorWithDatum(error.message);
         }
     }
 
     async deleteAllFiles(): Promise<ICatalogResponseMulti> {
         try {
-            logger.info('Deleting all files from catalog');
-            return await this.repository.deleteAll();
+            const result = await this.repository.deleteAll();
+            if (result.status === 200) {
+                await this.refreshCatalog();
+            }
+            return result;
         } catch (error) {
             logger.error(`Error in CatalogService.deleteAllFiles: ${error}`);
-            return {
-                status: 500,
-                data: null,
-                errors: [`Failed to delete files: ${error}`]
-            };
+            return ApiResponse.errorMulti(`Failed to delete files: ${error}`, []);
         }
     }
 
     async createDump(): Promise<{ status: number; data: string[]; errors: string[] }> {
         try {
-            logger.info('Creating catalog dump');
-            const result = await this.repository.createDump();
-
-            return {
-                status: result.status,
-                data: ['Succesfully created dump !'],
-                errors: []
-            };
+            return await this.repository.createDump();
         } catch (error) {
-            logger.error(`Error in CatalogService.createDump: ${error}`);
+            logger.error(`Error creating dump: ${error.message}`);
             return {
                 status: 500,
                 data: [],
-                errors: [`Failed to create dump: ${error}`]
+                errors: [error.message]
             };
         }
     }
 }
 
-let catalogService: CatalogService;
-try {
-    catalogService = new CatalogService();
-    logger.info('Default catalogService instance created successfully');
-} catch (error) {
-    logger.error(`Failed to create default catalogService instance: ${error}`);
-}
-
-export default catalogService;
+export const catalogService = new CatalogService();

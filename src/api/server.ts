@@ -2,11 +2,12 @@ import fs from 'fs';
 import { Server } from 'http';
 import fetch from 'node-fetch';
 import { IStorage } from '../core/interfaces/Istorage';
-import catalogService from '../core/services/catalog.service';
 import { RedisHandler } from '../infrastructure/persistence/redis/connection';
 import { StorageFactory } from '../infrastructure/storage/factory';
 import { logger } from '../utils/logs/winston';
 import { Application } from './app';
+
+//TODO verif que je récup bien l'image depuis le pod ou bien de la public_url
 
 export class ApplicationServer {
     private readonly port: number;
@@ -55,7 +56,7 @@ export class ApplicationServer {
         while (attempts < maxRetries) {
             try {
                 await this.redisConnection.connectClient();
-                await catalogService.getFiles();
+                logger.info('Successfully connected to Redis');
                 return;
             } catch (error) {
                 attempts++;
@@ -95,7 +96,7 @@ export class ApplicationServer {
                 logger.info("dump.rdb doesn't exist: getting latest dump from backup ✅");
                 const lastDump = await this.storage.getLastDump();
 
-                if (!lastDump || !lastDump.length) {
+                if (!lastDump || !lastDump.data) {
                     throw new Error(`Failed to get last dump`);
                 }
 

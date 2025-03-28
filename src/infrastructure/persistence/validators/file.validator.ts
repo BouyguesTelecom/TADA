@@ -44,13 +44,13 @@ export function validateFiles(files: IFile[]): Joi.ValidationErrorItem[] | null 
 
 export function validateFileBeforeUpdate(fileData: Partial<IFile>): string | null {
     const updateSchema = Joi.object({
-        filename: Joi.string().optional(),
-        namespace: Joi.string().optional(),
+        filename: Joi.string().required(),
+        namespace: Joi.string().required(),
         expiration_date: Joi.date().allow(null).optional(),
         expired: Joi.boolean().optional(),
         external_id: Joi.string().allow(null).optional(),
-        uuid: Joi.string().optional(),
-        unique_name: Joi.string().optional(),
+        uuid: Joi.string().required(),
+        unique_name: Joi.string().required(),
         version: Joi.number().optional(),
         public_url: Joi.string().optional(),
         original_filename: Joi.string().optional(),

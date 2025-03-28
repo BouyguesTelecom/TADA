@@ -1,15 +1,19 @@
 import fs from 'fs';
 import path from 'path';
-import catalogService from '../../../core/services/catalog.service';
+import { IFile } from '../../../core/interfaces/Ifile';
+import { IStorageResponse } from '../../../core/interfaces/Istorage';
+import { CatalogService } from '../../../core/services/catalog.service';
 import { logger } from '../../../utils/logs/winston';
-import { BaseStorage, StorageFileProps, StorageFilesProps, StorageResponse } from '../baseStorage';
+import { BaseStorage, StorageFileProps } from '../baseStorage';
 
 export class StandaloneStorage extends BaseStorage {
     private basePath: string;
+    private catalogService: CatalogService;
 
     constructor() {
         super('STANDALONE');
         this.basePath = '/tmp/standalone';
+        this.catalogService = new CatalogService();
         this.ensureBaseDirectoryExists();
     }
 
@@ -51,11 +55,11 @@ export class StandaloneStorage extends BaseStorage {
         }
     }
 
-    async getLastDump(): Promise<StorageResponse> {
+    protected async getLastDumpFromStorage(): Promise<IStorageResponse> {
         try {
             const catalogDir = path.join(this.basePath, 'catalog');
             if (!fs.existsSync(catalogDir)) {
-                return this.createErrorResponse(404, 'Catalog directory not found');
+                return this.createErrorResponse('Catalog directory not found');
             }
 
             const files = fs
@@ -64,7 +68,7 @@ export class StandaloneStorage extends BaseStorage {
                 .map((file) => ({ name: file, path: path.join(catalogDir, file) }));
 
             if (files.length === 0) {
-                return this.createErrorResponse(404, 'No dump files found');
+                return this.createErrorResponse('No dump files found');
             }
 
             files.sort((a, b) => {
@@ -76,16 +80,16 @@ export class StandaloneStorage extends BaseStorage {
             const parsedData = JSON.parse(data);
 
             if (Array.isArray(parsedData) && parsedData.length > 0) {
-                await catalogService.addFiles(parsedData);
+                await this.catalogService.addFiles(parsedData);
             }
 
             return this.createSuccessResponse(parsedData, `Loaded dump from ${latestDump.name}`);
         } catch (error) {
-            return this.createErrorResponse(500, `Failed to get last dump: ${error}`);
+            return this.createErrorResponse(`Failed to get last dump: ${error}`);
         }
     }
 
-    async getFile(props: StorageFileProps): Promise<StorageResponse> {
+    protected async getFileFromStorage(props: StorageFileProps): Promise<IStorageResponse> {
         const { filepath } = props;
         const fullPath = path.join(this.basePath, filepath);
         try {
@@ -96,84 +100,33 @@ export class StandaloneStorage extends BaseStorage {
             const data = await fs.promises.readFile(fullPath);
             return this.createSuccessResponse(data);
         } catch (error) {
-            return this.createErrorResponse(500, `Failed to get file ${filepath}: ${error}`);
+            return this.createErrorResponse(`Failed to get file ${filepath}: ${error}`);
         }
     }
 
-    async upload(props: StorageFileProps): Promise<StorageResponse> {
+    protected async upload(props: StorageFileProps): Promise<IStorageResponse> {
         const { filepath, file } = props;
         try {
             if (!file) {
-                return this.createErrorResponse(400, 'No file content provided');
+                return this.createErrorResponse('No file content provided');
             }
 
             if (!this.createDirectoryForFile(filepath)) {
-                return this.createErrorResponse(500, `Failed to create directory for ${filepath}`);
+                return this.createErrorResponse(`Failed to create directory for ${filepath}`);
             }
 
             const success = await this.writeFile(filepath, file);
             if (!success) {
-                return this.createErrorResponse(500, `Failed to write file ${filepath}`);
+                return this.createErrorResponse(`Failed to write file ${filepath}`);
             }
 
             return this.createSuccessResponse(null, `File ${filepath} uploaded successfully`);
         } catch (error) {
-            return this.createErrorResponse(500, `Upload failed: ${error}`);
+            return this.createErrorResponse(`Upload failed: ${error}`);
         }
     }
 
-    async uploads(props: StorageFilesProps): Promise<StorageResponse> {
-        try {
-            const { files } = props;
-
-            if (!Array.isArray(files) || !files.length) {
-                return this.createErrorResponse(400, 'Invalid files provided');
-            }
-
-            const results: string[] = [];
-            const errors: string[] = [];
-
-            for (const fileProps of files) {
-                const { filepath, file } = fileProps;
-
-                if (!this.createDirectoryForFile(filepath)) {
-                    errors.push(filepath);
-                    continue;
-                }
-
-                if (!file) {
-                    errors.push(filepath);
-                    continue;
-                }
-
-                const success = await this.writeFile(filepath, file);
-                if (success) {
-                    results.push(filepath);
-                } else {
-                    errors.push(filepath);
-                }
-            }
-
-            return {
-                status: 200,
-                data: null,
-                message: `Uploaded ${results.length} files, failed ${errors.length} files`,
-                results: { success: results, errors }
-            };
-        } catch (error) {
-            return this.createErrorResponse(500, `Upload failed: ${error}`);
-        }
-    }
-
-    async update(props: StorageFileProps): Promise<StorageResponse> {
-        return this.upload(props);
-    }
-
-    async updates(props: StorageFilesProps): Promise<StorageResponse> {
-        return this.uploads(props);
-    }
-
-    async delete(props: StorageFileProps): Promise<StorageResponse> {
+    protected async deleteFromStorage(props: StorageFileProps): Promise<IStorageResponse> {
         const { filepath } = props;
         const fullPath = path.join(this.basePath, filepath);
         try {
@@ -184,46 +137,72 @@ export class StandaloneStorage extends BaseStorage {
             await fs.promises.unlink(fullPath);
             return this.createSuccessResponse(null, `File ${filepath} deleted successfully`);
         } catch (error) {
-            return this.createErrorResponse(500, `Failed to delete file ${filepath}: ${error}`);
+            return this.createErrorResponse(`Failed to delete file ${filepath}: ${error}`);
         }
     }
 
-    async deleteFiles(props: StorageFilesProps): Promise<StorageResponse> {
+    async uploads(files: Array<{ filepath: string; file?: Buffer; metadata?: Partial<IFile> }>): Promise<IStorageResponse> {
         try {
-            const { files } = props;
-
             if (!Array.isArray(files) || !files.length) {
-                return this.createErrorResponse(400, 'Invalid files provided');
+                return this.createErrorResponse('Invalid files provided');
             }
 
             const results: string[] = [];
             const errors: string[] = [];
 
-            for (const fileProps of files) {
-                const { filepath } = fileProps;
-                const fullPath = path.join(this.basePath, filepath);
+            for (const file of files) {
+                if (!file.file) {
+                    errors.push(file.filepath);
+                    continue;
+                }
+
+                if (!this.createDirectoryForFile(file.filepath)) {
+                    errors.push(file.filepath);
+                    continue;
+                }
+
+                const success = await this.writeFile(file.filepath, file.file);
+                if (success) {
+                    results.push(file.filepath);
+                } else {
+                    errors.push(file.filepath);
+                }
+            }
+
+            return this.createSuccessResponse({ success: results, errors }, `Uploaded ${results.length} files, failed ${errors.length} files`);
+        } catch (error) {
+            return this.createErrorResponse(`Upload failed: ${error}`);
+        }
+    }
+
+    async deleteFiles(files: Array<{ filepath: string }>): Promise<IStorageResponse> {
+        try {
+            if (!Array.isArray(files) || !files.length) {
+                return this.createErrorResponse('Invalid files provided');
+            }
+
+            const results: string[] = [];
+            const errors: string[] = [];
+
+            for (const file of files) {
+                const fullPath = path.join(this.basePath, file.filepath);
 
                 if (!fs.existsSync(fullPath)) {
-                    errors.push(filepath);
+                    errors.push(file.filepath);
                     continue;
                 }
 
                 try {
                     await fs.promises.unlink(fullPath);
-                    results.push(filepath);
+                    results.push(file.filepath);
                 } catch (error) {
-                    errors.push(filepath);
+                    errors.push(file.filepath);
                 }
             }
 
-            return {
-                status: 200,
-                data: null,
-                message: `Deleted ${results.length} files, failed ${errors.length} files`,
-                results: { success: results, errors }
-            };
+            return this.createSuccessResponse({ success: results, errors }, `Deleted ${results.length} files, failed ${errors.length} files`);
         } catch (error) {
-            return this.createErrorResponse(500, `Delete operation failed: ${error}`);
+            return this.createErrorResponse(`Delete operation failed: ${error}`);
         }
     }
 }

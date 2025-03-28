@@ -1,17 +1,121 @@
-import express from 'express';
-import catalogController from '../controllers/catalog.controller';
-import { redisConnectionMiddleware } from '../middleware/redisMiddleware';
+/**
+ * @swagger
+ * tags:
+ *   name: Catalog
+ *   description: Catalog management
+ */
 
-const router = express.Router();
+import { Router } from 'express';
+import { catalogController } from '../controllers/catalog.controller';
+import { redisMiddleware } from '../middleware/redis.middleware';
 
-router.use(redisConnectionMiddleware);
+const router = Router();
 
-router.get('/', catalogController.getFiles.bind(catalogController));
-router.get('/:id', catalogController.getFile.bind(catalogController));
-router.post('/', catalogController.addFile.bind(catalogController));
-router.patch('/:id', catalogController.updateFile.bind(catalogController));
-router.delete('/:id', catalogController.deleteFile.bind(catalogController));
-router.delete('/', catalogController.deleteAllFiles.bind(catalogController));
-router.post('/create-dump', catalogController.createDump.bind(catalogController));
+router.use(redisMiddleware);
 
-export default router;
+/**
+ * @swagger
+ * /catalog:
+ *   get:
+ *     summary: Retrieve a list of files
+ *     tags: [Catalog]
+ *     responses:
+ *       200:
+ *         description: A list of files
+ */
+router.get('/catalog', catalogController.getFiles);
+
+/**
+ * @swagger
+ * /catalog/{id}:
+ *   get:
+ *     summary: Retrieve a single file
+ *     tags: [Catalog]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The file id
+ *     responses:
+ *       200:
+ *         description: A single file
+ */
+router.get('/catalog/:id', catalogController.getFile);
+
+/**
+ * @swagger
+ * /catalog:
+ *   post:
+ *     summary: Add a file to the catalog
+ *     tags: [Catalog]
+ *     responses:
+ *       201:
+ *         description: File added
+ */
+router.post('/catalog', catalogController.addFile);
+
+/**
+ * @swagger
+ * /catalog/{id}:
+ *   patch:
+ *     summary: Update a file in the catalog
+ *     tags: [Catalog]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The file id
+ *     responses:
+ *       200:
+ *         description: File updated
+ */
+router.patch('/catalog/:id', catalogController.updateFile);
+
+/**
+ * @swagger
+ * /catalog/{id}:
+ *   delete:
+ *     summary: Delete a file from the catalog
+ *     tags: [Catalog]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The file id
+ *     responses:
+ *       200:
+ *         description: File deleted
+ */
+router.delete('/catalog/:id', catalogController.deleteFile);
+
+/**
+ * @swagger
+ * /catalog:
+ *   delete:
+ *     summary: Delete all files from the catalog
+ *     tags: [Catalog]
+ *     responses:
+ *       200:
+ *         description: All files deleted
+ */
+router.delete('/catalog', catalogController.deleteAllFiles);
+
+/**
+ * @swagger
+ * /catalog/create-dump:
+ *   post:
+ *     summary: Create a dump of the catalog
+ *     tags: [Catalog]
+ *     responses:
+ *       201:
+ *         description: Dump created
+ */
+router.post('/catalog/create-dump', catalogController.createDump);
+
+export { router };

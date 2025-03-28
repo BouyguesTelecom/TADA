@@ -1,96 +1,40 @@
 import { ICatalogResponse, ICatalogResponseMulti } from '../interfaces/Icatalog';
 import { IFile } from '../interfaces/Ifile';
-import { File } from './file.model';
 
 export class ApiResponse {
-    // success for one file
-    static createSuccessResponse(file: File | IFile, status: number = 200): ICatalogResponse {
-        const fileInstance = file instanceof File ? file : new File(file);
-
-        return {
-            status,
-            datum: fileInstance.toJSON(),
-            error: null
-        };
+    static success<T>(data: T, status = 200, message?: string): { status: number; data: T; error: null; message?: string } {
+        return { status, data, error: null, message };
     }
 
-    // success for multiple files
-    static createMultiSuccessResponse(files: Array<File | IFile>, status: number = 200, message?: string | null): ICatalogResponseMulti {
-        const fileInstances = files.map((file) => (file instanceof File ? file : new File(file)));
-
-        return {
-            status,
-            data: fileInstances.map((f) => f.toJSON()),
-            message: message || null,
-            errors: null
-        };
+    static error(message: string, status = 500): { status: number; data: null; error: string } {
+        return { status, data: null, error: message };
     }
 
-    // empty success response for multiple files
-    static createEmptyMultiSuccessResponse(status: number = 200, message?: string | null): ICatalogResponseMulti {
-        return {
-            status,
-            data: [],
-            message: message || null,
-            errors: null
-        };
+    static notFound(message = 'File not found'): ICatalogResponse {
+        return { status: 404, datum: null, error: message };
     }
 
-    // error for 1 file
-    static createErrorResponse(error: string, status: number = 500): ICatalogResponse {
-        return {
-            status,
-            datum: null,
-            error
-        };
+    static validationError(message: string): ICatalogResponse {
+        return { status: 400, datum: null, error: message };
     }
 
-    // validation error for 1 file
-    static createValidationErrorResponse(validationError: string): ICatalogResponse {
-        return {
-            status: 400,
-            datum: null,
-            error: validationError
-        };
+    static createErrorResponse(message: string, status: number = 500): ICatalogResponse {
+        return { status, datum: null, error: message };
     }
 
-    // error for multiple files
-    static createMultiErrorResponse(errors: string[], status: number = 500, message?: string | null): ICatalogResponseMulti {
-        return {
-            status,
-            data: null,
-            message: message || null,
-            errors
-        };
+    static successWithDatum(data: IFile, status = 200): ICatalogResponse {
+        return { status, datum: data, error: null };
     }
 
-    // validation error for multiple files
-    static createMultiValidationErrorResponse(validationErrors: string[]): ICatalogResponseMulti {
-        return {
-            status: 400,
-            data: null,
-            errors: validationErrors
-        };
+    static errorWithDatum(message: string, status = 500): ICatalogResponse {
+        return { status, datum: null, error: message };
     }
 
-    // error not found
-    static createNotFoundResponse(message: string = 'File not found'): ICatalogResponse {
-        return {
-            status: 404,
-            datum: null,
-            error: message
-        };
+    static successMulti(data: IFile[]): ICatalogResponseMulti {
+        return { status: 200, data, errors: null };
     }
 
-    // create partial success response for mixed results
-    static createPartialSuccessResponse(files: Array<File | IFile>, errors: string[], message?: string | null): ICatalogResponseMulti {
-        const fileInstances = files.map((file) => (file instanceof File ? file : new File(file)));
-
-        return {
-            status: 207,
-            data: fileInstances.map((f) => f.toJSON()),
-            message: message || null,
-            errors
-        };
+    static errorMulti(message: string, errors: string[]): ICatalogResponseMulti {
+        return { status: 500, data: null, errors };
     }
 }

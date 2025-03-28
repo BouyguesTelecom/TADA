@@ -32,8 +32,11 @@ export class RedisHandler {
     public async connectClient(): Promise<void> {
         try {
             if (!redisClient.isOpen) {
+                logger.info('Attempting to connect to Redis...');
                 await redisClient.connect();
                 logger.info('Connected to Redis and ready for operations.');
+            } else {
+                logger.info('Redis client already connected');
             }
         } catch (err) {
             logger.error(`Error connecting to Redis: ${err.message}`);
@@ -49,23 +52,63 @@ export class RedisHandler {
     }
 
     public async getAsync(key: string): Promise<string | null> {
-        return await redisClient.get(key);
+        try {
+            logger.info(`Getting key: ${key}`);
+            const result = await redisClient.get(key);
+            logger.info(`Got key: ${key}, result: ${result ? 'exists' : 'not found'}`);
+            return result;
+        } catch (err) {
+            logger.error(`Error getting key ${key}: ${err.message}`);
+            throw err;
+        }
     }
 
     public async setAsync(key: string, value: string): Promise<string | null> {
-        return await redisClient.set(key, value);
+        try {
+            logger.info(`Setting key: ${key}`);
+            const result = await redisClient.set(key, value);
+            logger.info(`Set key: ${key}, result: ${result}`);
+            return result;
+        } catch (err) {
+            logger.error(`Error setting key ${key}: ${err.message}`);
+            throw err;
+        }
     }
 
     public async delAsync(key: string): Promise<number> {
-        return await redisClient.del(key);
+        try {
+            logger.info(`Deleting key: ${key}`);
+            const result = await redisClient.del(key);
+            logger.info(`Deleted key: ${key}, result: ${result}`);
+            return result;
+        } catch (err) {
+            logger.error(`Error deleting key ${key}: ${err.message}`);
+            throw err;
+        }
     }
 
     public async keysAsync(pattern: string): Promise<string[]> {
-        return await redisClient.keys(pattern);
+        try {
+            logger.info(`Getting keys with pattern: ${pattern}`);
+            const result = await redisClient.keys(pattern);
+            logger.info(`Got keys with pattern ${pattern}, count: ${result.length}`);
+            return result;
+        } catch (err) {
+            logger.error(`Error getting keys with pattern ${pattern}: ${err.message}`);
+            throw err;
+        }
     }
 
     public async generateDump(): Promise<string> {
-        return redisClient.save();
+        try {
+            logger.info('Generating Redis dump...');
+            const result = await redisClient.save();
+            logger.info('Redis dump generated successfully');
+            return result;
+        } catch (err) {
+            logger.error(`Error generating Redis dump: ${err.message}`);
+            throw err;
+        }
     }
 }
 

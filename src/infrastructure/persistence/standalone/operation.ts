@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import { ICatalogResponse, ICatalogResponseMulti } from '../../../core/interfaces/Icatalog';
 import { IFile } from '../../../core/interfaces/Ifile';
-import { File } from '../../../core/models/file.model';
 import { ApiResponse } from '../../../core/models/response.model';
 import { logger } from '../../../utils/logs/winston';
 import { validateFiles } from '../validators/file.validator';
@@ -28,7 +27,6 @@ export class StandaloneOperations {
 
     public static writeCatalog(files: IFile[]): boolean {
         try {
-            // Ensure the directory exists
             const dir = path.dirname(this.catalogPath);
             if (!fs.existsSync(dir)) {
                 fs.mkdirSync(dir, { recursive: true });
@@ -45,32 +43,30 @@ export class StandaloneOperations {
     public static getAllFiles(): ICatalogResponseMulti {
         try {
             const files = this.readCatalog();
-            const fileInstances = files.map((file) => new File(file));
-
-            return ApiResponse.createMultiSuccessResponse(fileInstances);
+            return ApiResponse.successMulti(files);
         } catch (error) {
             logger.error(`Error getting all files: ${error}`);
-            return ApiResponse.createMultiErrorResponse([`Failed to get catalog: ${error}`]);
+            return ApiResponse.errorMulti(`Failed to get catalog: ${error}`, []);
         }
     }
 
     public static getOneFile(uuid: string): ICatalogResponse {
         try {
             if (!uuid || typeof uuid !== 'string') {
-                return ApiResponse.createErrorResponse('Invalid UUID format', 400);
+                return ApiResponse.validationError('Invalid UUID format');
             }
 
             const files = this.readCatalog();
             const file = files.find((f) => f.uuid === uuid);
 
             if (!file) {
-                return ApiResponse.createErrorResponse(`File with UUID ${uuid} not found`, 404);
+                return ApiResponse.notFound(`File with UUID ${uuid} not found`);
             }
 
-            return ApiResponse.createSuccessResponse(new File(file));
+            return ApiResponse.successWithDatum(file);
         } catch (error) {
             logger.error(`Error getting file by UUID: ${error}`);
-            return ApiResponse.createErrorResponse(`Failed to get file: ${error}`, 500);
+            return ApiResponse.errorWithDatum(`Failed to get file: ${error}`);
         }
     }
 
@@ -89,72 +85,69 @@ export class StandaloneOperations {
             const files = this.readCatalog();
 
             if (file.uuid && this.isUuidExists(file.uuid)) {
-                return ApiResponse.createErrorResponse(`File with UUID ${file.uuid} already exists`, 409);
+                return ApiResponse.errorWithDatum(`File with UUID ${file.uuid} already exists`, 409);
             }
 
             if (file.unique_name && this.isUniqueNameExists(file.unique_name)) {
-                return ApiResponse.createErrorResponse(`File with unique_name ${file.unique_name} already exists`, 409);
+                return ApiResponse.errorWithDatum(`File with unique_name ${file.unique_name} already exists`, 409);
             }
 
-            const fileInstance = new File(file);
-            files.push(fileInstance);
+            files.push(file);
 
             const success = this.writeCatalog(files);
             if (!success) {
-                return ApiResponse.createErrorResponse('Failed to write to catalog file', 500);
+                return ApiResponse.errorWithDatum('Failed to write to catalog file');
             }
 
-            return ApiResponse.createSuccessResponse(fileInstance, 201);
+            return ApiResponse.successWithDatum(file, 201);
         } catch (error) {
             logger.error(`Error adding file: ${error}`);
-            return ApiResponse.createErrorResponse(`Failed to add file: ${error}`, 500);
+            return ApiResponse.errorWithDatum(`Failed to add file: ${error}`);
         }
     }
 
     public static addMultipleFiles(files: IFile[]): ICatalogResponseMulti {
         try {
             if (!Array.isArray(files)) {
-                return ApiResponse.createMultiErrorResponse(['Input must be an array of files'], 400);
+                return ApiResponse.errorMulti('Input must be an array of files', []);
             }
 
             if (files.length === 0) {
-                return ApiResponse.createMultiErrorResponse(['No files provided for addition'], 400);
+                return ApiResponse.errorMulti('No files provided for addition', []);
             }
 
             const validationErrors = validateFiles(files);
             if (validationErrors) {
                 const errorMessages = validationErrors.map((error) => `${error.path.join('.')}: ${error.message}`);
-
-                return ApiResponse.createMultiErrorResponse(errorMessages, 400);
+                return ApiResponse.errorMulti('Files validation failed', errorMessages);
             }
 
             const existingFiles = this.readCatalog();
-            const fileInstances = files.map((file) => new File(file));
-            const updatedFiles = [...existingFiles, ...fileInstances];
+            const updatedFiles = [...existingFiles, ...files];
 
             const success = this.writeCatalog(updatedFiles);
             if (!success) {
-                return ApiResponse.createMultiErrorResponse(['Failed to write to catalog file'], 500);
+                return ApiResponse.errorMulti('Failed to write to catalog file', []);
             }
 
-            return ApiResponse.createMultiSuccessResponse(fileInstances, 201);
+            return ApiResponse.successMulti(files);
         } catch (error) {
             logger.error(`Error adding multiple files: ${error}`);
-            return ApiResponse.createMultiErrorResponse([`Failed to add files: ${error}`], 500);
+            return ApiResponse.errorMulti(`Failed to add files: ${error}`, []);
         }
     }
 
     public static updateOneFile(uuid: string, fileData: Partial<IFile>): ICatalogResponse {
         try {
             if (!uuid || typeof uuid !== 'string') {
-                return ApiResponse.createErrorResponse('Invalid UUID format', 400);
+                return ApiResponse.validationError('Invalid UUID format');
             }
 
             const files = this.readCatalog();
             const fileIndex = files.findIndex((f) => f.uuid === uuid);
 
             if (fileIndex === -1) {
-                return ApiResponse.createErrorResponse(`File with UUID ${uuid} not found`, 404);
+                return ApiResponse.notFound(`File with UUID ${uuid} not found`);
             }
 
             const updatedFile = { ...files[fileIndex], ...fileData };
@@ -162,40 +155,40 @@ export class StandaloneOperations {
 
             const success = this.writeCatalog(files);
             if (!success) {
-                return ApiResponse.createErrorResponse('Failed to write to catalog file', 500);
+                return ApiResponse.errorWithDatum('Failed to write to catalog file');
             }
 
-            return ApiResponse.createSuccessResponse(new File(updatedFile));
+            return ApiResponse.successWithDatum(updatedFile);
         } catch (error) {
             logger.error(`Error updating file: ${error}`);
-            return ApiResponse.createErrorResponse(`Failed to update file: ${error}`, 500);
+            return ApiResponse.errorWithDatum(`Failed to update file: ${error}`);
         }
     }
 
     public static deleteOneFile(uuid: string): ICatalogResponse {
         try {
             if (!uuid || typeof uuid !== 'string') {
-                return ApiResponse.createErrorResponse('Invalid UUID format', 400);
+                return ApiResponse.validationError('Invalid UUID format');
             }
 
             const files = this.readCatalog();
-
             const fileToDelete = files.find((f) => f.uuid === uuid);
+
             if (!fileToDelete) {
-                return ApiResponse.createErrorResponse(`File with UUID ${uuid} not found`, 404);
+                return ApiResponse.notFound(`File with UUID ${uuid} not found`);
             }
 
             const updatedFiles = files.filter((f) => f.uuid !== uuid);
             const success = this.writeCatalog(updatedFiles);
 
             if (!success) {
-                return ApiResponse.createErrorResponse('Failed to write to catalog file', 500);
+                return ApiResponse.errorWithDatum('Failed to write to catalog file');
             }
 
-            return ApiResponse.createSuccessResponse(fileToDelete);
+            return ApiResponse.successWithDatum(fileToDelete);
         } catch (error) {
             logger.error(`Error deleting file: ${error}`);
-            return ApiResponse.createErrorResponse(`Failed to delete file: ${error}`, 500);
+            return ApiResponse.errorWithDatum(`Failed to delete file: ${error}`);
         }
     }
 
@@ -204,26 +197,25 @@ export class StandaloneOperations {
             const success = this.writeCatalog([]);
 
             if (!success) {
-                return ApiResponse.createMultiErrorResponse(['Failed to clear catalog file'], 500);
+                return ApiResponse.errorMulti('Failed to clear catalog file', []);
             }
 
-            return ApiResponse.createMultiSuccessResponse([]);
+            return ApiResponse.successMulti([]);
         } catch (error) {
             logger.error(`Error deleting all files: ${error}`);
-            return ApiResponse.createMultiErrorResponse([`Failed to delete all files: ${error}`], 500);
+            return ApiResponse.errorMulti(`Failed to delete all files: ${error}`, []);
         }
     }
 
     public static createCatalogDump(version: string): ICatalogResponseMulti {
         try {
             const backupPath = path.join('/tmp/standalone', `catalog-backup-${version}.json`);
-
             fs.copyFileSync(this.catalogPath, backupPath);
 
-            return ApiResponse.createMultiSuccessResponse([], 200, `Dump created successfully at ${backupPath}`);
+            return ApiResponse.successMulti([]);
         } catch (error) {
             logger.error(`Error creating dump: ${error}`);
-            return ApiResponse.createMultiErrorResponse([`Failed to create dump: ${error}`], 500);
+            return ApiResponse.errorMulti(`Failed to create dump: ${error}`, []);
         }
     }
 }

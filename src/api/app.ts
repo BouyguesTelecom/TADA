@@ -1,7 +1,9 @@
 import cors from 'cors';
 import express, { Application as ExpressApplication, NextFunction, Request, Response } from 'express';
+import fs from 'fs';
+import path from 'path';
 import { morganMiddleware } from '../utils/logs/morgan';
-import { initRoutes } from './routes';
+import { logger } from '../utils/logs/winston';
 
 export class Application {
     private readonly app: ExpressApplication;
@@ -49,8 +51,30 @@ export class Application {
         this.app.get(`${this.apiPrefix}${process.env.HEALTHCHECK_ROUTE}`, (_req: Request, res: Response) => res.status(200).end());
     }
 
-    private initializeRoutes(): void {
-        initRoutes(this.app, this.apiPrefix);
+    private async initializeRoutes(): Promise<void> {
+        const routersPath = path.join(__dirname, 'routes');
+
+        try {
+            const files = fs.readdirSync(routersPath);
+
+            for (const file of files) {
+                if (file.endsWith('.route.ts')) {
+                    try {
+                        const routerModule = await import(path.join(routersPath, file));
+                        if (routerModule && routerModule.router) {
+                            this.app.use(this.apiPrefix, routerModule.router);
+                            logger.info(`✅ Route ${file} loaded successfully`);
+                        } else {
+                            logger.error(`⛔️ No router found in ${file}`);
+                        }
+                    } catch (error) {
+                        logger.error(`⛔️ Error loading route ${file}: ${error.message}`);
+                    }
+                }
+            }
+        } catch (error) {
+            logger.error(`⛔️ Error reading routes directory: ${error.message}`);
+        }
     }
 
     public getApp(): ExpressApplication {

@@ -1,44 +1,36 @@
-import { StorageResponse } from '../../infrastructure/storage/baseStorage';
-import { StorageFactory } from '../../infrastructure/storage/factory';
 import { logger } from '../../utils/logs/winston';
 import { IStorage } from '../interfaces/Istorage';
+import { StorageFactory } from '../models/storage.model';
 
 export class StorageService {
     private storage: IStorage;
 
     constructor(storage?: IStorage) {
-        this.storage = storage || StorageFactory.createStorage();
+        this.storage = storage || StorageFactory.create();
     }
 
-    async getFile(filepath: string): Promise<StorageResponse> {
+    async getFile(filepath: string) {
         try {
             logger.info(`Getting file: ${filepath}`);
-            const response = await this.storage.getFile(filepath);
-            return {
-                status: 200,
-                data: response,
-                message: 'File retrieved successfully'
-            };
+            return await this.storage.getFile(filepath);
         } catch (error) {
             logger.error(`Error in StorageService.getFile: ${error}`);
             return {
                 status: 500,
-                data: Response,
+                data: null,
                 message: `Failed to get file: ${error}`
             };
         }
     }
 
-    async uploadFile(filepath: string, file: Buffer | string): Promise<StorageResponse> {
+    async uploadFile(filepath: string, file: Buffer | string, metadata?: any) {
         try {
             logger.info(`Uploading file: ${filepath}`);
             const buffer = Buffer.isBuffer(file) ? file : Buffer.from(file);
-            const response = await this.storage.uploadFile(buffer, { filename: filepath });
-            return {
-                status: response.success ? 200 : 500,
-                message: response.error || 'File uploaded successfully',
-                data: response.file
-            };
+            return await this.storage.uploadFile(buffer, {
+                unique_name: filepath,
+                ...metadata
+            });
         } catch (error) {
             logger.error(`Error in StorageService.uploadFile: ${error}`);
             return {
@@ -49,15 +41,16 @@ export class StorageService {
         }
     }
 
-    async uploadFiles(filesPaths: string[], files: Array<Buffer | string>): Promise<StorageResponse> {
+    async uploadFiles(files: Array<{ filepath: string; file: Buffer | string; metadata?: any }>) {
         try {
-            logger.info(`Uploading ${filesPaths.length} files`);
-            const responses = await Promise.all(filesPaths.map((filepath, index) => this.uploadFile(filepath, files[index])));
-            return {
-                status: 200,
-                data: responses,
-                message: 'Files uploaded successfully'
-            };
+            logger.info(`Uploading ${files.length} files`);
+            return await this.storage.uploads(
+                files.map((f) => ({
+                    filepath: f.filepath,
+                    file: Buffer.isBuffer(f.file) ? f.file : Buffer.from(f.file),
+                    metadata: f.metadata
+                }))
+            );
         } catch (error) {
             logger.error(`Error in StorageService.uploadFiles: ${error}`);
             return {
@@ -68,54 +61,10 @@ export class StorageService {
         }
     }
 
-    async updateFile(filepath: string, file: Buffer | string): Promise<StorageResponse> {
-        try {
-            logger.info(`Updating file: ${filepath}`);
-            const buffer = Buffer.isBuffer(file) ? file : Buffer.from(file);
-            const response = await this.storage.uploadFile(buffer, { filename: filepath });
-            return {
-                status: response.success ? 200 : 500,
-                message: response.error || 'File updated successfully',
-                data: response.file
-            };
-        } catch (error) {
-            logger.error(`Error in StorageService.updateFile: ${error}`);
-            return {
-                status: 500,
-                data: null,
-                message: `Failed to update file: ${error}`
-            };
-        }
-    }
-
-    async updateFiles(filesPaths: string[], files: Array<Buffer | string>): Promise<StorageResponse> {
-        try {
-            logger.info(`Updating ${filesPaths.length} files`);
-            const responses = await Promise.all(filesPaths.map((filepath, index) => this.updateFile(filepath, files[index])));
-            return {
-                status: 200,
-                data: responses,
-                message: 'Files updated successfully'
-            };
-        } catch (error) {
-            logger.error(`Error in StorageService.updateFiles: ${error}`);
-            return {
-                status: 500,
-                data: null,
-                message: `Failed to update files: ${error}`
-            };
-        }
-    }
-
-    async deleteFile(filepath: string): Promise<StorageResponse> {
+    async deleteFile(filepath: string) {
         try {
             logger.info(`Deleting file: ${filepath}`);
-            const response = await this.storage.deleteFile(filepath);
-            return {
-                status: response ? 200 : 500,
-                message: response ? 'File deleted successfully' : 'Failed to delete file',
-                data: response
-            };
+            return await this.storage.deleteFile(filepath);
         } catch (error) {
             logger.error(`Error in StorageService.deleteFile: ${error}`);
             return {
@@ -126,15 +75,10 @@ export class StorageService {
         }
     }
 
-    async deleteFiles(filesPaths: string[]): Promise<StorageResponse> {
+    async deleteFiles(files: Array<{ filepath: string }>) {
         try {
-            logger.info(`Deleting ${filesPaths.length} files`);
-            const responses = await Promise.all(filesPaths.map((filepath) => this.deleteFile(filepath)));
-            return {
-                status: 200,
-                data: responses,
-                message: 'Files deleted successfully'
-            };
+            logger.info(`Deleting ${files.length} files`);
+            return await this.storage.deleteFiles(files);
         } catch (error) {
             logger.error(`Error in StorageService.deleteFiles: ${error}`);
             return {
@@ -145,15 +89,10 @@ export class StorageService {
         }
     }
 
-    async getLastDump(): Promise<StorageResponse> {
+    async getLastDump() {
         try {
             logger.info('Getting last dump');
-            const response = await this.storage.getLastDump();
-            return {
-                status: 200,
-                data: response,
-                message: 'Last dump retrieved successfully'
-            };
+            return await this.storage.getLastDump();
         } catch (error) {
             logger.error(`Error in StorageService.getLastDump: ${error}`);
             return {

@@ -16,5 +16,6 @@ export interface IFile {
     expired?: boolean;
     original_mimetype?: string;
     original_filename?: string;
-    toWebp?: string;
+    toWebp?: boolean;
+    external_id?: string;
 }

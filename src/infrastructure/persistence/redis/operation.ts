@@ -1,6 +1,7 @@
 import { ICatalogResponse, ICatalogResponseMulti } from '../../../core/interfaces/Icatalog';
 import { IFile } from '../../../core/interfaces/Ifile';
 import { File } from '../../../core/models/file.model';
+import { ApiResponse } from '../../../core/models/response.model';
 import { logger } from '../../../utils/logs/winston';
 import { validateFileBeforeUpdate, validateFiles } from '../validators/file.validator';
 import { redisHandler } from './connection';
@@ -12,35 +13,19 @@ export class RedisOperations {
             const file = await redisHandler.getAsync(id);
 
             if (!file) {
-                return {
-                    status: 404,
-                    datum: null,
-                    error: `File with ID ${id} not found`
-                };
+                return ApiResponse.notFound(`File with ID ${id} not found`);
             }
 
             try {
                 const parsedFile = JSON.parse(file);
-                return {
-                    status: 200,
-                    datum: new File(parsedFile),
-                    error: null
-                };
+                return ApiResponse.successWithDatum(new File(parsedFile));
             } catch (parseError) {
                 logger.error(`Error parsing file data: ${parseError}`);
-                return {
-                    status: 500,
-                    datum: null,
-                    error: `Error parsing file data: ${parseError}`
-                };
+                return ApiResponse.errorWithDatum(`Error parsing file data: ${parseError}`);
             }
         } catch (err) {
             logger.error(`Error getting file: ${err}`);
-            return {
-                status: 500,
-                datum: null,
-                error: `Error getting file: ${err}`
-            };
+            return ApiResponse.errorWithDatum(`Error getting file: ${err}`);
         }
     }
 
@@ -64,18 +49,10 @@ export class RedisOperations {
                 }
             }
 
-            return {
-                status: 200,
-                data: files,
-                errors: null
-            };
+            return ApiResponse.successMulti(files);
         } catch (err) {
             logger.error(`Error listing items: ${err}`);
-            return {
-                status: 500,
-                data: null,
-                errors: [`Error listing items: ${err}`]
-            };
+            return ApiResponse.errorMulti(`Error listing items: ${err}`, []);
         }
     }
 
@@ -94,28 +71,16 @@ export class RedisOperations {
         try {
             // Check if file has required properties
             if (!file.uuid || !file.filename || !file.namespace || !file.unique_name) {
-                return {
-                    status: 400,
-                    datum: null,
-                    error: 'Missing required file properties (uuid, filename, namespace, unique_name)'
-                };
+                return ApiResponse.validationError('Missing required file properties (uuid, filename, namespace, unique_name)');
             }
 
             if (!(await this.filePathIsUnique(file))) {
-                return {
-                    status: 409,
-                    datum: null,
-                    error: `File with path ${file.unique_name} already exists in namespace ${file.namespace}`
-                };
+                return ApiResponse.errorWithDatum(`File with path ${file.unique_name} already exists in namespace ${file.namespace}`);
             }
 
             const validationErrors = validateFileBeforeUpdate(file);
             if (validationErrors) {
-                return {
-                    status: 400,
-                    datum: null,
-                    error: `File validation failed: ${JSON.stringify(validationErrors)}`
-                };
+                return ApiResponse.validationError(`File validation failed: ${JSON.stringify(validationErrors)}`);
             }
 
             await redisHandler.connectClient();
@@ -123,25 +88,13 @@ export class RedisOperations {
 
             const uploadedFile = await this.getOneFile(file.uuid);
             if (uploadedFile.status === 200 && uploadedFile.datum) {
-                return {
-                    status: 201,
-                    datum: uploadedFile.datum,
-                    error: null
-                };
+                return ApiResponse.successWithDatum(uploadedFile.datum);
             }
 
-            return {
-                status: 500,
-                datum: null,
-                error: `Unable to retrieve file with id ${file.uuid} after adding it`
-            };
+            return ApiResponse.errorWithDatum(`Unable to retrieve file with id ${file.uuid} after adding it`);
         } catch (err) {
             logger.error(`Error adding item: ${err}`);
-            return {
-                status: 500,
-                datum: null,
-                error: `Error adding item: ${err}`
-            };
+            return ApiResponse.errorWithDatum(`Error adding item: ${err}`);
         }
     }
 
@@ -149,11 +102,7 @@ export class RedisOperations {
         try {
             const validationErrors = validateFiles(files);
             if (validationErrors) {
-                return {
-                    status: 400,
-                    data: null,
-                    errors: [`Files validation failed: ${JSON.stringify(validationErrors)}`]
-                };
+                return ApiResponse.errorMulti(`Files validation failed: ${JSON.stringify(validationErrors)}`, []);
             }
 
             const successfulUploadFiles: IFile[] = [];
@@ -169,32 +118,16 @@ export class RedisOperations {
             }
 
             if (failedUploadFiles.length === 0) {
-                return {
-                    status: 201,
-                    data: successfulUploadFiles,
-                    errors: null
-                };
+                return ApiResponse.successMulti(successfulUploadFiles);
             } else if (successfulUploadFiles.length === 0) {
-                return {
-                    status: 400,
-                    data: null,
-                    errors: failedUploadFiles
-                };
+                return ApiResponse.errorMulti(`Files validation failed: ${JSON.stringify(validationErrors)}`, failedUploadFiles);
             } else {
                 // Some succeeded, some failed
-                return {
-                    status: 207,
-                    data: successfulUploadFiles,
-                    errors: failedUploadFiles
-                };
+                return ApiResponse.errorMulti(`Files validation failed: ${JSON.stringify(validationErrors)}`, failedUploadFiles);
             }
         } catch (err) {
             logger.error(`Error adding items: ${err}`);
-            return {
-                status: 500,
-                data: null,
-                errors: [`Error adding items: ${err}`]
-            };
+            return ApiResponse.errorMulti(`Error adding items: ${err}`, []);
         }
     }
 
@@ -204,11 +137,7 @@ export class RedisOperations {
             const existingFileData = await redisHandler.getAsync(fileId);
 
             if (!existingFileData) {
-                return {
-                    status: 404,
-                    datum: null,
-                    error: `File with id ${fileId} does not exist`
-                };
+                return ApiResponse.notFound(`File with id ${fileId} does not exist`);
             }
 
             try {
@@ -217,24 +146,12 @@ export class RedisOperations {
 
                 await redisHandler.setAsync(fileId, JSON.stringify(updatedFile));
 
-                return {
-                    status: 200,
-                    datum: new File(updatedFile),
-                    error: null
-                };
+                return ApiResponse.successWithDatum(new File(updatedFile));
             } catch (parseError) {
-                return {
-                    status: 500,
-                    datum: null,
-                    error: `Error parsing file data: ${parseError}`
-                };
+                return ApiResponse.errorWithDatum(`Error parsing file data: ${parseError}`);
             }
         } catch (err) {
-            return {
-                status: 500,
-                datum: null,
-                error: `Error updating file: ${err}`
-            };
+            return ApiResponse.errorWithDatum(`Error updating file: ${err}`);
         }
     }
 
@@ -244,37 +161,21 @@ export class RedisOperations {
             const existingFileData = await redisHandler.getAsync(id);
 
             if (!existingFileData) {
-                return {
-                    status: 404,
-                    datum: null,
-                    error: `File with id ${id} does not exist`
-                };
+                return ApiResponse.notFound(`File with id ${id} does not exist`);
             }
 
             let fileToDelete: IFile;
             try {
                 fileToDelete = JSON.parse(existingFileData);
             } catch (parseError) {
-                return {
-                    status: 500,
-                    datum: null,
-                    error: `Error parsing file data: ${parseError}`
-                };
+                return ApiResponse.errorWithDatum(`Error parsing file data: ${parseError}`);
             }
 
             await redisHandler.delAsync(id);
 
-            return {
-                status: 200,
-                datum: fileToDelete,
-                error: null
-            };
+            return ApiResponse.successWithDatum(fileToDelete);
         } catch (err) {
-            return {
-                status: 500,
-                datum: null,
-                error: `Error deleting file: ${err}`
-            };
+            return ApiResponse.errorWithDatum(`Error deleting file: ${err}`);
         }
     }
 

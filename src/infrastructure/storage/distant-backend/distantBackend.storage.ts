@@ -1,40 +1,54 @@
 import FormData from 'form-data';
 import fetch from 'node-fetch';
+import { IFile } from '../../../core/interfaces/Ifile';
+import { IStorageResponse } from '../../../core/interfaces/Istorage';
+import { CatalogService } from '../../../core/services/catalog.service';
 import { logger } from '../../../utils/logs/winston';
-import { BaseStorage, StorageFileProps, StorageFilesProps, StorageResponse } from '../baseStorage';
+import { BaseStorage, StorageFileProps } from '../baseStorage';
 
 export class DistantBackendStorage extends BaseStorage {
     private token: string;
     private host: string;
+    private catalogService: CatalogService;
 
     constructor() {
         super('DISTANT_BACKEND');
         this.token = process.env.DELEGATED_STORAGE_TOKEN || '';
         this.host = process.env.DELEGATED_STORAGE_HOST || '';
+        this.catalogService = new CatalogService();
         logger.info('Using DISTANT_BACKEND storage');
     }
 
-    async uploads(props: StorageFilesProps): Promise<StorageResponse> {
-        return this.createErrorResponse(501, 'Method uploads not implemented in DistantBackendStorage');
+    protected async getFileFromStorage(props: StorageFileProps): Promise<IStorageResponse> {
+        try {
+            const { filepath } = props;
+            logger.info(`Getting file from distant backend: ${filepath}`);
+            const apiUrl = `${this.host}/file?filepath=${encodeURIComponent(filepath)}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${this.token}`
+                }
+            });
+
+            if (response.status !== 200) {
+                return this.createErrorResponse(`Failed to get file from distant backend. Status: ${response.status}`);
+            }
+
+            const buffer = Buffer.from(await response.arrayBuffer());
+            return this.createSuccessResponse(buffer, 'File retrieved successfully');
+        } catch (error) {
+            logger.error(`Error getting file from distant backend: ${error}`);
+            return this.createErrorResponse(`Failed to get file: ${error}`);
+        }
     }
 
-    async update(props: StorageFileProps): Promise<StorageResponse> {
-        return this.createErrorResponse(501, 'Method update not implemented in DistantBackendStorage');
-    }
-
-    async updates(props: StorageFilesProps): Promise<StorageResponse> {
-        return this.createErrorResponse(501, 'Method updates not implemented in DistantBackendStorage');
-    }
-
-    async deleteFiles(props: StorageFilesProps): Promise<StorageResponse> {
-        return this.createErrorResponse(501, 'Method deleteFiles not implemented in DistantBackendStorage');
-    }
-
-    async upload(props: StorageFileProps): Promise<StorageResponse> {
+    protected async upload(props: StorageFileProps): Promise<IStorageResponse> {
         try {
             const { filepath, file, metadata } = props;
             if (!file) {
-                return this.createErrorResponse(400, 'No file provided');
+                return this.createErrorResponse('No file provided');
             }
 
             logger.info(`Uploading file to distant backend: ${filepath}`);
@@ -55,7 +69,6 @@ export class DistantBackendStorage extends BaseStorage {
             };
 
             formData.append('metadata', JSON.stringify([fileMetadata]));
-
             formData.append('file', file, {
                 filename: filepath.split('/').pop() || 'file',
                 contentType: metadata?.mimetype
@@ -83,42 +96,17 @@ export class DistantBackendStorage extends BaseStorage {
                 }
 
                 logger.error(`Upload failed: ${errorDetails}`);
-                return this.createErrorResponse(response.status, `Upload failed: ${errorDetails}`);
+                return this.createErrorResponse(`Upload failed: ${errorDetails}`);
             }
 
             return this.createSuccessResponse(null, 'File uploaded successfully to distant backend');
         } catch (error) {
             logger.error(`Error uploading file to distant backend: ${error}`);
-            return this.createErrorResponse(500, `Upload failed: ${error}`);
+            return this.createErrorResponse(`Upload failed: ${error}`);
         }
     }
 
-    async getFile(props: StorageFileProps): Promise<StorageResponse> {
-        try {
-            const { filepath } = props;
-            logger.info(`Getting file from distant backend: ${filepath}`);
-            const apiUrl = `${this.host}/file?filepath=${encodeURIComponent(filepath)}`;
-
-            const response = await fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                    Authorization: `Bearer ${this.token}`
-                }
-            });
-
-            if (response.status !== 200) {
-                return this.createErrorResponse(response.status, `Failed to get file from distant backend. Status: ${response.status}`);
-            }
-
-            const buffer = Buffer.from(await response.arrayBuffer());
-            return this.createSuccessResponse(buffer, 'File retrieved successfully');
-        } catch (error) {
-            logger.error(`Error getting file from distant backend: ${error}`);
-            return this.createErrorResponse(500, `Failed to get file: ${error}`);
-        }
-    }
-
-    async delete(props: StorageFileProps): Promise<StorageResponse> {
+    protected async deleteFromStorage(props: StorageFileProps): Promise<IStorageResponse> {
         try {
             const { filepath } = props;
             logger.info(`Deleting file from distant backend: ${filepath}`);
@@ -132,17 +120,17 @@ export class DistantBackendStorage extends BaseStorage {
             });
 
             if (response.status !== 200) {
-                return this.createErrorResponse(response.status, `Failed to delete file from distant backend. Status: ${response.status}`);
+                return this.createErrorResponse(`Failed to delete file from distant backend. Status: ${response.status}`);
             }
 
             return this.createSuccessResponse(null, 'File deleted successfully from distant backend');
         } catch (error) {
             logger.error(`Error deleting file from distant backend: ${error}`);
-            return this.createErrorResponse(500, `Failed to delete file: ${error}`);
+            return this.createErrorResponse(`Failed to delete file: ${error}`);
         }
     }
 
-    async getLastDump(): Promise<StorageResponse> {
+    protected async getLastDumpFromStorage(): Promise<IStorageResponse> {
         try {
             const apiUrl = `${this.host}/catalog`;
             logger.info(`Getting last dump from: ${apiUrl}`);
@@ -155,14 +143,25 @@ export class DistantBackendStorage extends BaseStorage {
             });
 
             if (response.status !== 200) {
-                return this.createErrorResponse(response.status, `Failed to get last dump. Status: ${response.status}`);
+                return this.createErrorResponse(`Failed to get last dump. Status: ${response.status}`);
             }
 
             const data = await response.json();
+            if (Array.isArray(data.data) && data.data.length > 0) {
+                await this.catalogService.addFiles(data.data);
+            }
             return this.createSuccessResponse(data.data || [], 'Last dump retrieved successfully');
         } catch (error) {
             logger.error(`Error getting last dump: ${error}`);
-            return this.createErrorResponse(500, `Failed to get last dump: ${error}`);
+            return this.createErrorResponse(`Failed to get last dump: ${error}`);
         }
+    }
+
+    async uploads(files: { filepath: string; file?: Buffer<ArrayBufferLike>; metadata?: Partial<IFile> }[]): Promise<IStorageResponse> {
+        return this.createErrorResponse('Method uploads not implemented in DistantBackendStorage');
+    }
+
+    async deleteFiles(files: { filepath: string }[]): Promise<IStorageResponse> {
+        return this.createErrorResponse('Method deleteFiles not implemented in DistantBackendStorage');
     }
 }

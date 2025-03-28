@@ -1,6 +1,6 @@
-import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 import { calculateSHA256 } from '../../utils/catalog';
+import { convertToWebpBuffer, stripMetadata } from '../../utils/file';
 import { logger } from '../../utils/logs/winston';
 import { ICatalogResponse, ICatalogResponseMulti, ICatalogService } from '../interfaces/Icatalog';
 import { IFile } from '../interfaces/Ifile';
@@ -67,11 +67,11 @@ export class FileService {
 
             let processedBuffer = fileBuffer;
             if (shouldConvertToWebp) {
-                processedBuffer = await this.convertToWebp(fileBuffer);
+                processedBuffer = await convertToWebpBuffer(fileBuffer);
             }
 
             if (options.stripMetadata) {
-                processedBuffer = await this.stripMetadata(processedBuffer, metadata.mimetype);
+                processedBuffer = await stripMetadata(processedBuffer.toString(), metadata.unique_name || '', metadata.mimetype);
             }
 
             const signature = calculateSHA256(processedBuffer);
@@ -104,11 +104,7 @@ export class FileService {
             const storageResponse = await this.storage.uploadFile(processedBuffer, fileMetadata);
 
             if (!storageResponse.success || !storageResponse.file) {
-                return {
-                    status: 500,
-                    datum: null,
-                    error: storageResponse.error || 'Failed to upload file to storage'
-                };
+                return ApiResponse.errorWithDatum(storageResponse.error || 'Failed to upload file to storage');
             }
 
             try {
@@ -121,25 +117,17 @@ export class FileService {
                 return catalogResponse;
             } catch (catalogError) {
                 logger.error(`Error calling catalogService.addFile: ${catalogError}`);
-                return {
-                    status: 500,
-                    datum: storageResponse.file,
-                    error: `File uploaded to storage but failed to add to catalog: ${catalogError}`
-                };
+                return ApiResponse.errorWithDatum(`File uploaded to storage but failed to add to catalog: ${catalogError}`);
             }
         } catch (error) {
             logger.error(`Error in FileService.uploadFile: ${error}`);
-            return {
-                status: 500,
-                datum: null,
-                error: `Failed to upload file: ${error}`
-            };
+            return ApiResponse.errorWithDatum(`Failed to upload file: ${error}`);
         }
     }
 
     async getFile(identifier: string): Promise<{ buffer: Buffer | null; metadata: IFile | null }> {
         try {
-            const metadataResponse = await this.catalogService.getFile({ uuid: identifier });
+            const metadataResponse = await this.catalogService.getFile(identifier);
 
             if (metadataResponse.status !== 200 || !metadataResponse.datum) {
                 return {
@@ -148,7 +136,7 @@ export class FileService {
                 };
             }
 
-            const file = new File(metadataResponse.datum);
+            const file = File.from(metadataResponse.datum);
             if (file.isExpired()) {
                 logger.info(`File ${identifier} is expired`);
                 return {
@@ -158,10 +146,10 @@ export class FileService {
             }
 
             const uniqueName = file.unique_name || identifier;
-            const buffer = await this.storage.getFile(uniqueName);
+            const storageResponse = await this.storage.getFile(uniqueName);
 
             return {
-                buffer,
+                buffer: storageResponse.success ? storageResponse.data : null,
                 metadata: file
             };
         } catch (error) {
@@ -185,7 +173,7 @@ export class FileService {
         try {
             logger.info(`Updating file with UUID: ${uuid}`);
 
-            const existingFileResponse = await this.catalogService.getFile({ uuid });
+            const existingFileResponse = await this.catalogService.getFile(uuid);
 
             if (existingFileResponse.status !== 200 || !existingFileResponse.datum) {
                 return existingFileResponse;
@@ -199,11 +187,11 @@ export class FileService {
                 const shouldConvertToWebp = options.convertToWebp && ['image/jpeg', 'image/png'].includes(metadata.mimetype || existingFile.mimetype || '');
 
                 if (shouldConvertToWebp) {
-                    processedBuffer = await this.convertToWebp(fileBuffer);
+                    processedBuffer = await convertToWebpBuffer(fileBuffer);
                 }
 
                 if (options.stripMetadata) {
-                    processedBuffer = await this.stripMetadata(processedBuffer, metadata.mimetype || existingFile.mimetype);
+                    processedBuffer = await stripMetadata(processedBuffer.toString(), metadata.unique_name || existingFile.unique_name || '', metadata.mimetype || existingFile.mimetype);
                 }
 
                 const signature = calculateSHA256(processedBuffer);
@@ -223,11 +211,7 @@ export class FileService {
                 });
 
                 if (!storageResponse.success) {
-                    return {
-                        status: 500,
-                        datum: null,
-                        error: storageResponse.error || 'Failed to upload updated file'
-                    };
+                    return ApiResponse.errorWithDatum(storageResponse.error || 'Failed to upload updated file');
                 }
             }
 
@@ -242,11 +226,7 @@ export class FileService {
             return await this.catalogService.updateFile(uuid, updateData);
         } catch (error) {
             logger.error(`Error in FileService.updateFile: ${error}`);
-            return {
-                status: 500,
-                datum: null,
-                error: `Failed to update file: ${error}`
-            };
+            return ApiResponse.errorWithDatum(`Failed to update file: ${error}`);
         }
     }
 
@@ -254,7 +234,7 @@ export class FileService {
         try {
             logger.info(`Deleting file with UUID: ${uuid}`);
 
-            const fileResponse = await this.catalogService.getFile({ uuid });
+            const fileResponse = await this.catalogService.getFile(uuid);
 
             if (fileResponse.status !== 200 || !fileResponse.datum) {
                 return fileResponse;
@@ -272,11 +252,7 @@ export class FileService {
             return await this.catalogService.deleteFile(uniqueName);
         } catch (error) {
             logger.error(`Error in FileService.deleteFile: ${error}`);
-            return {
-                status: 500,
-                datum: null,
-                error: `Failed to delete file: ${error}`
-            };
+            return ApiResponse.errorWithDatum(`Failed to delete file: ${error}`);
         }
     }
 
@@ -305,59 +281,15 @@ export class FileService {
             }
 
             if (errors.length === 0) {
-                return {
-                    status: 200,
-                    data: uploadedFiles,
-                    errors: null
-                };
+                return ApiResponse.successMulti(uploadedFiles);
             } else if (uploadedFiles.length === 0) {
-                return {
-                    status: 400,
-                    data: null,
-                    errors
-                };
+                return ApiResponse.errorMulti('No files uploaded', errors);
             } else {
-                return {
-                    status: 207,
-                    data: uploadedFiles,
-                    errors
-                };
+                return ApiResponse.errorMulti('Failed to upload files', errors);
             }
         } catch (error) {
             logger.error(`Error in FileService.uploadFiles: ${error}`);
-            return {
-                status: 500,
-                data: null,
-                errors: [`Failed to upload files: ${error}`]
-            };
+            return ApiResponse.errorMulti(`Failed to upload files: ${error}`, []);
         }
-    }
-
-    private async convertToWebp(buffer: Buffer): Promise<Buffer> {
-        try {
-            return await sharp(buffer).webp({ quality: 90 }).toBuffer();
-        } catch (error) {
-            logger.error(`Error converting to WebP: ${error}`);
-            return buffer;
-        }
-    }
-
-    private async stripMetadata(buffer: Buffer, mimetype?: string): Promise<Buffer> {
-        try {
-            if (!mimetype) return buffer;
-
-            if (mimetype.startsWith('image/')) {
-                return await sharp(buffer).withMetadata({ exif: {} }).toBuffer();
-            }
-
-            return buffer;
-        } catch (error) {
-            logger.error(`Error stripping metadata: ${error}`);
-            return buffer;
-        }
-    }
-
-    private createErrorResponse(message: string, status: number = 500): ICatalogResponse {
-        return ApiResponse.createErrorResponse(message, status);
     }
 }

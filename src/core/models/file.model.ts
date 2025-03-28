@@ -1,60 +1,77 @@
+import { v4 as uuidv4 } from 'uuid';
 import { IFile } from '../interfaces/Ifile';
-
 export class File implements IFile {
-    uuid: string;
-    namespace: string;
-    unique_name: string;
-    filename: string;
-    mimetype: string;
-    size: number;
-    signature: string;
-    public_url: string;
-    base_host: string;
-    version: number;
-    destination?: string;
-    information?: string | null;
-    expiration_date?: string | null;
-    expired?: boolean;
-    original_mimetype?: string;
+    constructor(
+        public uuid: string = '',
+        public namespace: string = '',
+        public unique_name: string = '',
+        public filename: string = '',
+        public mimetype: string = '',
+        public size: number = 0,
+        public signature: string = '',
+        public version: number = 1,
+        public public_url?: string,
+        public base_host?: string,
+        public base_url?: string,
+        public destination?: string,
+        public information?: string | null,
+        public expiration_date?: string | null,
+        public expired: boolean = false,
+        public original_mimetype?: string,
+        public original_filename?: string,
+        public toWebp?: boolean
+    ) {
+        this.base_host = base_host || process.env.NGINX_INGRESS || 'http://localhost:8080';
+        this.public_url = public_url || `${this.base_host}/assets/media/full${this.unique_name}`;
+    }
 
-    constructor(file: Partial<IFile>) {
-        this.uuid = file.uuid || '';
-        this.namespace = file.namespace || '';
-        this.unique_name = file.unique_name || '';
-        this.filename = file.filename || '';
-        this.mimetype = file.mimetype || '';
-        this.size = file.size || 0;
-        this.signature = file.signature || '';
-        this.version = file.version || 1;
-        this.destination = file.destination;
-        this.information = file.information;
-        this.expiration_date = file.expiration_date;
-        this.expired = file.expired || false;
-        this.original_mimetype = file.original_mimetype;
-        this.base_host = file.base_host || process.env.NGINX_INGRESS || 'http://localhost:8080';
+    static async create(data: Partial<IFile>): Promise<File> {
+        return new File(
+            data.uuid,
+            data.namespace,
+            data.unique_name,
+            data.filename,
+            data.mimetype,
+            data.size,
+            data.signature,
+            data.version,
+            data.public_url,
+            data.base_host,
+            data.base_url,
+            data.destination,
+            data.information,
+            data.expiration_date,
+            data.expired,
+            data.original_mimetype,
+            data.original_filename,
+            data.toWebp
+        );
+    }
 
-        this.public_url = file.public_url || `${this.base_host}/assets/media/full${this.unique_name}`;
+    static from(data: Partial<IFile>): File {
+        return new File(
+            data.uuid || uuidv4(),
+            data.namespace || '',
+            data.unique_name || '',
+            data.filename || '',
+            data.mimetype || '',
+            data.size || 0,
+            data.signature || '',
+            data.version || 1,
+            data.public_url,
+            data.base_host,
+            data.base_url,
+            data.destination,
+            data.information,
+            data.expiration_date,
+            data.expired,
+            data.original_mimetype,
+            data.original_filename,
+            data.toWebp
+        );
     }
 
     isExpired(): boolean {
-        if (this.expired) return true;
-
-        if (this.expiration_date) {
-            const expirationDate = new Date(this.expiration_date);
-            const currentDate = new Date();
-            return expirationDate <= currentDate;
-        }
-
-        return false;
-    }
-
-    toJSON(): IFile {
-        const obj: any = { ...this };
-        Object.keys(obj).forEach((key) => {
-            if (obj[key] === undefined) {
-                delete obj[key];
-            }
-        });
-        return obj;
+        return this.expired || (this.expiration_date && new Date(this.expiration_date) <= new Date());
     }
 }
