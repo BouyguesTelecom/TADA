@@ -55,6 +55,8 @@ export class FileController extends BaseController {
 
     async postAsset(req: Request, res: Response): Promise<void> {
         try {
+            logger.info(`Received request from: ${req.headers.origin}`);
+            logger.info(`Headers: ${JSON.stringify(req.headers)}`);
             if (!req.file) {
                 this.sendResponse(res, {
                     status: 400,
