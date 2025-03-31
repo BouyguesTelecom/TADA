@@ -7,6 +7,7 @@
 
 import { Router } from 'express';
 import multer from 'multer';
+import { logger } from '../../utils/logs/winston';
 import { fileController } from '../controllers/file.controller';
 import { redisMiddleware } from '../middleware/redis.middleware';
 import { validatorHeaders } from '../middleware/validators';
@@ -67,8 +68,21 @@ router.get('/assets/media/:format/*', singleFileValidator.handle.bind(singleFile
  *       200:
  *         description: The file was successfully posted
  */
-router.post('/file', upload.single('file'), singleFileValidator.handle.bind(singleFileValidator), fileController.postAsset);
+router.post('/file', upload.single('file'), singleFileValidator.handle.bind(singleFileValidator), async (req, res) => {
+    logger.info('POST /file route hit');
+    logger.info('Request body:', req.body);
+    logger.info('File:', req.file);
+    logger.info('Namespace:', req.body.namespace);
 
+    if (!req.body.namespace) {
+        return res.status(400).json({
+            success: false,
+            message: 'Namespace is required'
+        });
+    }
+
+    return fileController.postAsset(req, res);
+});
 /**
  * @swagger
  * /file/{uuid}:

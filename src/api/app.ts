@@ -56,14 +56,19 @@ export class Application {
 
         try {
             const files = fs.readdirSync(routersPath);
+            logger.info(`Found route files: ${files.join(', ')}`);
 
             for (const file of files) {
-                if (file.endsWith('.route.ts')) {
+                if (file.endsWith('.route.js') && !file.endsWith('.map')) {
                     try {
                         const routerModule = await import(path.join(routersPath, file));
                         if (routerModule && routerModule.router) {
-                            this.app.use(this.apiPrefix, routerModule.router);
-                            logger.info(`✅ Route ${file} loaded successfully`);
+                            const baseUrl = this.apiPrefix || '';
+                            this.app.use(baseUrl, routerModule.router);
+                            logger.info(`✅ Route ${file} loaded successfully at base URL: ${baseUrl}`);
+
+                            const routes = routerModule.router.stack.filter((r: any) => r.route).map((r: any) => `${Object.keys(r.route.methods)[0].toUpperCase()} ${baseUrl}${r.route.path}`);
+                            logger.info(`📍 Routes registered: ${routes.join(', ')}`);
                         } else {
                             logger.error(`⛔️ No router found in ${file}`);
                         }

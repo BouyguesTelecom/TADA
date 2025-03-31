@@ -67,11 +67,24 @@ export class FileService {
 
             let processedBuffer = fileBuffer;
             if (shouldConvertToWebp) {
-                processedBuffer = await convertToWebpBuffer(fileBuffer);
+                try {
+                    processedBuffer = await convertToWebpBuffer(fileBuffer);
+                } catch (error) {
+                    logger.error(`Error converting to WebP: ${error}`);
+                    return ApiResponse.createErrorResponse('Failed to convert image to WebP', 500);
+                }
             }
 
             if (options.stripMetadata) {
-                processedBuffer = await stripMetadata(processedBuffer.toString(), metadata.unique_name || '', metadata.mimetype);
+                try {
+                    if (!processedBuffer || processedBuffer.length === 0) {
+                        throw new Error('Invalid buffer');
+                    }
+                    processedBuffer = await stripMetadata(processedBuffer, uniqueName, metadata.mimetype || '');
+                } catch (error) {
+                    logger.error(`Error stripping metadata: ${error}`);
+                    logger.info('Continuing with original buffer');
+                }
             }
 
             const signature = calculateSHA256(processedBuffer);
@@ -121,7 +134,7 @@ export class FileService {
             }
         } catch (error) {
             logger.error(`Error in FileService.uploadFile: ${error}`);
-            return ApiResponse.errorWithDatum(`Failed to upload file: ${error}`);
+            return ApiResponse.createErrorResponse(`Error uploading file: ${error}`, 500);
         }
     }
 
@@ -191,7 +204,7 @@ export class FileService {
                 }
 
                 if (options.stripMetadata) {
-                    processedBuffer = await stripMetadata(processedBuffer.toString(), metadata.unique_name || existingFile.unique_name || '', metadata.mimetype || existingFile.mimetype);
+                    processedBuffer = await stripMetadata(processedBuffer, metadata.unique_name || existingFile.unique_name || '', metadata.mimetype || existingFile.mimetype || '');
                 }
 
                 const signature = calculateSHA256(processedBuffer);

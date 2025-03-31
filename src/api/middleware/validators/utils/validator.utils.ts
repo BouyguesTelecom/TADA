@@ -86,14 +86,17 @@ export class ValidatorUtils {
     }
 
     public checkMissingParam(requiredParams: string[], params: Record<string, any>): string[] {
-        return requiredParams.filter((param) => !params.hasOwnProperty(param));
+        if (!params || typeof params !== 'object') {
+            return requiredParams;
+        }
+        return requiredParams.filter((param) => !(param in params));
     }
 
     public generateUniqueName(file: Express.Multer.File, body: any, namespace: string, toWebp: boolean): string {
         if (!file) return '';
 
         const destination = body.destination ? `${body.destination}/` : '';
-        const filename = toWebp && ['image/jpeg', 'image/png'].includes(file.mimetype) ? file.filename.split('.')[0] + '.webp' : file.filename;
+        const filename = toWebp && ['image/jpeg', 'image/png'].includes(file.mimetype) ? file.originalname.split('.')[0] + '.webp' : file.originalname;
 
         return `/${namespace}/${destination}${filename}`;
     }
@@ -115,11 +118,11 @@ export class ValidatorUtils {
     }
 
     public isFileNameInvalid(file: Express.Multer.File): string | false {
-        const fileNameSplitted = file.filename.split('.');
+        const fileNameSplitted = file.originalname.split('.');
         if (!(fileNameSplitted.length > 0)) return "Filename doesn't contain extension.";
 
         const allowedCharsRegex = /^[a-zA-Z0-9\-@_%]+$/;
-        if (file.filename.length > 90) return 'Filename is too long.';
+        if (file.originalname.length > 90) return 'Filename is too long.';
         if (!allowedCharsRegex.test(fileNameSplitted[0])) return 'Filename contains forbidden chars.';
 
         return false;

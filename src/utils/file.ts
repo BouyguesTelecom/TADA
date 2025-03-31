@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { PDFDocument } from 'pdf-lib';
-import { logger } from './logs/winston';
 import sharp from 'sharp';
+import { logger } from './logs/winston';
 
 require('dotenv').config();
 
@@ -142,22 +142,44 @@ const sharpWithMetadata = async (imagePath) => {
     }
 };
 
-export const stripMetadata = async (imagePath: string, finalPath: string, mimetype: string) => {
-    switch (mimetype) {
-        case 'application/pdf':
-            const pdfUint8Array = await removeMetadataPdf(imagePath);
-            return Buffer.from(pdfUint8Array as Uint8Array);
-        case 'image/jpeg':
-        case 'image/webp':
-        case 'image/png':
-            return await removeMetadataImage(imagePath);
-        case 'image/svg+xml':
-            return removeUnusedData(imagePath);
-        default:
-            return;
-    }
+export const stripMetadata = async (imageBuffer: Buffer, finalPath: string, mimetype: string) => {
+    try {
+        const image = sharp(imageBuffer);
+        const metadata = await image.metadata();
 
-    return false;
+        if (!metadata.format) {
+            throw new Error('Unsupported image format');
+        }
+
+        const config = {
+            jpeg: {
+                quality: 100,
+                progressive: true
+            },
+            png: {
+                quality: 100,
+                compressionLevel: 9
+            },
+            webp: {
+                quality: 100
+            }
+        };
+
+        switch (metadata.format) {
+            case 'jpeg':
+            case 'jpg':
+                return await image.jpeg(config.jpeg).toBuffer();
+            case 'png':
+                return await image.png(config.png).toBuffer();
+            case 'webp':
+                return await image.webp(config.webp).toBuffer();
+            default:
+                throw new Error(`Unsupported image format: ${metadata.format}`);
+        }
+    } catch (error) {
+        logger.error(`Failed to remove metadata: ${error}`);
+        throw error;
+    }
 };
 
 export const deleteFile = (filePath): Promise<boolean> => {
@@ -172,12 +194,12 @@ export const generateStream = async (file: any, uniqueName: string, toWebpConver
     if (process.env.USE_STRIPMETADATA === 'true') {
         if (toWebp) {
             const webpPath = await convertToWebp(file.path);
-            const streamWithoutMetadata = await stripMetadata(webpPath, uniqueName, file.mimetype);
+            const streamWithoutMetadata = await stripMetadata(Buffer.from(webpPath, 'utf8'), uniqueName, file.mimetype);
             await deleteFile(file.path);
             await deleteFile(webpPath);
             return streamWithoutMetadata;
         }
-        const streamWithoutMetadata = await stripMetadata(file.path, uniqueName, file.mimetype);
+        const streamWithoutMetadata = await stripMetadata(Buffer.from(file.path, 'utf8'), uniqueName, file.mimetype);
         await deleteFile(file.path);
         return streamWithoutMetadata;
     }

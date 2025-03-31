@@ -6,6 +6,7 @@
  */
 
 import { Router } from 'express';
+import { logger } from '../../utils/logs/winston';
 import { catalogController } from '../controllers/catalog.controller';
 import { redisMiddleware } from '../middleware/redis.middleware';
 
@@ -23,9 +24,10 @@ router.use(redisMiddleware);
  *       200:
  *         description: A list of files
  */
-router.get('/catalog', catalogController.getFiles);
-
-/**
+router.get('/catalog', async (req, res) => {
+    logger.info('GET /catalog route hit');
+    await catalogController.getFiles(req, res);
+}); /**
  * @swagger
  * /catalog/{id}:
  *   get:
