@@ -33,6 +33,13 @@ export class Application {
         this.app.use(express.json({ limit: process.env.PAYLOAD_MAX_SIZE }));
         this.app.use(express.urlencoded({ limit: process.env.PAYLOAD_MAX_SIZE, extended: true }));
         this.app.use(morganMiddleware);
+
+        this.app.use((req, res, next) => {
+            logger.info(`[DEBUG] Incoming request: ${req.method} ${req.url}`);
+            logger.info(`[DEBUG] Request headers: ${JSON.stringify(req.headers)}`);
+            logger.info(`[DEBUG] Request body: ${JSON.stringify(req.body)}`);
+            next();
+        });
     }
     // private initializeSwagger(): void {
     //     setupSwagger(this.app);
@@ -55,6 +62,13 @@ export class Application {
         const routersPath = path.join(__dirname, 'routes');
 
         try {
+            logger.info('[DEBUG] ========== ROUTES INITIALIZATION ==========');
+            logger.info(`[DEBUG] Routes directory: ${routersPath}`);
+            logger.info(`[DEBUG] API Prefix: ${this.apiPrefix}`);
+            logger.info(`[DEBUG] Image Service URL: ${process.env.IMAGE_SERVICE}`);
+            logger.info(`[DEBUG] Assets URL: ${this.apiPrefix}/assets/media`);
+            logger.info(`[DEBUG] Catalog URL: ${process.env.DEV_ENV ? 'DEV/' : ''}catalog`);
+
             const files = fs.readdirSync(routersPath);
             logger.info(`Found route files: ${files.join(', ')}`);
 

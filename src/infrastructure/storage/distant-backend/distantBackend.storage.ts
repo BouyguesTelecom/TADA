@@ -47,15 +47,19 @@ export class DistantBackendStorage extends BaseStorage {
     protected async upload(props: StorageFileProps): Promise<IStorageResponse> {
         try {
             const { filepath, file, metadata } = props;
+            logger.info(`[DEBUG] Starting upload process for file: ${filepath}`);
+            logger.info(`[DEBUG] File size: ${file?.length || 0} bytes`);
+            logger.info(`[DEBUG] Metadata received: ${JSON.stringify(metadata)}`);
+
             if (!file) {
+                logger.error('[DEBUG] No file provided in upload props');
                 return this.createErrorResponse('No file provided');
             }
 
-            logger.info(`Uploading file to distant backend: ${filepath}`);
-
             const formData = new FormData();
-
             const baseUrl = process.env.NGINX_INGRESS || 'http://localhost:8080';
+            logger.info(`[DEBUG] Using base URL: ${baseUrl}`);
+            logger.info(`[DEBUG] Using host URL: ${this.host}`);
 
             const fileMetadata = {
                 unique_name: filepath,
@@ -68,40 +72,52 @@ export class DistantBackendStorage extends BaseStorage {
                 version: metadata?.version || 1
             };
 
+            logger.info(`[DEBUG] Constructed file metadata: ${JSON.stringify(fileMetadata)}`);
+
             formData.append('metadata', JSON.stringify([fileMetadata]));
             formData.append('file', file, {
                 filename: filepath.split('/').pop() || 'file',
                 contentType: metadata?.mimetype
             });
 
-            logger.info(`Sending file to distant backend. Metadata: ${JSON.stringify(fileMetadata)}`);
-
             const apiUrl = `${this.host}/file?filepath=${encodeURIComponent(filepath)}`;
+            logger.info(`[DEBUG] Full API URL: ${apiUrl}`);
+            logger.info(`[DEBUG] FormData headers: ${JSON.stringify(formData.getHeaders())}`);
 
+            const requestHeaders = {
+                Authorization: `Bearer ${this.token}`
+            };
+            logger.info(`[DEBUG] Request headers: ${JSON.stringify(requestHeaders)}`);
+
+            logger.info('[DEBUG] Sending request to distant backend...');
             const response = await fetch(apiUrl, {
                 method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${this.token}`
-                },
+                headers: requestHeaders,
                 body: formData
             });
+
+            logger.info(`[DEBUG] Response status: ${response.status}`);
+            logger.info(`[DEBUG] Response headers: ${JSON.stringify(response.headers.raw())}`);
 
             if (response.status !== 200) {
                 let errorDetails = 'Failed to upload in backup /file';
                 try {
                     const errorResponse = await response.json();
                     errorDetails = errorResponse.error || errorResponse.details || errorDetails;
+                    logger.error(`[DEBUG] Error response details: ${JSON.stringify(errorResponse)}`);
                 } catch (parseError) {
-                    logger.error(`Error parsing error response: ${parseError}`);
+                    logger.error(`[DEBUG] Error parsing error response: ${parseError}`);
                 }
 
-                logger.error(`Upload failed: ${errorDetails}`);
+                logger.error(`[DEBUG] Upload failed: ${errorDetails}`);
                 return this.createErrorResponse(`Upload failed: ${errorDetails}`);
             }
 
+            logger.info('[DEBUG] Upload successful');
             return this.createSuccessResponse(null, 'File uploaded successfully to distant backend');
         } catch (error) {
-            logger.error(`Error uploading file to distant backend: ${error}`);
+            logger.error(`[DEBUG] Error in upload process: ${error}`);
+            logger.error(`[DEBUG] Error stack: ${error instanceof Error ? error.stack : 'No stack trace'}`);
             return this.createErrorResponse(`Upload failed: ${error}`);
         }
     }
