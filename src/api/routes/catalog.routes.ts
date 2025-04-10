@@ -9,6 +9,7 @@ import { createDump, getFile, getFiles, deleteCatalog, updateFileInCatalog, addF
 import { Router } from 'express';
 import { deleteCatalogItem } from '../catalog';
 import { redisConnectionMiddleware } from '../middleware/redisMiddleware';
+import { rateLimitMiddleware } from '../middleware/rateLimit';
 
 const router = Router();
 

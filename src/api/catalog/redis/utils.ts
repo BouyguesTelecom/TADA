@@ -4,7 +4,7 @@ import { addMultipleFiles, addOneFile, deleteMultipleFiles, deleteOneFile, getAl
 import { FileProps, ICatalogResponse, ICatalogResponseMulti } from '../../props/catalog';
 import { purgeData } from '../../middleware/validators/utils';
 import { getCurrentDateVersion } from '../../utils/catalog';
-import { updateCacheCatalog } from './connection';
+import { getCachedCatalog, updateCacheCatalog } from './connection';
 
 export const addFileInCatalog = async (item: FileProps): Promise<ICatalogResponse> => {
     try {
@@ -42,21 +42,21 @@ export const addFilesInCatalog = async (items: FileProps[]): Promise<ICatalogRes
             return {
                 status: 200,
                 data: response.data,
-                errors: null
+                errors: []
             };
         }
         logger.error(`⛔️ Errors adding files: ${ response.errors }`);
         return {
             status: 500,
             errors: response.errors || [ 'Unknown error' ],
-            data: null
+            data: []
         };
     } catch ( err: unknown ) {
         logger.error(`Error adding file: ${ err }`);
         return {
             status: 500,
             errors: [ `Error adding file: ${ err }` ],
-            data: null
+            data: []
         };
     }
 };
@@ -87,7 +87,7 @@ export const getFile = async (uuid): Promise<ICatalogResponse> => {
         return {
             status: 404,
             datum: null,
-            error: `Unable to find file with id ${ uuid } => ${ response.error?.join(', ') }`
+            error: `Unable to find file with id ${ uuid } => ${ response.error }`
         };
     } catch ( err: unknown ) {
         logger.error(`Error getting file: ${ err }`);
@@ -128,37 +128,32 @@ export const updateFilesInCatalog = async (items: FileProps[]): Promise<ICatalog
             return {
                 status: 200,
                 data: response.data,
-                errors: null
+                errors: []
             };
         }
         logger.error(`⛔️ Errors updating files: ${ response.errors }`);
         return {
             status: 500,
             errors: response.errors || [ 'Unknown error' ],
-            data: null
+            data: []
         };
-    } catch (err: unknown) {
-        logger.error(`Error updating files: ${err}`);
+    } catch ( err: unknown ) {
+        logger.error(`Error updating files: ${ err }`);
         return {
             status: 500,
-            errors: [`Error updating files: ${err}`],
-            data: null
+            errors: [ `Error updating files: ${ err }` ],
+            data: []
         };
     }
 };
 
 export const deleteFileFromCatalog = async (uuid: string): Promise<ICatalogResponse> => {
     try {
-        const catalog = await getCatalog();
-        const itemFound = catalog.data.find((item) => item.uuid === uuid);
-        if (!itemFound) {
-            return { status: 404, datum: null, error: `Item not found: ${ uuid }` };
-        }
-
-        await deleteOneFile(itemFound.uuid);
+        const file = await getCachedCatalog(uuid)
+        await deleteOneFile(file.uuid);
         await updateCacheCatalog();
         await purgeData('catalog');
-        return { status: 200, datum: { ...itemFound, message: `Successfully deleted ${ uuid }` }, error: null };
+        return { status: 200, datum: { ...file, message: `Successfully deleted ${ uuid }` }, error: null };
     } catch ( err: unknown ) {
         logger.error(`Error deleting file: ${ err }`);
         return {
@@ -178,31 +173,31 @@ export const deleteFilesInCatalog = async (items: FileProps[]): Promise<ICatalog
             return {
                 status: 200,
                 data: response.data,
-                errors: null
+                errors: []
             };
         }
         logger.error(`⛔️ Errors deleting files: ${ response.errors }`);
         return {
             status: 500,
             errors: response.errors || [ 'Unknown error' ],
-            data: null
+            data: []
         };
-    } catch (err: unknown) {
-        logger.error(`Error deleting files: ${err}`);
+    } catch ( err: unknown ) {
+        logger.error(`Error deleting files: ${ err }`);
         return {
             status: 500,
-            errors: [`Error deleting files: ${err}`],
-            data: null
+            errors: [ `Error deleting files: ${ err }` ],
+            data: []
         };
     }
 };
 
 
 export const deleteCatalog = async (): Promise<ICatalogResponseMulti> => {
-    const response = await getAllFiles();
-    if (response.data) {
-        for ( const item of response.data ) {
-            await deleteFileFromCatalog(item.unique_name);
+    const response = await getCachedCatalog();
+    if (response) {
+        for ( const item of Object.values(response) as any ) {
+            await deleteFileFromCatalog(item.uuid);
         }
         await updateCacheCatalog();
         await purgeData('catalog');

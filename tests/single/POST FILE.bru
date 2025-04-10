@@ -7,13 +7,17 @@ meta {
 post {
   url: {{URL_API}}{{URL_API_PREFIX}}/file
   body: multipartForm
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_TOKEN}}
 }
 
 body:multipart-form {
   namespace: DEV
-  file: @file(/tmp/images/jpg.jpg)
-  destination: testsd
+  file: @file(/Users/amlouler/Downloads/test.webp)
+  ~destination: 
   ~expired: true
 }
 

@@ -117,7 +117,7 @@ export const convertToWebpBuffer = async (buffer: Buffer, params = null, type = 
         return await image[format](config[format]).rotate().toFormat('webp').toBuffer();
     } catch (errorMessage) {
         logger.error(`Failed to remove metadata ${errorMessage}`);
-        return '';
+        return null;
     }
 };
 

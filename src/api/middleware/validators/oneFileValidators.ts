@@ -37,9 +37,11 @@ export const validatorParams = async (req: Request, res: Response, next: NextFun
 
 export const validatorFileCatalog = async (req: Request, res: Response, next: NextFunction) => {
     const { uuid, namespace, toWebp, file } = res.locals;
+    console.log(file, 'FILE ICI ????', uuid)
     const uniqueName = file && generateUniqueName(file, req.body, namespace, toWebp);
     const fileUUID = uuid ? uuid : await crypto.createHash('md5').update(uniqueName).digest('hex');
     const itemFound = await getCachedCatalog(fileUUID);
+    console.log(itemFound, fileUUID, 'ICIIIII 2')
     if (itemFound && req.method === 'PATCH' && file) {
         if (file.mimetype !== itemFound.original_mimetype && req.body.toWebp === 'false' && itemFound.mimetype === 'image/webp') {
             return sendResponse({
@@ -157,8 +159,8 @@ export const validatorGetAsset = async (req: Request, res: Response, next: NextF
     }
 
     const uniqueNameFinal = cleanUniqueName.split('/').filter((item) => item.length > 0).join('/');
-
-    const redisKeyMD5 = crypto.createHash('md5').update(uniqueName).digest('hex');
+    const redisKeyMD5 = crypto.createHash('md5').update('/' + uniqueNameFinal).digest('hex');
+    console.log('ONE FILE AFTER 🎉')
     const { datum: file } = await getOneFile(redisKeyMD5);
     const namespace = file?.namespace || null;
 

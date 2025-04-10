@@ -7,7 +7,11 @@ meta {
 patch {
   url: {{URL_API}}{{URL_API_PREFIX}}/files
   body: json
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_TOKEN}}
 }
 
 body:json {
@@ -17,8 +21,8 @@ body:json {
   },
   {
     "namespace": "DEV",
-    "uuid": "7bb7f399-3798-4b23-a20c-01b161ea5ec1",
-    "information": "lolilol"
+    "uuid": "7945d3a81f3d2d879c08dc8c6bddab64",
+    "information": "lolilol4"
   }]
 }
 

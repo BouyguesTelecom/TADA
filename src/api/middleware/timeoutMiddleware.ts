@@ -8,18 +8,18 @@ const parsePayloadSize = (size: string): number => {
 };
 
 export const timeoutMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    const baseTimeout = Number(process.env.BASE_TIMEOUT_MS) || 1000;
+    const baseTimeout = Number(process.env.BASE_TIMEOUT_MS) || 1500;
     const maxPayloadSize = parsePayloadSize(process.env.PAYLOAD_MAX_SIZE || '10mb');
     const timeout = (baseTimeout * (maxPayloadSize / (1024 * 1024))) / 2;
 
     req.setTimeout(timeout, () => {
         if (!res.headersSent) {
-            res.status(408).send('Request timeout');
+            return res.status(408).send('Request timeout').end();
         }
     });
 
     res.on('timeout', () => {
-        res.status(408).send('Request timeout');
+        return res.status(408).send('Request timeout').end();
     });
 
     next();

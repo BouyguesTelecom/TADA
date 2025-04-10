@@ -2,6 +2,8 @@ import { createClient } from '@redis/client';
 import { logger } from '../../utils/logs/winston';
 import { getCatalog } from '../index';
 
+let inMemoryCatalogCache = {};
+
 const redisClient = createClient({
     socket: {
         host: process.env.REDIS_SERVICE || 'localhost',
@@ -11,7 +13,7 @@ const redisClient = createClient({
 });
 
 redisClient.on('error', (err) => {
-    logger.error(`Redis Client Error: ${ err.message }`);
+    logger.error(`Redis Client Error: ${ err.message } ${JSON.stringify(err)}`);
 });
 
 redisClient.on('connect', () => {
@@ -38,41 +40,44 @@ const disconnectClient = async () => {
 };
 
 const getAsync = async (key) => {
+    console.log('GET ASYNC REDIS', key)
     return await redisClient.get(key);
 };
 
 const setAsync = async (key, value) => {
+    console.log('SET ASYNC REDIS', key)
     return await redisClient.set(key, value);
 };
 
 const delAsync = async (key) => {
+    console.log('DEL ASYNC REDIS', key)
     return await redisClient.del(key);
 };
 
 const keysAsync = async (pattern) => {
+    console.log('keys ASYNC REDIS', pattern)
     return await redisClient.keys(pattern);
 };
 
 const generateDump = async () => redisClient.save();
 
 export const updateCacheCatalog = async () => {
+    console.log("Updating catalog cache... 🔆");
     try {
         const { data: catalog } = await getCatalog();
-        console.log('CATALOG WILL BE CACHED !', catalog);
-
-        // Vérifiez si le catalogue existe et qu'il n'est pas vide
         if (!catalog || catalog.length === 0) {
-            console.error("Catalogue est vide ou non valide");
+            console.error("Empty catalog or not valid");
             await redisHandler.setAsync('catalogCached', JSON.stringify({}));
+            inMemoryCatalogCache = {};
             return;
         }
 
-        // Filtrer les éléments invalides du catalogue
         const validCatalog = catalog.filter(item => item && item.uuid);
 
         if (validCatalog.length === 0) {
-            console.error("Aucun élément valide trouvé dans le catalogue");
+            console.error("No item found in catalog");
             await redisHandler.setAsync('catalogCached', JSON.stringify({}));
+            inMemoryCatalogCache = {};
             return;
         }
 
@@ -81,16 +86,9 @@ export const updateCacheCatalog = async () => {
             return acc;
         }, {});
 
-        console.log('catalog update:', catalogObjectUUID);
-
-        // Nettoyez le cache avant de mettre à jour
-        await redisHandler.delAsync('catalogCached');
-
-        // Mettez à jour le cache avec le nouveau catalogue
-        await redisHandler.setAsync('catalogCached', JSON.stringify(catalogObjectUUID, null, 2));
-
-        // Vérifiez les données mises en cache
-        console.log(await redisHandler.getAsync('catalogCached'), 'from redis', await getCachedCatalog());
+        await delAsync('catalogCached');
+        await setAsync('catalogCached', JSON.stringify(catalogObjectUUID));
+        inMemoryCatalogCache = catalogObjectUUID;
 
     } catch (error) {
         console.error("Erreur lors de la mise à jour du cache du catalogue:", error);
@@ -98,11 +96,9 @@ export const updateCacheCatalog = async () => {
 };
 
 export const getCachedCatalog = async (id = null) => {
-    console.log('JE VAIS FETCH LE CATALOG, avec l ID ==>', id)
+    console.log('GET CACHED CATALOG')
     try {
-        const cachedData = await redisHandler.getAsync('catalogCached');
-        const catalog = JSON.parse(cachedData || "{}");
-        console.log('cachedData', cachedData)
+        const catalog = inMemoryCatalogCache;
         if (id) {
             return catalog[id];
         }
@@ -120,5 +116,6 @@ export const redisHandler = {
     setAsync,
     delAsync,
     keysAsync,
-    generateDump
+    generateDump,
+    redisClient
 };

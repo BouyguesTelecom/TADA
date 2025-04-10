@@ -7,6 +7,11 @@ export const rateLimitMiddleware = setRateLimit({
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     keyGenerator: (req) => {
-        return req.originalUrl;
+        return `${req.method}-${req.originalUrl}`;
+    },
+    handler: (req, res) => {
+        return res.status(429).json({
+            error: 'Too many requests, please try again later.'
+        });
     }
 });

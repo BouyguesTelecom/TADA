@@ -30,11 +30,18 @@ const parseDateVersion = (name: string): Date => {
     return new Date(year, month, day, hours, minutes, seconds);
 };
 
-export const getOneFile = async (id: string) => {
+export const getOneFile = async (id: string, redis = false) => {
     try {
-        const file = await redisHandler.getAsync(id);
+        if (redis) {
+            const file = await redisHandler.getAsync(id);
+            return {
+                datum: file ? JSON.parse(file) : null,
+                error: null
+            };
+        }
+        const catalogItem = await getCachedCatalog(id);
         return {
-            datum: file ? JSON.parse(file) : null,
+            datum: catalogItem ? catalogItem : null,
             error: null
         };
     } catch ( err ) {
@@ -83,7 +90,7 @@ export const addOneFile = async (file: FileProps) => {
         const errorValidation = validateOneFile(file);
         if (!errorValidation) {
             await redisHandler.setAsync(file.uuid, JSON.stringify({ ...file }));
-            const uploadedFile = await getOneFile(file.uuid);
+            const uploadedFile = await getOneFile(file.uuid, true);
             if (uploadedFile.datum) {
                 return {
                     datum: uploadedFile.datum,
@@ -152,8 +159,7 @@ export const updateOneFile = async (fileId: string, updateData: Partial<FileProp
         const parsedExistingFile = JSON.parse(existingFile);
 
         const updatedFile = { ...parsedExistingFile, ...updateData };
-
-        await redisHandler.setAsync(`${ fileId }`, JSON.stringify(updatedFile));
+        await redisHandler.setAsync(fileId, JSON.stringify(updatedFile));
 
         return { datum: updatedFile, error: null };
     } catch ( err ) {
@@ -191,15 +197,7 @@ export const updateMultipleFiles = async (files: FileProps[]) => {
 
 export const deleteOneFile = async (id: string): Promise<{ datum?: string; error?: string }> => {
     try {
-        const fileCatalog = await getCachedCatalog(id);
-        const redisKeyMD5 = crypto.createHash('md5').update(fileCatalog.unique_name).digest('hex');
-        const existingFile = await redisHandler.getAsync(redisKeyMD5);
-        console.log(existingFile, 'existing file delete one !!');
-        if (!existingFile) {
-            return { error: `File with id ${ id } does not exist` };
-        }
         await redisHandler.delAsync(id);
-
         return { datum: `File with id ${ id } successfully deleted` };
     } catch ( err ) {
         return { error: err.message };
@@ -211,15 +209,14 @@ export const deleteMultipleFiles = async (files: FileProps[]) => {
         const successfulDeleteFiles: FileProps[] = [];
         const failedDeleteFiles: string[] = [];
 
-        for ( let file of files ) {
+        for ( const file of files ) {
             const { datum, error } = await deleteOneFile(file.uuid);
-            if (datum && !error.length) {
+            if (datum && !error) {
                 successfulDeleteFiles.push(file);
             } else {
-                failedDeleteFiles.push(`Failed to delete file ${file.uuid}`);
+                failedDeleteFiles.push(`Failed to delete file ${ file.uuid }`);
             }
         }
-
         return {
             data: successfulDeleteFiles,
             errors: failedDeleteFiles.length ? failedDeleteFiles : null

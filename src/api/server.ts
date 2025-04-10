@@ -39,7 +39,6 @@ const connectToRedisWithRetry = async (maxRetries, delay) => {
             return;
         } catch ( err ) {
             attempts++;
-            console.log(err, 'ERROR REDIS ??');
             logger.error(`Failed to connect to Redis. Attempt ${ attempts } of ${ maxRetries }. Retrying in ${ delay / 1000 } seconds... `);
             if (attempts < maxRetries) {
                 await new Promise((resolve) => setTimeout(resolve, delay));
@@ -80,7 +79,6 @@ const createStandaloneFolderAndCatalog = () => {
             }
             await updateCacheCatalog();
             console.log('BEFORE STARTING;', await getCachedCatalog());
-            await redisHandler.disconnectClient();
         }
 
         if (standalone) {
@@ -97,7 +95,8 @@ const createStandaloneFolderAndCatalog = () => {
     }
 } )();
 
-app.on('error', (err) => {
+app.on('error', async (err) => {
+    await redisHandler.disconnectClient();
     logger.error(`${ err }`);
     process.exit(1);
 });

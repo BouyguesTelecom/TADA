@@ -1,0 +1,27 @@
+meta {
+  name: DELETE FILES
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{URL_API}}{{URL_API_PREFIX}}/file/{{FILE_ID}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "namespace": "DEV"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.data: length 1
+  res.body.errors: isNull 0
+}

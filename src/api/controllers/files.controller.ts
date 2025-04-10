@@ -53,7 +53,7 @@ export const postAssets = async (req: Request, res: Response) => {
     return await sendResponse({
         res,
         status: 200,
-        data: [ ...data, ...catalogItems ],
+        data: catalogItems,
         errors: [ ...errors, ...errorsCatalog ],
         purge: 'catalog'
     });
@@ -99,7 +99,7 @@ export const patchAssets = async (req: Request, res: Response) => {
     return sendResponse({
         res,
         status: 200,
-        data: [ ...data, ...catalogItems ],
+        data: catalogItems,
         errors: [ ...errors, ...errorsCatalog ],
         purge: 'catalog'
     });
@@ -142,7 +142,7 @@ export const deleteAssets = async (req: Request, res: Response) => {
     return sendResponse({
         res,
         status: 200,
-        data: [ ...data, ...catalogItems ],
+        data: catalogItems,
         errors: [ ...errors, ...errorsCatalog ],
         purge: 'catalog'
     });

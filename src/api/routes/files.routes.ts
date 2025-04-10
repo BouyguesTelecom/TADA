@@ -104,7 +104,7 @@ router.post(`/files`, [ authMiddleware, validatorFiles, validatorFilesFilter, va
  *       500:
  *         description: Internal server error
  */
-router.patch(`/files`, [ authMiddleware, validatorFiles, validatorUUIds, validatorCatalog, validatorFilesFilter, validatorFilesSize, validatorFilesBody ], patchAssets);
+router.patch(`/files`, [ authMiddleware, validatorFiles, validatorUUIds, validatorFilesFilter, validatorFilesSize, validatorFilesBody, validatorCatalog ], patchAssets);
 
 /**
  * @swagger

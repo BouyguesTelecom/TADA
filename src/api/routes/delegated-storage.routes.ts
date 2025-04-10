@@ -11,7 +11,7 @@ import { getBackup, patchBackup, postBackup, deleteBackup, getBackupDump } from 
 import { validatorFile } from '../middleware/validators/oneFileValidators';
 
 const router = Router();
-
+router.use(rateLimitMiddleware);
 /**
  * @swagger
  * /delegated-storage/get-last-dump:
@@ -22,7 +22,7 @@ const router = Router();
  *       200:
  *         description: A backup dump
  */
-router.get(`/delegated-storage/get-last-dump`, rateLimitMiddleware, getBackupDump);
+router.get(`/delegated-storage/get-last-dump`, getBackupDump);
 
 /**
  * @swagger
@@ -34,7 +34,7 @@ router.get(`/delegated-storage/get-last-dump`, rateLimitMiddleware, getBackupDum
  *       200:
  *         description: A list of backups
  */
-router.get(`/delegated-storage`, rateLimitMiddleware, getBackup);
+router.get(`/delegated-storage`, getBackup);
 
 /**
  * @swagger
@@ -56,7 +56,7 @@ router.get(`/delegated-storage`, rateLimitMiddleware, getBackup);
  *       201:
  *         description: Backup created
  */
-router.post(`/delegated-storage`, [rateLimitMiddleware, validatorFile], postBackup);
+router.post(`/delegated-storage`, [ validatorFile ], postBackup);
 
 /**
  * @swagger
@@ -78,7 +78,7 @@ router.post(`/delegated-storage`, [rateLimitMiddleware, validatorFile], postBack
  *       200:
  *         description: Backup updated
  */
-router.patch(`/delegated-storage`, [rateLimitMiddleware, validatorFile], patchBackup);
+router.patch(`/delegated-storage`, [ validatorFile ], patchBackup);
 
 /**
  * @swagger
@@ -90,6 +90,6 @@ router.patch(`/delegated-storage`, [rateLimitMiddleware, validatorFile], patchBa
  *       200:
  *         description: Backup deleted
  */
-router.delete(`/delegated-storage`, rateLimitMiddleware, deleteBackup);
+router.delete(`/delegated-storage`, deleteBackup);
 
 export { router };

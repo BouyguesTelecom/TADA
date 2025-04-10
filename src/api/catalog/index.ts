@@ -79,9 +79,9 @@ export const deleteCatalogItems = async (items): Promise<ICatalogResponseMulti> 
     logger.info(`Update files in catalog ${backupStorageMethod === 'STANDALONE' ? 'catalog.json' : 'REDIS'} ...`);
     switch (backupStorageMethod) {
         case 'STANDALONE':
-            return await standalone.updateFilesInCatalog(items);
+            return await standalone.deleteFilesInCatalog(items);
         default:
-            return await redis.updateFilesInCatalog(items);
+            return await redis.deleteFilesInCatalog(items);
     }
 };
 

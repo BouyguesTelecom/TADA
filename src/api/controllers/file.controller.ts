@@ -51,7 +51,7 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
 
     if (!fileIsExpired) {
         const getBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/delegated-storage?filepath=${ uniqueName }&version=${ file.version }&mimetype=${ file.mimetype }`);
-
+        console.log(getBackupFile.status, 'STATUS DU BACKUPPPP !!')
         if (getBackupFile.status !== 200) {
             if (getBackupFile.status !== 429) {
                 await deleteCatalogItem(file.uuid);
@@ -67,17 +67,15 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
         bodyStream.pipe(streamForSignature);
         bodyStream.pipe(streamForResponse);
 
-        const item = JSON.parse(await redisHandler.getAsync(file.uuid));
-
         bodyStream.on('error', (err) => {
             logger.error('Error in originalStream:', err);
             return res.status(500).end();
         });
 
-        const { isValidSignature, originSignature } = await checkSignature(item, streamForSignature);
+        const { isValidSignature, originSignature } = await checkSignature(file, streamForSignature);
 
         if (!isValidSignature) {
-            logger.error(`Invalid signatures (catalog: ${ item.signature }, origin: ${ originSignature })`);
+            logger.error(`Invalid signatures (catalog: ${ file.signature }, origin: ${ originSignature })`);
             return res.status(418).end();
         }
 
@@ -89,6 +87,9 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
         if (req.url.includes('/full/')) {
             try {
                 const webpBuffer = await convertToWebpBuffer(Buffer.from(bodyBuffer));
+                if(!webpBuffer) {
+                    return res.status(500).send('Internal Server Error : error during webp conversion').end();
+                }
                 res.setHeader('Content-Type', 'image/webp');
                 return res.send(webpBuffer);
             } catch ( error ) {
@@ -217,7 +218,6 @@ export const patchAsset = async (req: Request, res: Response) => {
 
 export const deleteAsset = async (req: Request, res: Response) => {
     const { itemToUpdate } = res.locals;
-
     const { status, datum } = await deleteCatalogItem(itemToUpdate.uuid);
 
     if (status !== 200) {

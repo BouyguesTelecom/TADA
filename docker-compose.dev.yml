@@ -15,7 +15,7 @@ x-environment-variables:
   
     # S3 BACKUP :
     DELEGATED_STORAGE_READINESS_CHECK: /readiness-check
-    DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
+    DELEGATED_STORAGE_HOST: http://minio:9000
 
     DELEGATED_STORAGE_METHOD: DISTANT_BACKEND
 
@@ -51,16 +51,6 @@ services:
             - ./local/redis/dumps:/dumps
         networks:
             - redis_net
-    redisinsight:
-        image: redis/redisinsight:latest
-        container_name: redisinsight
-        ports:
-            - '5540:5540'
-        networks:
-            - redis_net
-        depends_on:
-            - redis
-
     minio:
         image: minio/minio
         ports:
@@ -74,7 +64,6 @@ services:
             - pv-minio:/data/minio
         networks:
             - media_network
-
     images-provider:
         build:
             context: src/api
@@ -94,6 +83,7 @@ services:
             DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
             REDIS_SERVICE: redis
             MEDIA_TOKEN: token
+            DELEGATED_STORAGE_TOKEN: NinjaDesIles
         healthcheck:
             test: ["CMD-SHELL", "wget --spider --quiet http://images-provider:3001$$API_PREFIX/readiness-check || exit 1"]
             interval: 10s
