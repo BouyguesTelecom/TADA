@@ -125,9 +125,7 @@ services:
         depends_on:
             - images-provider
     job:
-        build:
-            context: src/
-            dockerfile: Dockerfile
+        image: bouyguestelecom/tada:job-latest
         ports:
             - 3006:3006
         networks:
