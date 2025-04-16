@@ -12,10 +12,10 @@ x-environment-variables:
     VALID_MIMETYPES: image/png,image/jpeg,application/pdf,image/jpg,image/webp,image/svg+xml
 
     DEV_ENV: true
-  
+
     # S3 BACKUP :
     DELEGATED_STORAGE_READINESS_CHECK: /readiness-check
-    DELEGATED_STORAGE_HOST: http://minio:9000
+    DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
 
     DELEGATED_STORAGE_METHOD: DISTANT_BACKEND
 
@@ -24,9 +24,8 @@ x-environment-variables:
     S3_ACCESS_KEY: minioadmin
     S3_SECRET_KEY: minioadmin
     S3_BUCKET_NAME: media
-
+    DELEGATED_STORAGE_TOKEN: NinjaDesIles
     DUMP_FOLDER_PATH: /dumps
-    REDIS_SERVICE: localhost
 
     HEALTHCHECK_ROUTE: /readiness-check
 
@@ -51,6 +50,16 @@ services:
             - ./local/redis/dumps:/dumps
         networks:
             - redis_net
+    redisinsight:
+        image: redis/redisinsight:latest
+        container_name: redisinsight
+        ports:
+            - '5540:5540'
+        networks:
+            - redis_net
+        depends_on:
+            - redis
+
     minio:
         image: minio/minio
         ports:
@@ -64,6 +73,7 @@ services:
             - pv-minio:/data/minio
         networks:
             - media_network
+
     images-provider:
         build:
             context: src/api
@@ -81,9 +91,10 @@ services:
             IMAGE_SERVICE: http://images-provider:3001
             NGINX_INGRESS: http://localhost:8080
             DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
+            DELEGATED_STORAGE_SINGLE_PATH: '/file'
+            DELEGATED_STORAGE_MULTI_PATH: '/files'
             REDIS_SERVICE: redis
             MEDIA_TOKEN: token
-            DELEGATED_STORAGE_TOKEN: NinjaDesIles
         healthcheck:
             test: ["CMD-SHELL", "wget --spider --quiet http://images-provider:3001$$API_PREFIX/readiness-check || exit 1"]
             interval: 10s
@@ -91,6 +102,7 @@ services:
             retries: 5
     nginx-purge:
         image: emcniece/nginx-cache-purge:1.13-alpine
+        platform: linux/amd64
         ports:
             - 8081:8081
         volumes:

@@ -11,8 +11,6 @@ import { Readable } from 'node:stream';
 import app from '../app';
 import { addCatalogItem, deleteCatalogItem, updateCatalogItem, getCatalog } from '../catalog';
 import { redisHandler } from '../catalog/redis/connection';
-import { getOneFile } from '../catalog/redis/operations';
-import crypto from 'crypto';
 
 const streamToBuffer = (stream: PassThrough): Promise<Buffer> => {
     return new Promise((resolve, reject) => {
@@ -31,7 +29,7 @@ const checkSignature = async (file: FileProps, stream: PassThrough): Promise<{ i
             isValidSignature: file.signature === signature,
             originSignature: signature
         };
-    } catch ( error ) {
+    } catch (error) {
         logger.error('Error checking signature:', error);
         return {
             isValidSignature: false,
@@ -50,11 +48,11 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
     const fileIsExpired = isExpired(file);
 
     if (!fileIsExpired) {
-        const getBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/delegated-storage?filepath=${ uniqueName }&version=${ file.version }&mimetype=${ file.mimetype }`);
-        console.log(getBackupFile.status, 'STATUS DU BACKUPPPP !!')
+        const getBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${uniqueName}&version=${file.version}&mimetype=${file.mimetype}`);
+
         if (getBackupFile.status !== 200) {
             if (getBackupFile.status !== 429) {
-                await deleteCatalogItem(file.uuid);
+                await deleteCatalogItem(uniqueName);
             }
             return res.status(getBackupFile.status).end();
         }
@@ -67,32 +65,32 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
         bodyStream.pipe(streamForSignature);
         bodyStream.pipe(streamForResponse);
 
+        const { data: catalog } = await getCatalog();
+        const item = catalog.find((item: FileProps) => item.unique_name === uniqueName);
+
         bodyStream.on('error', (err) => {
             logger.error('Error in originalStream:', err);
             return res.status(500).end();
         });
 
-        const { isValidSignature, originSignature } = await checkSignature(file, streamForSignature);
+        const { isValidSignature, originSignature } = await checkSignature(item, streamForSignature);
 
         if (!isValidSignature) {
-            logger.error(`Invalid signatures (catalog: ${ file.signature }, origin: ${ originSignature })`);
+            logger.error(`Invalid signatures (catalog: ${item.signature}, origin: ${originSignature})`);
             return res.status(418).end();
         }
 
         if (req.url.includes('/original/')) {
             res.setHeader('Content-Type', file.mimetype);
-            res.setHeader('Content-Disposition', `inline; filename="${ uniqueName }"`);
+            res.setHeader('Content-Disposition', `inline; filename="${uniqueName}"`);
             return streamForResponse.pipe(res, { end: true });
         }
         if (req.url.includes('/full/')) {
             try {
                 const webpBuffer = await convertToWebpBuffer(Buffer.from(bodyBuffer));
-                if(!webpBuffer) {
-                    return res.status(500).send('Internal Server Error : error during webp conversion').end();
-                }
                 res.setHeader('Content-Type', 'image/webp');
                 return res.send(webpBuffer);
-            } catch ( error ) {
+            } catch (error) {
                 console.error('Error during WebP conversion:', error);
                 return res.status(500).send('Internal Server Error');
             }
@@ -132,34 +130,79 @@ export const postAsset = async (req: Request, res: Response) => {
             return sendResponse({
                 res,
                 status: 400,
-                data: datum ? [ datum ] : null,
-                errors: error ? [ error ] : null
+                data: datum ? [datum] : null,
+                errors: error ? [error] : null
             });
         }
 
         if (datum) {
-            const form = new FormData();
-            form.append('file', stream, { filename: uniqueName, contentType: file.mimetype });
+            const formData = new FormData();
+
+            const metadata = {
+                unique_name: newItem.unique_name,
+                base_url: newItem.base_host,
+                destination: newItem.destination,
+                filename: newItem.filename,
+                mimetype: newItem.mimetype,
+                size: newItem.size,
+                namespace: newItem.namespace,
+                version: newItem.version
+            };
+            formData.append('metadata', JSON.stringify([metadata]));
+            formData.append('file', stream, { filename: uniqueName, contentType: file.mimetype });
+
             try {
-                const postBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/delegated-storage?filepath=${ uniqueName }&version=1&mimetype=${ file.mimetype }`, {
+                const apiUrl = `${process.env.DELEGATED_STORAGE_HOST}/file`;
+                console.log('Sending request to:', apiUrl);
+
+                console.log('===== Form : =====', formData);
+                const postBackupFile = await fetch(apiUrl, {
                     method: 'POST',
-                    body: form
+                    headers: {
+                        Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`,
+                        'x-version': req.query.version ? `${req.query.version}` : '',
+                        'x-mimetype': req.query.mimetype ? `${req.query.mimetype}` : ''
+                    },
+                    body: formData
                 });
                 if (postBackupFile.status !== 200) {
-                    await deleteCatalogItem(newItem.uuid);
+                    let errorDetails = 'Failed to upload in backup /file';
+
+                    try {
+                        // Tenter de récupérer plus de détails sur l'erreur
+                        const errorResponse = await postBackupFile.json();
+                        errorDetails = errorResponse.error || errorResponse.details || errorDetails;
+                    } catch (parseError) {
+                        console.error('Error parsing error response:', parseError);
+                    }
+
+                    await deleteCatalogItem(uniqueName);
                     return sendResponse({
                         res,
                         status: 400,
-                        data: [ 'Failed to upload in backup' ]
+                        data: ['Failed to upload in backup /file'],
+                        errors: [errorDetails]
                     });
                 }
-                return sendResponse({ res, status: 200, data: [ datum ], purge: 'catalog' });
-            } catch ( error ) {
-                await deleteCatalogItem(newItem.uuid);
+                const responseData = await postBackupFile.json().catch(() => ({}));
+
+                if (responseData.error || (responseData.result && responseData.result.status !== 200)) {
+                    await deleteCatalogItem(uniqueName);
+                    return sendResponse({
+                        res,
+                        status: 400,
+                        errors: [responseData.error || 'Pipeline failed'],
+                        data: responseData.details ? [responseData.details] : null
+                    });
+                }
+
+                return sendResponse({ res, status: 200, data: [datum], purge: 'catalog' });
+            } catch (error) {
+                await deleteCatalogItem(uniqueName);
                 return sendResponse({
                     res,
                     status: 500,
-                    errors: [ 'Error during backup upload' ],
+                    errors: ['Error during backup upload'],
                     purge: 'catalog'
                 });
             }
@@ -168,22 +211,22 @@ export const postAsset = async (req: Request, res: Response) => {
     return sendResponse({
         res,
         status: 400,
-        errors: [ 'Failed to upload file' ]
+        errors: ['Failed to upload file']
     });
 };
 
 export const patchAsset = async (req: Request, res: Response) => {
     const { itemToUpdate, uuid, fileInfo, uniqueName, toWebp, file } = res.locals;
-    const stream = file && ( await generateStream(file, uniqueName, toWebp) );
+    const stream = file && (await generateStream(file, uniqueName, toWebp));
 
-    if (( file && stream ) || !file) {
+    if ((file && stream) || !file) {
         const signature = stream && calculateSHA256(stream);
         const { datum: catalogData, error } = await updateCatalogItem(uuid, {
             ...itemToUpdate,
             ...fileInfo,
             version: file ? itemToUpdate.version + 1 : itemToUpdate.version,
-            ...( signature && { signature } ),
-            ...( file && { size: file.size } )
+            ...(signature && { signature }),
+            ...(file && { size: file.size })
         });
 
         const form = new FormData();
@@ -194,7 +237,7 @@ export const patchAsset = async (req: Request, res: Response) => {
             });
 
             const patchBackupFile = await fetch(
-                `${ app.locals.PREFIXED_API_URL }/delegated-storage?filepath=${ itemToUpdate.unique_name }&version=${ itemToUpdate.version }&mimetype=${ itemToUpdate.mimetype }`,
+                `${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${itemToUpdate.unique_name}&version=${itemToUpdate.version}&mimetype=${itemToUpdate.mimetype}`,
                 {
                     method: 'PATCH',
                     body: form
@@ -202,33 +245,34 @@ export const patchAsset = async (req: Request, res: Response) => {
             );
 
             if (patchBackupFile.status !== 200) {
-                await deleteCatalogItem(itemToUpdate.uuid);
+                await deleteCatalogItem(uniqueName);
             }
         }
-        const data = catalogData ? [ catalogData ] : null;
-        const errors = error ? [ error ] : null;
+        const data = catalogData ? [catalogData] : null;
+        const errors = error ? [error] : null;
         return sendResponse({ res, status: 200, data, errors, purge: 'true' });
     }
     return sendResponse({
         res,
         status: 400,
-        errors: [ 'Failed to upload file in backup' ]
+        errors: ['Failed to upload file in backup']
     });
 };
 
 export const deleteAsset = async (req: Request, res: Response) => {
     const { itemToUpdate } = res.locals;
-    const { status, datum } = await deleteCatalogItem(itemToUpdate.uuid);
+
+    const { status, datum } = await deleteCatalogItem(itemToUpdate.unique_name);
 
     if (status !== 200) {
         return sendResponse({
             res,
             status: 500,
-            errors: [ `Failed to remove file from catalog ` ]
+            errors: [`Failed to remove file from catalog `]
         });
     }
 
-    const deleteBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/delegated-storage?filepath=${ itemToUpdate.unique_name }&version=${ itemToUpdate.version }&mimetype=${ itemToUpdate.mimetype }`, {
+    const deleteBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${itemToUpdate.unique_name}&version=${itemToUpdate.version}&mimetype=${itemToUpdate.mimetype}`, {
         method: 'DELETE'
     });
 
@@ -236,14 +280,14 @@ export const deleteAsset = async (req: Request, res: Response) => {
         return sendResponse({
             res,
             status: 500,
-            data: [ { message: `File not removed from backup` } ]
+            data: [{ message: `File not removed from backup` }]
         });
     }
 
     return sendResponse({
         res,
         status: 200,
-        data: [ datum ],
+        data: [datum],
         purge: 'true'
     });
 };
