@@ -1,9 +1,10 @@
-import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import app from '../app';
 import { getCatalog } from '../catalog';
 import { FileProps } from '../props/catalog';
+import { logger } from './logs/winston';
 
 export const calculateSHA256 = (buffer: Buffer) => {
     return crypto.createHash('sha256').update(buffer).digest('hex');
@@ -84,6 +85,10 @@ export const formatItemForCatalog = async (
 
 export const findFileInCatalog = async (key_value, key_name) => {
     const { data: catalog } = await getCatalog();
+    if (!Array.isArray(catalog)) {
+        logger.warn(`Catalog is null or not an array in findFileInCatalog (key_name=${key_name}, key_value=${key_value})`);
+        return undefined;
+    }
     const isUnique = catalog.filter((item) => item[`${key_name}`] === key_value).length === 1;
     return isUnique ? catalog.find((item) => item[`${key_name}`] === key_value) : undefined;
 };

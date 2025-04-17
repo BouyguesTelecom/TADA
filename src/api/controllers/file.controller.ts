@@ -1,16 +1,15 @@
 import { Request, Response } from 'express';
-import { calculateSHA256, formatItemForCatalog, isExpired } from '../utils/catalog';
-import { convertToWebpBuffer, generateStream } from '../utils/file';
+import FormData from 'form-data';
+import fetch from 'node-fetch';
+import { Readable } from 'node:stream';
+import { PassThrough } from 'stream';
+import app from '../app';
+import { addCatalogItem, deleteCatalogItem, getCatalog, updateCatalogItem } from '../catalog';
 import { sendResponse } from '../middleware/validators/utils';
 import { FileProps } from '../props/catalog';
+import { calculateSHA256, formatItemForCatalog, isExpired } from '../utils/catalog';
+import { convertToWebpBuffer, generateStream } from '../utils/file';
 import { logger } from '../utils/logs/winston';
-import fetch from 'node-fetch';
-import FormData from 'form-data';
-import { PassThrough } from 'stream';
-import { Readable } from 'node:stream';
-import app from '../app';
-import { addCatalogItem, deleteCatalogItem, updateCatalogItem, getCatalog } from '../catalog';
-import { redisHandler } from '../catalog/redis/connection';
 
 const streamToBuffer = (stream: PassThrough): Promise<Buffer> => {
     return new Promise((resolve, reject) => {

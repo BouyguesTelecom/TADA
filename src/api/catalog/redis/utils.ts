@@ -1,9 +1,9 @@
 import app from '../../app';
+import { purgeData } from '../../middleware/validators/utils';
+import { FileProps, ICatalogResponse, ICatalogResponseMulti } from '../../props/catalog';
+import { getCurrentDateVersion } from '../../utils/catalog';
 import { logger } from '../../utils/logs/winston';
 import { addMultipleFiles, addOneFile, deleteOneFile, getAllFiles, getCatalog, getOneFile, updateOneFile } from './operations';
-import { FileProps, ICatalogResponse, ICatalogResponseMulti } from '../../props/catalog';
-import { purgeData } from '../../middleware/validators/utils';
-import { getCurrentDateVersion } from '../../utils/catalog';
 
 export const addFileInCatalog = async (item: FileProps): Promise<ICatalogResponse> => {
     try {
@@ -66,7 +66,7 @@ export const getFiles = async (): Promise<ICatalogResponseMulti> => {
         }
         return {
             status: 500,
-            data: null,
+            data: null, // tableau vide
             errors: response.errors
         };
     } catch (err: unknown) {
