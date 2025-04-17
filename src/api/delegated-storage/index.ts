@@ -215,32 +215,17 @@ export const deleteFile = async ({
 };
 
 
-export const deleteFiles = async ({
-    filespath,
-    version,
-    mimetype,
-    headers = {}
-}: FilesPathProps): Promise<BackupProps> => {
+export const deleteFiles = async (files: any): Promise<BackupProps> => {
 
     logger.info(`Delete files from backup storage using ${backupStorageMethod} method...`);
     switch ( backupStorageMethod ) {
         case 'DISTANT_BACKEND':
-            return await distantBackend.deleteFiles({
-                filespath,
-                version,
-                mimetype,
-                headers
-            });
+            return await distantBackend.deleteFiles(files);
         case 'S3':
-            return await s3.deleteFiles({ filenames: filespath });
+            return await s3.deleteFiles(files);
         case 'STANDALONE':
-            return await standalone.deleteFiles({ filespath });
+            return await standalone.deleteFiles(files);
         default:
-            return await distantBackend.deleteFiles({
-                filespath,
-                version,
-                mimetype,
-                headers
-            });
+            return await distantBackend.deleteFiles(files);
     }
 };

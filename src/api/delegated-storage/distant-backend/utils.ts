@@ -335,29 +335,19 @@ export const deleteFile = async ({ filepath, version, mimetype }: FileProps): Pr
     return null;
 };
 
-export const deleteFiles = async ({ filespath, version, mimetype }: FilesProps): Promise<BackupProps> => {
+export const deleteFiles = async (files: any): Promise<BackupProps> => {
     try {
-        const form = new FormData();
-
-        form.append('base_url', process.env.NGINX_INGRESS || '');
-        form.append('unique_names', JSON.stringify(filespath));
-        form.append('destinations', JSON.stringify(filespath));
-
-        const formHeaders = form.getHeaders();
         const authHeaders = {
             Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
         };
 
-        const backupUpload: ResponseBackup = await fetch(generateUrl('', version, mimetype, 'MULTI'), {
+        const backupUpload: ResponseBackup = await fetch(generateUrl('',  'MULTI'), {
             method: 'DELETE',
             headers: {
-                ...formHeaders,
                 ...authHeaders
             },
-            body: form
+            body: files
         });
-
-        console.log(backupUpload.status, 'BACKUP RESPONSE ???', generateUrl('', version, mimetype, 'MULTI'));
 
         if (backupUpload.status === 401) {
             console.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);

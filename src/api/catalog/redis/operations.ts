@@ -61,7 +61,7 @@ export const getAllFiles = async () => {
         if (ids && ids.length) {
             for ( let id of ids ) {
                 const file = await redisHandler.getAsync(id);
-                if (file) {
+                if (file && Object.keys(JSON.parse(file)).length) {
                     files.push(JSON.parse(file));
                 }
             }

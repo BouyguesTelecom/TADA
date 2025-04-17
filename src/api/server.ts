@@ -1,16 +1,27 @@
 import app from './app';
 import { logger } from './utils/logs/winston';
 import fs from 'fs';
-import { getCachedCatalog, redisHandler, updateCacheCatalog } from './catalog/redis/connection';
+import { redisHandler } from './catalog/redis/connection';
 import { getLastDump } from './delegated-storage/index';
 import { minioClient } from './delegated-storage/s3/connection';
 import fetch from 'node-fetch';
 import { deleteCatalogItem, getCatalog } from './catalog';
-import { getAllFiles } from './catalog/redis/operations';
-
+import listEndpoints from 'express-list-endpoints';
 const port = parseInt(process.env.PORT, 10) || 3001;
-const standalone = process.env.DELEGATED_STORAGE_METHOD === 'STANDALONE';
+const standalone = process.env.DELEGATED_STORAGE_METHOD === 'STANDALONE' || !process.env.DELEGATED_STORAGE_METHOD;
+if(standalone){
+    logger.warning('Standalone mode isn\'t recommanded, please set the DELEGATED_STORAGE_METHOD variable to S3 or DISTANT_BACKEND : see the docs. ')
+}
 
+const printRoutes = () => {
+    const endpoints = listEndpoints(app);
+    logger.info('Available Routes:');
+    endpoints.forEach((endpoint) => {
+        endpoint.methods.forEach((method) => {
+            logger.info(`${method} ${endpoint.path}`);
+        });
+    });
+};
 const checkAccessToBackup = async () => {
     const backupUrl = `${ process.env.DELEGATED_STORAGE_HOST }${ process.env.DELEGATED_STORAGE_READINESS_CHECK }`;
     const checkBackup = await fetch(backupUrl);
@@ -36,10 +47,19 @@ const connectToRedisWithRetry = async (maxRetries, delay) => {
     while ( attempts < maxRetries ) {
         try {
             await redisHandler.connectClient();
+            const { data: catalog } = await getCatalog();
+            if (catalog.length) {
+                for ( const item of catalog ) {
+                    if (item.unique_name && item.unique_name.includes('/tests/')) {
+                        await deleteCatalogItem(item.unique_name);
+                    }
+                }
+            }
             return;
         } catch ( err ) {
+            console.log(err, 'ERR REDIs')
             attempts++;
-            logger.error(`Failed to connect to Redis. Attempt ${ attempts } of ${ maxRetries }. Retrying in ${ delay / 1000 } seconds... `);
+            logger.error(`Failed to connect to Redis. Attempt ${ attempts } of ${ maxRetries }. Retrying in ${ delay / 1000 } seconds...`);
             if (attempts < maxRetries) {
                 await new Promise((resolve) => setTimeout(resolve, delay));
             } else {
@@ -60,7 +80,6 @@ const createStandaloneFolderAndCatalog = () => {
     }
 };
 
-
 ( async () => {
     try {
         if (!standalone) {
@@ -71,20 +90,22 @@ const createStandaloneFolderAndCatalog = () => {
 
             if (!dbDump) {
                 logger.info('dump.rdb doesn\'t exists : getting latest dump from backup ✅');
-                await getLastDump();
+                const dump = await getLastDump();
+                if(dump.errors){
+                    logger.warning('Failed to get last dump from delegated storage : initializing empty dump.rdb')
+                }
                 await redisHandler.generateDump();
-
             } else {
                 logger.info('dump.rdb already exists : skipping getting latest dump from backup 🔆');
             }
-            await updateCacheCatalog();
-            console.log('BEFORE STARTING;', await getCachedCatalog());
         }
 
         if (standalone) {
             createStandaloneFolderAndCatalog();
         }
+
         app.listen(port, async () => {
+            printRoutes()
             logger.info(`\n✨  ${ standalone ?
                 'Using fs in standalone mode' :
                 'Connected to Redis' }, server running => http://localhost:${ port }\n`);
@@ -95,8 +116,7 @@ const createStandaloneFolderAndCatalog = () => {
     }
 } )();
 
-app.on('error', async (err) => {
-    await redisHandler.disconnectClient();
+app.on('error', (err) => {
     logger.error(`${ err }`);
     process.exit(1);
 });

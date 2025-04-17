@@ -13,19 +13,29 @@ x-environment-variables:
 
     DEV_ENV: true
 
-    # S3 BACKUP :
-    DELEGATED_STORAGE_READINESS_CHECK: /readiness-check
-    DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
+    # GLOUTON API:
+    # DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
+    # DELEGATED_STORAGE_READINESS_CHECK: /readiness-check
+    # DELEGATED_STORAGE_GET_PATH:
+    # DELEGATED_STORAGE_POST_PATH:
+    # DELEGATED_STORAGE_PUT_PATH:
+    # DELEGATED_STORAGE_DELETE_PATH:
+    # DELEGATED_STORAGE_TOKEN: NinjaDesIles
 
-    DELEGATED_STORAGE_METHOD: DISTANT_BACKEND
+    # S3 BACKUP :
+    DELEGATED_STORAGE_READINESS_CHECK: /minio/health/live
+    DELEGATED_STORAGE_HOST: http://localhost:9000
+
+    DELEGATED_STORAGE_METHOD: S3
 
     S3_ENDPOINT: localhost
     S3_PORT: 9000
     S3_ACCESS_KEY: minioadmin
     S3_SECRET_KEY: minioadmin
     S3_BUCKET_NAME: media
-    DELEGATED_STORAGE_TOKEN: NinjaDesIles
+
     DUMP_FOLDER_PATH: /dumps
+    REDIS_SERVICE: localhost
 
     HEALTHCHECK_ROUTE: /readiness-check
 
@@ -39,6 +49,7 @@ x-environment-variables:
     TMP_FILES_PATH: './images'
 
 
+
 services:
     redis:
         image: bitnami/redis:7.0.15-debian-12-r20
@@ -47,19 +58,9 @@ services:
         ports:
             - '6379:6379'
         volumes:
-            - ./local/redis/dumps:/dumps
+            - ../redis/dumps:/dumps
         networks:
             - redis_net
-    redisinsight:
-        image: redis/redisinsight:latest
-        container_name: redisinsight
-        ports:
-            - '5540:5540'
-        networks:
-            - redis_net
-        depends_on:
-            - redis
-
     minio:
         image: minio/minio
         ports:
@@ -73,54 +74,22 @@ services:
             - pv-minio:/data/minio
         networks:
             - media_network
-
-    images-provider:
-        build:
-            context: src/api
-            dockerfile: Dockerfile.dev
-        ports:
-            - 3001:3001
-        networks:
-            - media_network
-            - redis_net
-        volumes:
-            - ./local/redis/dumps:/dumps
-        environment:
-            <<: *default-environment
-            NGINX_SERVICE: http://nginx:8080
-            IMAGE_SERVICE: http://images-provider:3001
-            NGINX_INGRESS: http://localhost:8080
-            DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
-            DELEGATED_STORAGE_SINGLE_PATH: '/file'
-            DELEGATED_STORAGE_MULTI_PATH: '/files'
-            REDIS_SERVICE: redis
-            MEDIA_TOKEN: token
-        healthcheck:
-            test: ["CMD-SHELL", "wget --spider --quiet http://images-provider:3001$$API_PREFIX/readiness-check || exit 1"]
-            interval: 10s
-            timeout: 7s
-            retries: 5
     nginx-purge:
         image: emcniece/nginx-cache-purge:1.13-alpine
-        platform: linux/amd64
         ports:
             - 8081:8081
         volumes:
-            - ./local/nginx/nginx-purge.conf:/etc/nginx/nginx.conf
+            - ../nginx/nginx-purge.conf:/etc/nginx/nginx.dev.conf
         networks:
             - media_network
-        depends_on:
-            - images-provider
     nginx:
         image: bitnami/nginx:latest
         ports:
             - 8080:8080
         volumes:
-            - ./local/nginx/nginx.conf:/opt/bitnami/nginx/conf/nginx.conf
+            - ../nginx/nginx.conf:/opt/bitnami/nginx/conf/nginx.dev.conf
         networks:
             - media_network
-        depends_on:
-            - images-provider
 
 volumes:
     pv-minio:

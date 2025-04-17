@@ -5,7 +5,16 @@ meta {
 }
 
 put {
-  url: http://localhost:8082
-  body: none
-  auth: none
+  url: http://localhost:8082/artifactory/Palpatine_Media/testtest.webp
+  body: multipartForm
+  auth: basic
+}
+
+auth:basic {
+  username: admin
+  password: password
+}
+
+body:multipart-form {
+  : @file(/Users/amlouler/Desktop/PICTURES/chef.png)
 }

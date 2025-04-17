@@ -3,9 +3,21 @@
         "format": "prettier --write .",
         "dev:api": "cd src/api && npm run dev",
         "docker:dev": "docker compose -f docker-compose.dev.yml up --build -d",
-        "docker": "docker compose up --build -d"
+        "docker": "docker compose up --build -d",
+        "dev-distant-backend-up": "cd local/compose && docker compose -f docker-compose.dev.distant-backend.yml --env-file .env.distant-backend up -d",
+        "dev-s3-up": "cd local/compose && docker compose -f docker-compose.dev.s3.yml --env-file .env.s3 up -d",
+        "dev-nodemon-distant-backend": "dotenv -e local/compose/.env.distant-backend -- nodemon --watch \"src/api/**\" --ext \"ts,json\" --ignore \"src/api/**/*.spec.ts\" --exec \"ts-node src/api/server.ts\"",
+        "dev-nodemon-s3": "dotenv -e local/compose/.env.s3 -- nodemon --watch \"src/api/**\" --ext \"ts,json\" --ignore \"src/api/**/*.spec.ts\" --exec \"ts-node src/api/server.ts\"",
+        "start-distant-backend": "concurrently \"npm run dev-distant-backend-up\" \"npm run dev-nodemon-distant-backend\"",
+        "start-s3": "concurrently \"npm run dev-s3-up\" \"npm run dev-nodemon-s3\""
     },
     "dependencies": {
         "prettier": "^3.4.1"
+    },
+    "devDependencies": {
+        "concurrently": "^9.1.2",
+        "dotenv-cli": "^8.0.0",
+        "nodemon": "^3.1.9",
+        "ts-node": "^10.9.2"
     }
 }

@@ -15,7 +15,7 @@ function sanitizeAndConvertToRegex(str) {
         return new RegExp(sanitizedStr.slice(1, -1));
     }
 
-    return sanitizedStr;
+    return sanitizedStr; 
 }
 
 const originsAllowed = process.env.ORIGINS_ALLOWED

@@ -108,8 +108,8 @@ const deleteFilesFromCatalog = async (itemDeletionLog: string[], files: File[], 
 
 export const processCatalog = async () => {
     try {
-        const apiServiceURL = process.env.API_PREFIX ? `${process.env.API_SERVICE}${process.env.API_PREFIX}` : process.env.API_SERVICE!;
-        const catalogRoute = process.env.CATALOG_ROUTE!;
+        const apiServiceURL = process.env.API_PREFIX ? `${process.env.API_SERVICE}${process.env.API_SERVICE}` : process.env.API_SERVICE!;
+        const catalogRoute =process.env.API_PREFIX ? `${process.env.API_SERVICE}${process.env.CATALOG_ROUTE}` : process.env.CATALOG_ROUTE!;
         const nginxServiceURL = process.env.NGINX_SERVICE!;
 
         const files: File[] = await callAPI(`${apiServiceURL}${catalogRoute}`, 'GET');

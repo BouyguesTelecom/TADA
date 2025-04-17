@@ -10,26 +10,16 @@ import { PassThrough } from 'stream';
 import { Readable } from 'node:stream';
 import app from '../app';
 import { addCatalogItem, deleteCatalogItem, updateCatalogItem, getCatalog } from '../catalog';
-import { redisHandler } from '../catalog/redis/connection';
+import { postFileBackup } from './delegated-storage.controller';
 
-const streamToBuffer = (stream: PassThrough): Promise<Buffer> => {
-    return new Promise((resolve, reject) => {
-        const chunks: Buffer[] = [];
-        stream.on('data', (chunk) => chunks.push(chunk));
-        stream.on('end', () => resolve(Buffer.concat(chunks)));
-        stream.on('error', (err) => reject(err));
-    });
-};
-
-const checkSignature = async (file: FileProps, stream: PassThrough): Promise<{ isValidSignature: boolean; originSignature: string | null }> => {
+const checkSignature = async (file: FileProps, buffer: Buffer): Promise<{ isValidSignature: boolean; originSignature: string | null }> => {
     try {
-        const buffer = await streamToBuffer(stream);
         const signature = calculateSHA256(buffer);
         return {
             isValidSignature: file.signature === signature,
             originSignature: signature
         };
-    } catch (error) {
+    } catch ( error ) {
         logger.error('Error checking signature:', error);
         return {
             isValidSignature: false,
@@ -73,7 +63,7 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
             return res.status(500).end();
         });
 
-        const { isValidSignature, originSignature } = await checkSignature(item, streamForSignature);
+        const { isValidSignature, originSignature } = await checkSignature(item, Buffer.from(bodyBuffer));
 
         if (!isValidSignature) {
             logger.error(`Invalid signatures (catalog: ${item.signature}, origin: ${originSignature})`);
@@ -117,7 +107,6 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
     }
     return res.status(404).end();
 };
-
 export const postAsset = async (req: Request, res: Response) => {
     const { uniqueName, fileInfo, toWebp, namespace, file } = res.locals;
     const stream = await generateStream(file, uniqueName, toWebp);
@@ -130,8 +119,8 @@ export const postAsset = async (req: Request, res: Response) => {
             return sendResponse({
                 res,
                 status: 400,
-                data: datum ? [datum] : null,
-                errors: error ? [error] : null
+                data: datum ? [ datum ] : null,
+                errors: error ? [ error ] : null
             });
         }
 
@@ -140,7 +129,8 @@ export const postAsset = async (req: Request, res: Response) => {
 
             const metadata = {
                 unique_name: newItem.unique_name,
-                base_url: newItem.base_host,
+                base_host: newItem.base_host,
+                base_url: newItem.base_url,
                 destination: newItem.destination,
                 filename: newItem.filename,
                 mimetype: newItem.mimetype,
@@ -148,20 +138,20 @@ export const postAsset = async (req: Request, res: Response) => {
                 namespace: newItem.namespace,
                 version: newItem.version
             };
-            formData.append('metadata', JSON.stringify([metadata]));
+            formData.append('metadata', JSON.stringify(metadata));
             formData.append('file', stream, { filename: uniqueName, contentType: file.mimetype });
 
             try {
-                const apiUrl = `${process.env.DELEGATED_STORAGE_HOST}/file`;
+                const apiUrl = `${ process.env.DELEGATED_STORAGE_HOST }/file`;
                 console.log('Sending request to:', apiUrl);
 
                 console.log('===== Form : =====', formData);
                 const postBackupFile = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
-                        Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`,
-                        'x-version': req.query.version ? `${req.query.version}` : '',
-                        'x-mimetype': req.query.mimetype ? `${req.query.mimetype}` : ''
+                        Authorization: `Bearer ${ process.env.DELEGATED_STORAGE_TOKEN }`,
+                        'x-version': req.query.version ? `${ req.query.version }` : '',
+                        'x-mimetype': req.query.mimetype ? `${ req.query.mimetype }` : ''
                     },
                     body: formData
                 });
@@ -172,7 +162,7 @@ export const postAsset = async (req: Request, res: Response) => {
                         // Tenter de récupérer plus de détails sur l'erreur
                         const errorResponse = await postBackupFile.json();
                         errorDetails = errorResponse.error || errorResponse.details || errorDetails;
-                    } catch (parseError) {
+                    } catch ( parseError ) {
                         console.error('Error parsing error response:', parseError);
                     }
 
@@ -180,29 +170,29 @@ export const postAsset = async (req: Request, res: Response) => {
                     return sendResponse({
                         res,
                         status: 400,
-                        data: ['Failed to upload in backup /file'],
-                        errors: [errorDetails]
+                        data: [ 'Failed to upload in backup /file' ],
+                        errors: [ errorDetails ]
                     });
                 }
-                const responseData = await postBackupFile.json().catch(() => ({}));
+                const responseData = await postBackupFile.json().catch(() => ( {} ));
 
-                if (responseData.error || (responseData.result && responseData.result.status !== 200)) {
+                if (responseData.error || ( responseData.result && responseData.result.status !== 200 )) {
                     await deleteCatalogItem(uniqueName);
                     return sendResponse({
                         res,
                         status: 400,
-                        errors: [responseData.error || 'Pipeline failed'],
-                        data: responseData.details ? [responseData.details] : null
+                        errors: [ responseData.error || 'Pipeline failed' ],
+                        data: responseData.details ? [ responseData.details ] : null
                     });
                 }
 
-                return sendResponse({ res, status: 200, data: [datum], purge: 'catalog' });
-            } catch (error) {
+                return sendResponse({ res, status: 200, data: [ datum ], purge: 'catalog' });
+            } catch ( error ) {
                 await deleteCatalogItem(uniqueName);
                 return sendResponse({
                     res,
                     status: 500,
-                    errors: ['Error during backup upload'],
+                    errors: [ 'Error during backup upload' ],
                     purge: 'catalog'
                 });
             }
@@ -211,22 +201,22 @@ export const postAsset = async (req: Request, res: Response) => {
     return sendResponse({
         res,
         status: 400,
-        errors: ['Failed to upload file']
+        errors: [ 'Failed to upload file' ]
     });
 };
 
 export const patchAsset = async (req: Request, res: Response) => {
     const { itemToUpdate, uuid, fileInfo, uniqueName, toWebp, file } = res.locals;
-    const stream = file && (await generateStream(file, uniqueName, toWebp));
+    const stream = file && ( await generateStream(file, uniqueName, toWebp) );
 
-    if ((file && stream) || !file) {
+    if (( file && stream ) || !file) {
         const signature = stream && calculateSHA256(stream);
         const { datum: catalogData, error } = await updateCatalogItem(uuid, {
             ...itemToUpdate,
             ...fileInfo,
             version: file ? itemToUpdate.version + 1 : itemToUpdate.version,
-            ...(signature && { signature }),
-            ...(file && { size: file.size })
+            ...( signature && { signature } ),
+            ...( file && { size: file.size } )
         });
 
         const form = new FormData();
@@ -237,7 +227,7 @@ export const patchAsset = async (req: Request, res: Response) => {
             });
 
             const patchBackupFile = await fetch(
-                `${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${itemToUpdate.unique_name}&version=${itemToUpdate.version}&mimetype=${itemToUpdate.mimetype}`,
+                `${ app.locals.PREFIXED_API_URL }/delegated-storage?filepath=${ itemToUpdate.unique_name }&version=${ itemToUpdate.version }&mimetype=${ itemToUpdate.mimetype }`,
                 {
                     method: 'PATCH',
                     body: form
@@ -245,17 +235,17 @@ export const patchAsset = async (req: Request, res: Response) => {
             );
 
             if (patchBackupFile.status !== 200) {
-                await deleteCatalogItem(uniqueName);
+                await deleteCatalogItem(itemToUpdate.uuid);
             }
         }
-        const data = catalogData ? [catalogData] : null;
-        const errors = error ? [error] : null;
+        const data = catalogData ? [ catalogData ] : null;
+        const errors = error ? [ error ] : null;
         return sendResponse({ res, status: 200, data, errors, purge: 'true' });
     }
     return sendResponse({
         res,
         status: 400,
-        errors: ['Failed to upload file in backup']
+        errors: [ 'Failed to upload file in backup' ]
     });
 };
 
@@ -268,11 +258,11 @@ export const deleteAsset = async (req: Request, res: Response) => {
         return sendResponse({
             res,
             status: 500,
-            errors: [`Failed to remove file from catalog `]
+            errors: [ `Failed to remove file from catalog ` ]
         });
     }
 
-    const deleteBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${itemToUpdate.unique_name}&version=${itemToUpdate.version}&mimetype=${itemToUpdate.mimetype}`, {
+    const deleteBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/delegated-storage?filepath=${ itemToUpdate.unique_name }&version=${ itemToUpdate.version }&mimetype=${ itemToUpdate.mimetype }`, {
         method: 'DELETE'
     });
 
@@ -280,14 +270,14 @@ export const deleteAsset = async (req: Request, res: Response) => {
         return sendResponse({
             res,
             status: 500,
-            data: [{ message: `File not removed from backup` }]
+            data: [ { message: `File not removed from backup` } ]
         });
     }
 
     return sendResponse({
         res,
         status: 200,
-        data: [datum],
+        data: [ datum ],
         purge: 'true'
     });
 };
