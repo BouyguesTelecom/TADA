@@ -1,23 +1,21 @@
-import { Request, Response, NextFunction } from 'express';
-import { redisHandler } from '../catalog/redis/connection';
-import { logger } from '../utils/logs/winston';
+import { NextFunction, Request, Response } from 'express';
 
 export const redisConnectionMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-    if (process.env.DELEGATED_STORAGE_METHOD === 'STANDALONE') {
-        return next();
-    }
-    try {
-        await redisHandler.connectClient();
+    // if (process.env.DELEGATED_STORAGE_METHOD === 'STANDALONE') {
+    //     return next();
+    // }
+    // try {
+    //     await redisHandler.connectClient();
 
-        res.on('finish', async () => {
-            if (!req.url.includes('delegated-storage')) {
-                await redisHandler.disconnectClient();
-            }
-        });
+    //     res.on('finish', async () => {
+    //         if (!req.url.includes('delegated-storage')) {
+    //             await redisHandler.disconnectClient();
+    //         }
+    //     });
 
-        next();
-    } catch (error) {
-        logger.error(`Redis connection error: ${error.message}`);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    next();
+    // } catch (error) {
+    //     logger.error(`Redis connection error: ${error.message}`);
+    //     res.status(500).json({ error: 'Internal Server Error' });
+    // }
 };
