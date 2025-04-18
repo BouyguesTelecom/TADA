@@ -1,8 +1,8 @@
-import fetch, { Headers } from 'node-fetch';
 import FormData from 'form-data';
+import fetch, { Headers } from 'node-fetch';
+import { addCatalogItems } from '../../catalog';
 import { BackupProps } from '../../props/delegated-storage';
 import { logger } from '../../utils/logs/winston';
-import { addCatalogItems } from '../../catalog';
 
 interface FileProps {
     filepath: string;
@@ -97,7 +97,7 @@ export const upload = async ({ filepath, file, version, mimetype }: UploadFilePr
         const form = new FormData();
 
         if (Buffer.isBuffer(file) || typeof file === 'string') {
-            form.append('file', Buffer.from(file), {
+            form.append('file', typeof file === 'string' ? Buffer.from(file) : file, {
                 filename: filepath.split('/').pop(),
                 contentType: mimetype || 'application/octet-stream'
             });
@@ -149,7 +149,7 @@ export const uploads = async ({ filespath, files, version, mimetype }: UploadFil
         files.forEach((file, index) => {
             const filepath = filespath[index];
             if (Buffer.isBuffer(file) || typeof file === 'string') {
-                form.append(`file${index}`, Buffer.from(file), {
+                form.append(`file${index}`, Buffer.isBuffer(file) ? file : Buffer.from(file), {
                     filename: filepath.split('/').pop(),
                     contentType: mimetype || 'application/octet-stream'
                 });
@@ -199,7 +199,7 @@ export const update = async ({ filepath, file, version, mimetype }: UploadFilePr
         const form = new FormData();
 
         if (Buffer.isBuffer(file) || typeof file === 'string') {
-            form.append('file', Buffer.from(file), {
+            form.append('file', typeof file === 'string' ? Buffer.from(file) : file, {
                 filename: filepath.split('/').pop(),
                 contentType: mimetype || 'application/octet-stream'
             });
@@ -250,7 +250,7 @@ export const updates = async ({ filespath, files, version, mimetype }: UploadFil
         files.forEach((file, index) => {
             const filepath = filespath[index];
             if (Buffer.isBuffer(file) || typeof file === 'string') {
-                form.append(`file${index}`, Buffer.from(file), {
+                form.append(`file${index}`, Buffer.isBuffer(file) ? file : Buffer.from(file), {
                     filename: filepath.split('/').pop(),
                     contentType: mimetype || 'application/octet-stream'
                 });

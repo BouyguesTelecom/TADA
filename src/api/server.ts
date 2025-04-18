@@ -1,11 +1,11 @@
-import app from './app';
-import { logger } from './utils/logs/winston';
 import fs from 'fs';
+import fetch from 'node-fetch';
+import app from './app';
+import { getCatalog } from './catalog';
 import { redisHandler } from './catalog/redis/connection';
 import { getLastDump } from './delegated-storage/index';
 import { minioClient } from './delegated-storage/s3/connection';
-import fetch from 'node-fetch';
-import { deleteCatalogItem, getCatalog } from './catalog';
+import { logger } from './utils/logs/winston';
 
 const port = parseInt(process.env.PORT, 10) || 3001;
 const standalone = process.env.DELEGATED_STORAGE_METHOD === 'STANDALONE';
@@ -36,11 +36,11 @@ const connectToRedisWithRetry = async (maxRetries, delay) => {
         try {
             await redisHandler.connectClient();
             const { data: catalog } = await getCatalog();
-            console.log(catalog, 'CATALOG ICI !!!')
+            console.log(catalog, 'CATALOG ICI !!!');
             return;
         } catch (err) {
             attempts++;
-            console.log(err, 'ERROR ICI')
+            console.log(err, 'ERROR ICI');
             logger.error(`Failed to connect to Redis. Attempt ${attempts} of ${maxRetries}. Retrying in ${delay / 1000} seconds...`);
             if (attempts < maxRetries) {
                 await new Promise((resolve) => setTimeout(resolve, delay));
@@ -77,8 +77,7 @@ const createStandaloneFolderAndCatalog = () => {
             } else {
                 logger.info('dump.rdb already exists : skipping getting latest dump from backup 🔆');
             }
-
-            await redisHandler.disconnectClient();
+            //await redisHandler.disconnectClient();
         }
 
         if (standalone) {
@@ -96,4 +95,14 @@ const createStandaloneFolderAndCatalog = () => {
 app.on('error', (err) => {
     logger.error(`${err}`);
     process.exit(1);
+});
+
+process.on('SIGTERM', async () => {
+    logger.info('SIGTERM received, closing Redis...');
+    try {
+        await redisHandler.disconnectClient();
+    } catch (e) {
+        logger.error(`Error closing Redis: ${e}`);
+    }
+    process.exit(0);
 });
