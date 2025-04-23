@@ -65,7 +65,7 @@ export const updateCatalogItems = async (items): Promise<ICatalogResponseMulti> 
     }
 };
 
-export const deleteCatalogItem = async (uuid): Promise<ICatalogResponse> => {
+export const deleteCatalogItem = async (uuid): Promise<any> => {
     logger.info(`Delete file in catalog ${backupStorageMethod === 'STANDALONE' ? 'catalog.json' : 'REDIS'} ...`);
     switch (backupStorageMethod) {
         case 'STANDALONE':

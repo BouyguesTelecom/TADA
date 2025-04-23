@@ -14,6 +14,7 @@ import { timeoutMiddleware } from '../middleware/timeoutMiddleware';
 import { authMiddleware } from '../middleware/auth';
 import { redisConnectionMiddleware } from '../middleware/redisMiddleware';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
+import { queueMiddleware } from '../middleware/queues/queuesMiddleware';
 
 const router = Router();
 
@@ -68,7 +69,7 @@ router.get(`/assets/media/:format/*`, [ timeoutMiddleware, rateLimitMiddleware, 
  *       200:
  *         description: The file was successfully posted
  */
-router.post(`/file`, [ authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog ], postAsset);
+router.post(`/file`, [ authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog ], queueMiddleware(postAsset));
 
 /**
  * @swagger
@@ -108,8 +109,8 @@ router.post(`/file`, [ authMiddleware, validatorHeaders, validatorFile, validato
  */
 router.patch(
     `/file/:uuid`,
-    [ authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorParams, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog ],
-    patchAsset
+    [ authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorParams, validatorFileSize, validatorFileBody, validatorFileCatalog ],
+    queueMiddleware(patchAsset)
 );
 
 /**
@@ -137,6 +138,6 @@ router.patch(
  *       200:
  *         description: The file was successfully deleted
  */
-router.delete(`/file/:uuid`, [ authMiddleware, validatorHeaders, validatorParams, validatorNamespace, validatorFileCatalog ], deleteAsset);
+router.delete(`/file/:uuid`, [ authMiddleware, validatorHeaders, validatorParams, validatorFileCatalog ], queueMiddleware(deleteAsset));
 
 export { router };

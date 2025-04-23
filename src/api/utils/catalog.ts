@@ -54,7 +54,6 @@ export const formatItemForCatalog = async (
     size: string
 ) => {
     const newUUID = crypto.createHash('md5').update(uniqueName).digest('hex');
-    console.log(mimetype, 'MIMETYPE ICI 🔥');
     return {
         uuid: newUUID,
         version: 1,
@@ -68,7 +67,7 @@ export const formatItemForCatalog = async (
             resourceName,
         original_filename: resourceName,
         base_host: process.env.NGINX_INGRESS,
-        base_url: `${ app.locals.PREFIXED_ASSETS_URL }/${ mimetype === 'application/pdf' || mimetype === 'image/svg+xml' ? 'original' : 'full' }`,
+        base_url: `${ app.locals.PREFIXED_ASSETS_URL }`,
         external_id: null,
         expired: false,
         expiration_date: null,

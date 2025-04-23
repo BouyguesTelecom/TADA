@@ -63,12 +63,9 @@ interface CatalogResponse {
 
 export const filePathIsUnique = async (file: FileProps): Promise<boolean> => {
     const response: CatalogResponse = await getCachedCatalog();
-    console.log(response, 'RESPONSE ICIIII')
     if (response) {
         const allFilesInNamespace: FileProps[] = Object.values(response).filter((f: FileProps) => f.namespace === file.namespace);
-        console.log(allFilesInNamespace, 'ICIIIII')
         const fileExists = allFilesInNamespace.find((f: FileProps) => f.unique_name === file.unique_name);
-        console.log(fileExists, 'ICIIIII fileExists')
         return !fileExists;
     }
     logger.error('Error getting cached catalog !');

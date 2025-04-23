@@ -14,39 +14,17 @@ export const getBackupDump = async (req: Request, res: Response) => {
     return res.status(result.data ? 200 : 400).send(result).end();
 };
 
-export const getBackup = async (req: Request, res: Response) => {
-    const params = {
-        filepath: `${ req.query.filepath }`,
-        version: req.query.version ? `${ req.query.version }` : null,
-        mimetype: req.query.mimetype ? `${ req.query.mimetype }` : null
-    };
+export const getBackup = async (filepath, version = '', mimetype = '') => {
+    const params = { filepath, version, mimetype };
     const { status, stream }: BackupProps = await getFile(params);
-    if (status === 200) {
-        res.status(status);
-        return stream.pipe(res);
-    }
-    return res.status(status).end();
+    return status === 200 ? stream : null;
 };
 
-export const postFileBackup = async (req: Request, res: Response) => {
-    const filePathToRead = filePath(req.query.filepath);
-    const params = {
-        filepath: `${ req.query.filepath }`,
-        version: req.query.version ? `${ req.query.version }` : null,
-        mimetype: req.query.mimetype ? `${ req.query.mimetype }` : null
-    };
-    const file: Buffer | string = req.file ? fs.readFileSync(req.file.path) : JSON.stringify(req.body);
-    const { status }: BackupProps = await generateStream({
-        filepath: filePathToRead,
-        file,
-        ...params
-    });
-
-    return res.status(status).end();
+export const postFileBackup = async (stream, file, datum) => {
+    return await generateStream(stream, file, datum);
 };
 
 export const postFilesBackup = async (req: Request, res: Response) => {
-   console.log(req.body, 'ICI BODY')
     const params = {
         filespath: req.body.map((file) => file.filespath),
         version: req.query.version ? `${ req.query.version }` : null,
@@ -60,17 +38,8 @@ export const postFilesBackup = async (req: Request, res: Response) => {
     return res.status(status).end();
 };
 
-export const patchFileBackup = async (req: Request, res: Response) => {
-    const params = {
-        filepath: `${ req.query.filepath }`,
-        version: req.query.version ? `${ req.query.version }` : null,
-        mimetype: req.query.mimetype ? `${ req.query.mimetype }` : null
-    };
-
-    const file: Buffer | string = req.file ? fs.readFileSync(req.file.path) : JSON.stringify(req.body);
-    const { status } = await updateFile({ file, ...params });
-
-    return res.status(status).end();
+export const patchFileBackup = async (file, stream, info) => {
+    return await updateFile(file, stream, info);
 };
 
 export const patchFilesBackup = async (req: Request, res: Response) => {
@@ -88,26 +57,10 @@ export const patchFilesBackup = async (req: Request, res: Response) => {
     return res.status(status).end();
 };
 
-export const deleteFileBackup = async (req: Request, res: Response) => {
-    const params = {
-        filepath: `${ req.query.filepath }`,
-        version: req.query.version ? `${ req.query.version }` : null,
-        mimetype: req.query.mimetype ? `${ req.query.mimetype }` : null
-    };
-
-    const { status } = await deleteFile(params);
-
-    return res.status(status).end();
+export const deleteFileBackup = async (itemToUpdate) => {
+    return await deleteFile(itemToUpdate);
 };
 
-export const deleteFilesBackup = async (req: Request, res: Response) => {
-    const params = {
-        filespath: req.body.filespath,
-        version: req.query.version ? `${ req.query.version }` : null,
-        mimetype: req.query.mimetype ? `${ req.query.mimetype }` : null
-    };
-
-    const { status } = await deleteFiles(params);
-
-    return res.status(status).end();
+export const deleteFilesBackup = async (data) => {
+    return await deleteFiles(data);
 };

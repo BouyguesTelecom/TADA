@@ -8,18 +8,16 @@ import FormData from 'form-data';
 import fetch from 'node-fetch';
 import { addCatalogItem, deleteCatalogItem, updateCatalogItem, deleteCatalogItems } from '../catalog';
 import { deleteFilesBackup } from './delegated-storage.controller';
+import { logger } from '../utils/logs/winston';
 
 export const postAssets = async (req: Request, res: Response) => {
     const { validFiles, invalidFiles } = res.locals;
-    console.log('Starting postAssets with files:', validFiles?.length || 0);
     const accumulatedResult = await validFiles.reduce(
         async (accumulator, file) => {
             const { data, errors, forms } = await accumulator;
-            console.log('Processing file:', file.filename, 'uniqueName:', file.uniqueName);
             const stream = await generateStream(file, file.uniqueName, file.toWebp);
             if (stream) {
                 const signature = calculateSHA256(stream);
-                console.log('Generated signature for file:', signature);
                 const newItem = await formatItemForCatalog(
                     file.fileInfo,
                     file.filename,
@@ -33,7 +31,6 @@ export const postAssets = async (req: Request, res: Response) => {
                 );
 
                 const { status, error: errorCatalog, datum: catalogItem } = await addCatalogItem(newItem);
-                console.log('Catalog response:', { status, errorCatalog, itemAdded: !!catalogItem });
                 if (status !== 200) {
                     errors.push(errorCatalog);
                 }
@@ -42,12 +39,13 @@ export const postAssets = async (req: Request, res: Response) => {
                         stream,
                         uniqueName: newItem.unique_name,
                         filename: file.uniqueName,
-                        mimetype: file.mimetype
+                        mimetype: file.mimetype,
+                        publicUrl: newItem.public_url
                     });
                     return { data: [ ...data, catalogItem ], errors, forms };
                 }
             } else {
-                console.log('Failed to generate stream for file:', file.filename);
+                logger.error('Failed to generate stream for file:', file.filename);
             }
             return { data, errors: [ ...errors, file ], forms };
         },
@@ -55,15 +53,9 @@ export const postAssets = async (req: Request, res: Response) => {
     );
 
     const { data, errors, forms } = accumulatedResult;
-    console.log('Accumulated result:', {
-        dataCount: data.length,
-        errorsCount: errors.length,
-        formsCount: forms.length
-    });
 
     try {
         const apiUrl = `${ process.env.DELEGATED_STORAGE_HOST }/files`;
-        console.log('Sending request to:', apiUrl, forms);
 
         const formData = new FormData();
         const filesData = forms.map((formItem) => {
@@ -81,13 +73,13 @@ export const postAssets = async (req: Request, res: Response) => {
                     mimetype: catalogItem.mimetype,
                     size: catalogItem.size,
                     namespace: catalogItem.namespace,
-                    version: catalogItem.version
+                    version: catalogItem.version,
+                    publicUrl: catalogItem.public_url
                 }
             };
         }).filter(Boolean);
 
         formData.append('metadata', JSON.stringify(filesData.map((item) => item.metadata)));
-        console.log('Files data:', filesData);
         filesData.forEach((fileData) => {
             formData.append('files', fileData.file, {
                 filename: fileData.metadata.unique_name,
@@ -95,9 +87,6 @@ export const postAssets = async (req: Request, res: Response) => {
             });
         });
 
-
-        console.log('===== API URL =====', apiUrl);
-        console.log('===== Form data ====', formData);
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
@@ -108,7 +97,6 @@ export const postAssets = async (req: Request, res: Response) => {
             body: formData
         });
 
-        console.log('Delegated storage response status:', response.status);
         if (response.status !== 200) {
             let errorDetails = 'Failed to upload images in backup';
 
@@ -128,7 +116,6 @@ export const postAssets = async (req: Request, res: Response) => {
                 console.error('Error parsing error response:', parseError);
             }
 
-            // Supprimer tous les éléments du catalogue en cas d'échec
             for ( const form of forms ) {
                 console.log('Deleting catalog item due to failed upload:', form.uniqueName);
                 await deleteCatalogItem(form.uniqueName);
@@ -137,7 +124,7 @@ export const postAssets = async (req: Request, res: Response) => {
 
             return sendResponse({
                 res,
-                status: 400,
+                status: 200,
                 data: null,
                 errors
             });
@@ -256,8 +243,14 @@ export const patchAssets = async (req: Request, res: Response) => {
 
 export const deleteAssets = async (req: Request, res: Response) => {
     const { validFiles, invalidFiles } = res.locals;
-    const { status } = await deleteCatalogItems(validFiles);
-    const deleteBackupFiles = await deleteFilesBackup()
-    console.log(deleteBackupFiles, 'ICII ??', await deleteBackupFiles.json())
-    return sendResponse({ res, status: 200, purge: 'true' });
+    const { status, data, errors } = await deleteCatalogItems(validFiles);
+    const {
+        status: backupStatus
+    } = await deleteFilesBackup(data.map((item: any) => ( { ...item.catalogItem } )));
+    return sendResponse({
+        res,
+        status: backupStatus,
+        purge: 'true',
+        data, errors
+    });
 };

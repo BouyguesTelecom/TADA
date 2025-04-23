@@ -34,10 +34,10 @@ interface ResponseBackup {
 
 export const headersUserAgentForBackup = (contentType: string | null = null) =>
     new Headers({
-        ...(process.env.DELEGATED_STORAGE_TOKEN && {
-            Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
-        }),
-        ...(contentType && { 'Content-Type': contentType })
+        ...( process.env.DELEGATED_STORAGE_TOKEN && {
+            Authorization: `Bearer ${ process.env.DELEGATED_STORAGE_TOKEN }`
+        } ),
+        ...( contentType && { 'Content-Type': contentType } )
     });
 
 const generateOptions = (method, contentTypeHeaders, body = null) => {
@@ -45,24 +45,31 @@ const generateOptions = (method, contentTypeHeaders, body = null) => {
         method: method,
         headers: headersUserAgentForBackup(contentTypeHeaders),
         redirect: 'follow',
-        ...(body && { body })
+        ...( body && { body } )
     };
 };
 
-const generateUrl = (filepath, version, mimetype, pathType = 'SINGLE') => {
-    const delegatedStoragePath = pathType === 'SINGLE' ? (process.env.DELEGATED_STORAGE_SINGLE_PATH ?? '') : (process.env.DELEGATED_STORAGE_MULTI_PATH ?? '');
-    const baseUrl = `${process.env.DELEGATED_STORAGE_HOST}${delegatedStoragePath}`;
+const generateUrl = (pathType = 'SINGLE') => {
+    const delegatedStoragePath = pathType === 'SINGLE' ?
+        ( process.env.DELEGATED_STORAGE_SINGLE_PATH ?? '' ) :
+        ( process.env.DELEGATED_STORAGE_MULTI_PATH ?? '' );
+    return `${ process.env.DELEGATED_STORAGE_HOST }${ delegatedStoragePath }`;
+};
 
-    const params = new URLSearchParams();
-    params.append('filepath', filepath);
-    if (version) params.append('version', version);
-    if (mimetype) params.append('mimetype', mimetype);
-    return `${baseUrl}?${params.toString()}`;
+const generateFormDataWithFile = (stream, file, info) => {
+    const form = new FormData();
+    for ( const key in info ) {
+        if (info.hasOwnProperty(key) && info[key]) {
+            form.append(key, info[key]);
+        }
+    }
+    form.append('file', stream, file)
+    return form;
 };
 
 export const getLastDump = async () => {
     try {
-        const getBackupFileJson = await fetch(generateUrl('/dump.json', null, null, 'GET'), generateOptions('GET', 'application/json'));
+        const getBackupFileJson = await fetch(`${ generateUrl() }/dump.json`, generateOptions('GET', 'application/json'));
         if (getBackupFileJson.status !== 200) {
             return { data: null, errors: 'Failed to get backup JSON file.' };
         }
@@ -71,63 +78,33 @@ export const getLastDump = async () => {
             await addCatalogItems(files);
         }
         return { data: 'OK', errors: null };
-    } catch (errMessage: any) {
-        logger.error(`Error getting last dump: ${errMessage}`);
+    } catch ( errMessage: any ) {
+        logger.error(`Error getting last dump: ${ errMessage }`);
         return { data: null, errors: errMessage };
     }
 };
 
 export const getFile = async ({ filepath, version, mimetype }: FileProps): Promise<BackupProps> => {
     try {
-        const backupGet: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype), generateOptions('GET', 'application/json'));
+        const backupGet: ResponseBackup = await fetch(`${ generateUrl() }?filepath=${ filepath }&version=${ version }&mimetype=${ mimetype }`, generateOptions('GET', 'application/json'));
 
         if (backupGet.status === 200) {
             const stream = filepath.includes('.json') ? await backupGet.json() : backupGet.body;
             return { status: 200, stream };
         }
         return { status: backupGet.status, stream: null };
-    } catch (errorMessage: any) {
-        logger.error(`ERROR: ${errorMessage}`);
+    } catch ( errorMessage: any ) {
+        logger.error(`ERROR: ${ errorMessage }`);
     }
     return null;
 };
 
-export const upload = async ({ filepath, file, version, mimetype }: UploadFileProps): Promise<BackupProps> => {
+export const upload = async (stream, file, datum): Promise<BackupProps> => {
     try {
-        const form = new FormData();
-
-        if (Buffer.isBuffer(file) || typeof file === 'string') {
-            form.append('file', Buffer.from(file), {
-                filename: filepath.split('/').pop(),
-                contentType: mimetype || 'application/octet-stream'
-            });
-        } else {
-            form.append('file', file);
-        }
-
-        form.append('base_url', process.env.NGINX_INGRESS || '');
-        form.append('unique_name', filepath);
-        form.append('destination', filepath);
-
-        const formHeaders = form.getHeaders();
-        const authHeaders = {
-            Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
-        };
-
-        const backupUpload: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype), {
-            method: 'POST',
-            headers: {
-                ...formHeaders,
-                ...authHeaders
-            },
-            body: form
-        });
-
-        console.log('Headers sent:', { ...formHeaders, ...authHeaders });
-        console.log(backupUpload.status, 'BACKUP RESPONSE ???', generateUrl(filepath, version, mimetype));
+        const form = generateFormDataWithFile(stream, file, datum);
+        const backupUpload: ResponseBackup = await fetch(generateUrl(), generateOptions('POST', '', form));
 
         if (backupUpload.status === 401) {
-            console.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
             return { status: 401, error: 'Authentication failed' };
         }
 
@@ -135,8 +112,8 @@ export const upload = async ({ filepath, file, version, mimetype }: UploadFilePr
             return { status: 200, stream: backupUpload.body };
         }
         return { status: backupUpload.status, stream: null };
-    } catch (errorMessage: any) {
-        logger.error(`ERROR: ${errorMessage}`);
+    } catch ( errorMessage: any ) {
+        logger.error(`ERROR: ${ errorMessage }`);
         console.error('Upload error details:', errorMessage);
     }
     return null;
@@ -149,12 +126,12 @@ export const uploads = async ({ filespath, files, version, mimetype }: UploadFil
         files.forEach((file, index) => {
             const filepath = filespath[index];
             if (Buffer.isBuffer(file) || typeof file === 'string') {
-                form.append(`file${index}`, Buffer.from(file), {
+                form.append(`file${ index }`, Buffer.from(file), {
                     filename: filepath.split('/').pop(),
                     contentType: mimetype || 'application/octet-stream'
                 });
             } else {
-                form.append(`file${index}`, file);
+                form.append(`file${ index }`, file);
             }
         });
 
@@ -162,21 +139,7 @@ export const uploads = async ({ filespath, files, version, mimetype }: UploadFil
         form.append('unique_names', JSON.stringify(filespath));
         form.append('destinations', JSON.stringify(filespath));
 
-        const formHeaders = form.getHeaders();
-        const authHeaders = {
-            Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
-        };
-
-        const backupUpload: ResponseBackup = await fetch(generateUrl('', version, mimetype, 'MULTI'), {
-            method: 'POST',
-            headers: {
-                ...formHeaders,
-                ...authHeaders
-            },
-            body: form
-        });
-
-        console.log(backupUpload.status, 'BACKUP RESPONSE ???', generateUrl('', version, mimetype, 'MULTI'));
+        const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('POST', ''), form);
 
         if (backupUpload.status === 401) {
             console.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
@@ -187,45 +150,17 @@ export const uploads = async ({ filespath, files, version, mimetype }: UploadFil
             return { status: 200, stream: backupUpload.body };
         }
         return { status: backupUpload.status, stream: null };
-    } catch (errorMessage: any) {
-        logger.error(`ERROR: ${errorMessage}`);
+    } catch ( errorMessage: any ) {
+        logger.error(`ERROR: ${ errorMessage }`);
         console.error('Upload error details:', errorMessage);
     }
     return null;
 };
 
-export const update = async ({ filepath, file, version, mimetype }: UploadFileProps): Promise<BackupProps> => {
+export const update = async (file, stream, info): Promise<BackupProps> => {
     try {
-        const form = new FormData();
-
-        if (Buffer.isBuffer(file) || typeof file === 'string') {
-            form.append('file', Buffer.from(file), {
-                filename: filepath.split('/').pop(),
-                contentType: mimetype || 'application/octet-stream'
-            });
-        } else {
-            form.append('file', file);
-        }
-
-        form.append('base_url', process.env.NGINX_INGRESS || '');
-        form.append('unique_name', filepath);
-        form.append('destination', filepath);
-
-        const formHeaders = form.getHeaders();
-        const authHeaders = {
-            Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
-        };
-
-        const backupUpload: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype), {
-            method: 'PUT',
-            headers: {
-                ...formHeaders,
-                ...authHeaders
-            },
-            body: form
-        });
-
-        console.log(backupUpload.status, 'BACKUP RESPONSE ???', generateUrl(filepath, version, mimetype));
+        const form = generateFormDataWithFile(stream, file, info);
+        const backupUpload: ResponseBackup = await fetch(generateUrl(), generateOptions('POST', '', form));
 
         if (backupUpload.status === 401) {
             console.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
@@ -236,8 +171,8 @@ export const update = async ({ filepath, file, version, mimetype }: UploadFilePr
             return { status: 200, stream: backupUpload.body };
         }
         return { status: backupUpload.status, stream: null };
-    } catch (errorMessage: any) {
-        logger.error(`ERROR: ${errorMessage}`);
+    } catch ( errorMessage: any ) {
+        logger.error(`ERROR: ${ errorMessage }`);
         console.error('Upload error details:', errorMessage);
     }
     return null;
@@ -250,12 +185,12 @@ export const updates = async ({ filespath, files, version, mimetype }: UploadFil
         files.forEach((file, index) => {
             const filepath = filespath[index];
             if (Buffer.isBuffer(file) || typeof file === 'string') {
-                form.append(`file${index}`, Buffer.from(file), {
+                form.append(`file${ index }`, Buffer.from(file), {
                     filename: filepath.split('/').pop(),
                     contentType: mimetype || 'application/octet-stream'
                 });
             } else {
-                form.append(`file${index}`, file);
+                form.append(`file${ index }`, file);
             }
         });
 
@@ -263,21 +198,7 @@ export const updates = async ({ filespath, files, version, mimetype }: UploadFil
         form.append('unique_names', JSON.stringify(filespath));
         form.append('destinations', JSON.stringify(filespath));
 
-        const formHeaders = form.getHeaders();
-        const authHeaders = {
-            Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
-        };
-
-        const backupUpload: ResponseBackup = await fetch(generateUrl('', version, mimetype, 'MULTI'), {
-            method: 'PUT',
-            headers: {
-                ...formHeaders,
-                ...authHeaders
-            },
-            body: form
-        });
-
-        console.log(backupUpload.status, 'BACKUP RESPONSE ???', generateUrl('', version, mimetype, 'MULTI'));
+        const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('PUT', '', form));
 
         if (backupUpload.status === 401) {
             console.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
@@ -288,36 +209,16 @@ export const updates = async ({ filespath, files, version, mimetype }: UploadFil
             return { status: 200, stream: backupUpload.body };
         }
         return { status: backupUpload.status, stream: null };
-    } catch (errorMessage: any) {
-        logger.error(`ERROR: ${errorMessage}`);
+    } catch ( errorMessage: any ) {
+        logger.error(`ERROR: ${ errorMessage }`);
         console.error('Upload error details:', errorMessage);
     }
     return null;
 };
 
-export const deleteFile = async ({ filepath, version, mimetype }: FileProps): Promise<BackupProps> => {
+export const deleteFile = async (itemToUpdate): Promise<BackupProps> => {
     try {
-        const form = new FormData();
-
-        form.append('base_url', process.env.NGINX_INGRESS || '');
-        form.append('unique_name', filepath);
-        form.append('destination', filepath);
-
-        const formHeaders = form.getHeaders();
-        const authHeaders = {
-            Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
-        };
-
-        const backupUpload: ResponseBackup = await fetch(generateUrl(filepath, version, mimetype), {
-            method: 'DELETE',
-            headers: {
-                ...formHeaders,
-                ...authHeaders
-            },
-            body: form
-        });
-
-        console.log(backupUpload.status, 'BACKUP RESPONSE ???', generateUrl(filepath, version, mimetype));
+        const backupUpload: ResponseBackup = await fetch(generateUrl(), generateOptions('DELETE', 'application/json', JSON.stringify({ ...itemToUpdate })));
 
         if (backupUpload.status === 401) {
             console.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
@@ -328,8 +229,9 @@ export const deleteFile = async ({ filepath, version, mimetype }: FileProps): Pr
             return { status: 200 };
         }
         return { status: backupUpload.status };
-    } catch (errorMessage: any) {
-        logger.error(`ERROR: ${errorMessage}`);
+
+    } catch ( errorMessage: any ) {
+        logger.error(`ERROR: ${ errorMessage }`);
         console.error('Delete error details:', errorMessage);
     }
     return null;
@@ -337,17 +239,7 @@ export const deleteFile = async ({ filepath, version, mimetype }: FileProps): Pr
 
 export const deleteFiles = async (files: any): Promise<BackupProps> => {
     try {
-        const authHeaders = {
-            Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
-        };
-
-        const backupUpload: ResponseBackup = await fetch(generateUrl('',  'MULTI'), {
-            method: 'DELETE',
-            headers: {
-                ...authHeaders
-            },
-            body: files
-        });
+        const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('DELETE', 'application/json'), JSON.stringify(files));
 
         if (backupUpload.status === 401) {
             console.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
@@ -358,8 +250,8 @@ export const deleteFiles = async (files: any): Promise<BackupProps> => {
             return { status: 200 };
         }
         return { status: backupUpload.status };
-    } catch (errorMessage: any) {
-        logger.error(`ERROR: ${errorMessage}`);
+    } catch ( errorMessage: any ) {
+        logger.error(`ERROR: ${ errorMessage }`);
         console.error('Delete error details:', errorMessage);
     }
     return null;

@@ -5,13 +5,13 @@ meta {
 }
 
 patch {
-  url: {{URL_API}}{{URL_API_PREFIX}}/file/{{IMAGE_ID}}
+  url: {{URL_API}}{{URL_API_PREFIX}}/catalog/{{IMAGE_ID}}
   body: json
   auth: bearer
 }
 
 auth:bearer {
-    token: {{AUTH_TOKEN}}
+  token: {{AUTH_TOKEN}}
 }
 
 body:json {

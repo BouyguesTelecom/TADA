@@ -69,11 +69,11 @@ export const getFile = async ({ filename }: any) => {
     }
 };
 
-export const upload = async ({ filename, file }: FileProps) => {
-    const { etag } = await minioClient.putObject(process.env.S3_BUCKET_NAME, filename, file);
+export const upload = async (stream, file, datum) => {
+    const { etag } = await minioClient.putObject(process.env.S3_BUCKET_NAME, datum.unique_name, file);
     return {
         status: 200,
-        message: `Successfully uploaded file ${ filename } to S3 bucket with etag ${ etag }!`
+        message: `Successfully uploaded file ${ datum.unique_name } to S3 bucket with etag ${ etag }!`
     };
 };
 
@@ -81,7 +81,7 @@ export const uploads = async ({ filespath, files }: FilesProps) => {
     try {
         const results = [];
 
-        for (let i = 0; i < filespath.length; i++) {
+        for ( let i = 0; i < filespath.length; i++ ) {
             const filename = filespath[i];
             const file = files[i];
 
@@ -90,7 +90,7 @@ export const uploads = async ({ filespath, files }: FilesProps) => {
             results.push({
                 filename,
                 status: 200,
-                message: `Successfully uploaded file ${filename} to S3 bucket with etag ${etag}!`
+                message: `Successfully uploaded file ${ filename } to S3 bucket with etag ${ etag }!`
             });
         }
 
@@ -98,18 +98,19 @@ export const uploads = async ({ filespath, files }: FilesProps) => {
             status: 200,
             results
         };
-    } catch (error) {
+    } catch ( error ) {
         return {
             status: 500,
-            message: `An error occurred while uploading files: ${error.message}`
+            message: `An error occurred while uploading files: ${ error.message }`
         };
     }
 };
 
 
-
-export const update = async ({ filename, file }: FileProps) => {
+export const update = async (file, info) => {
+    const filename = info.unique_name;
     try {
+
         await minioClient.putObject(process.env.S3_BUCKET_NAME, filename, file);
         const dataStream = await minioClient.getObject(process.env.S3_BUCKET_NAME, filename);
         return {
@@ -136,7 +137,7 @@ export const updates = async ({ filespath, files }: FilesProps) => {
     try {
         const results = [];
 
-        for (let i = 0; i < filespath.length; i++) {
+        for ( let i = 0; i < filespath.length; i++ ) {
             const filename = filespath[i];
             const file = files[i];
 
@@ -146,16 +147,16 @@ export const updates = async ({ filespath, files }: FilesProps) => {
             results.push({
                 filename,
                 status: 200,
-                message: `Update image ${filename} from S3 bucket`,
+                message: `Update image ${ filename } from S3 bucket`,
                 stream: dataStream
             });
         }
 
         return {
             status: 200,
-            message: `${results}`
+            message: `${ results }`
         };
-    } catch (error) {
+    } catch ( error ) {
         if (error.code === 'NoSuchKey') {
             return {
                 status: 404,
@@ -164,7 +165,7 @@ export const updates = async ({ filespath, files }: FilesProps) => {
         } else {
             return {
                 status: 500,
-                message: `An error occurred while processing files: ${error.message}`
+                message: `An error occurred while processing files: ${ error.message }`
             };
         }
     }

@@ -5,7 +5,7 @@ x-environment-variables:
     DELEGATED_STORAGE_RATE_LIMIT_WINDOW: 30000
     NGINX_SERVICE: http://host.docker.internal:8080
     IMAGE_SERVICE: http://localhost:3001
-    NGINX_INGRESS: http://localhost:8080
+    NGINX_INGRESS: http://nginx:8080
 
     VERSION: 0.0.1
     NAMESPACES: CMS,FORMS,DEV

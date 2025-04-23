@@ -5,11 +5,11 @@
  *   description: Catalog management
  */
 
-import { createDump, getFile, getFiles, deleteCatalog, updateFileInCatalog, addFileInCatalog } from '../controllers/catalog.controller';
+import { createDump, getFile, getFiles, deleteCatalog, updateFileInCatalog, addFileInCatalog, updateFilesInCatalog } from '../controllers/catalog.controller';
 import { Router } from 'express';
 import { deleteCatalogItem } from '../catalog';
 import { redisConnectionMiddleware } from '../middleware/redisMiddleware';
-import { rateLimitMiddleware } from '../middleware/rateLimit';
+import { queueMiddleware } from '../middleware/queues/queuesMiddleware';
 
 const router = Router();
 
@@ -56,7 +56,7 @@ router.get(`/catalog/:id`, getFile);
  *       201:
  *         description: File added
  */
-router.post(`/catalog`, addFileInCatalog);
+router.post(`/catalog`, queueMiddleware(addFileInCatalog));
 
 /**
  * @swagger
@@ -75,7 +75,8 @@ router.post(`/catalog`, addFileInCatalog);
  *       200:
  *         description: File updated
  */
-router.patch(`/catalog/:id`, updateFileInCatalog);
+router.patch(`/catalog`, queueMiddleware(updateFilesInCatalog));
+router.patch(`/catalog/:id`, queueMiddleware(updateFileInCatalog));
 
 /**
  * @swagger
@@ -94,7 +95,7 @@ router.patch(`/catalog/:id`, updateFileInCatalog);
  *       200:
  *         description: File deleted
  */
-router.delete(`/catalog/:id`, deleteCatalogItem);
+router.delete(`/catalog/:id`, queueMiddleware(deleteCatalogItem));
 
 /**
  * @swagger
@@ -106,7 +107,7 @@ router.delete(`/catalog/:id`, deleteCatalogItem);
  *       200:
  *         description: All files deleted
  */
-router.delete(`/catalog`, deleteCatalog);
+router.delete(`/catalog`, queueMiddleware(deleteCatalog));
 
 /**
  * @swagger
@@ -118,6 +119,6 @@ router.delete(`/catalog`, deleteCatalog);
  *       201:
  *         description: Dump created
  */
-router.post(`/catalog/create-dump`, createDump);
+router.post(`/catalog/create-dump`, queueMiddleware(createDump));
 
 export { router };

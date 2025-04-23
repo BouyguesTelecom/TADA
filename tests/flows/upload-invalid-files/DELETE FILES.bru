@@ -14,12 +14,6 @@ auth:bearer {
   token: {{AUTH_TOKEN}}
 }
 
-body:json {
-  {
-    "namespace": "DEV"
-  }
-}
-
 assert {
   res.status: eq 200
   res.body.data: length 1

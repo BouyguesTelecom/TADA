@@ -57,7 +57,6 @@ const connectToRedisWithRetry = async (maxRetries, delay) => {
             }
             return;
         } catch ( err ) {
-            console.log(err, 'ERR REDIs')
             attempts++;
             logger.error(`Failed to connect to Redis. Attempt ${ attempts } of ${ maxRetries }. Retrying in ${ delay / 1000 } seconds...`);
             if (attempts < maxRetries) {

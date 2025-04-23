@@ -11,7 +11,7 @@ import crypto from 'crypto';
 
 export const validatorNamespace = async (req: Request, res: Response, next: NextFunction) => {
     const namespace = req.body.namespace;
-    const namespaceValid = checkNamespace({ namespace: namespace });
+    const namespaceValid = checkNamespace({ namespace });
     if (!namespaceValid) {
         return sendResponse({
             res,
@@ -37,34 +37,35 @@ export const validatorParams = async (req: Request, res: Response, next: NextFun
 
 export const validatorFileCatalog = async (req: Request, res: Response, next: NextFunction) => {
     const { uuid, namespace, toWebp, file } = res.locals;
-    console.log(file, 'FILE ICI ????', uuid)
-    const uniqueName = file && generateUniqueName(file, req.body, namespace, toWebp);
+    const uniqueName = generateUniqueName(file, req.body, namespace, toWebp);
     const fileUUID = uuid ? uuid : await crypto.createHash('md5').update(uniqueName).digest('hex');
     const itemFound = await getCachedCatalog(fileUUID);
-    console.log(itemFound, fileUUID, 'ICIIIII 2')
-    if (itemFound && req.method === 'PATCH' && file) {
-        if (file.mimetype !== itemFound.original_mimetype && req.body.toWebp === 'false' && itemFound.mimetype === 'image/webp') {
+    if (itemFound) {
+        if (req.method === 'PATCH') {
+            if (file.mimetype !== itemFound.original_mimetype && req.body.toWebp === 'false' && itemFound.mimetype === 'image/webp') {
+                return sendResponse({
+                    res,
+                    status: 400,
+                    errors: [ `Mimetypes are not the same` ]
+                });
+            }
+        }
+        if (req.method === 'POST') {
             return sendResponse({
                 res,
                 status: 400,
-                errors: [ `Mimetypes are not the same` ]
+                errors: [ 'File already exists in catalog, please use patch instead.' ]
             });
         }
     }
+
     if (!itemFound && req.method !== 'POST') {
         return sendResponse({
             res,
             status: 404,
             errors: [ `Item not found in catalog with namespace ${ namespace } and UUID ${ uuid }` ]
         });
-    }
 
-    if (itemFound && req.method === 'POST') {
-        return sendResponse({
-            res,
-            status: 400,
-            errors: [ 'File already exists in catalog, please use patch instead.' ]
-        });
     }
     res.locals = {
         ...res.locals,
@@ -93,18 +94,21 @@ export const validatorFileFilter = async (req: Request, res: Response, next: Nex
             });
         }
         res.locals.file = req.file;
+        return next();
     }
-    next();
+    return sendResponse({
+        res,
+        status: 400,
+        errors: [ `No file detected` ]
+    });
 };
 
 export const validatorFileSize = async (req: Request, res: Response, next: NextFunction) => {
     const { uuid, namespace, file } = res.locals;
-    if (file) {
-        const fileTooLarge = await fileIsTooLarge(file, { uuid, namespace }, req.method);
-        if (fileTooLarge) {
-            await deleteFile(file.path);
-            return sendResponse({ res, status: 400, errors: [ fileTooLarge ] });
-        }
+    const fileTooLarge = await fileIsTooLarge(file, { uuid, namespace }, req.method);
+    if (fileTooLarge) {
+        await deleteFile(file.path);
+        return sendResponse({ res, status: 400, errors: [ fileTooLarge ] });
     }
     next();
 };
@@ -128,22 +132,7 @@ export const generateFileInfo = (body, method = 'PATCH') => {
 };
 
 export const validatorFileBody = async (req: Request, res: Response, next: NextFunction) => {
-    const { contentType } = res.locals;
-    if (contentType === 'application/json' && Array.isArray(req.body)) {
-        return sendResponse({
-            res,
-            status: 400,
-            errors: [ `Body has to be of type object` ]
-        });
-    }
     const fileInfo = generateFileInfo(req.body, req.method);
-    if (!fileInfo && !req.file) {
-        return sendResponse({
-            res,
-            status: 400,
-            errors: [ `No allowed changes detected` ]
-        });
-    }
     res.locals.fileInfo = fileInfo;
     res.locals.toWebp = req.body.toWebp !== 'false';
     next();
@@ -151,22 +140,15 @@ export const validatorFileBody = async (req: Request, res: Response, next: NextF
 
 export const validatorGetAsset = async (req: Request, res: Response, next: NextFunction) => {
     const allowedNamespaces = process.env.NAMESPACES?.split(',');
-    const uniqueName = getUniqueName(req.url, `/${ req.params.format }`);
-    let cleanUniqueName = uniqueName;
+    const uniqueName = getUniqueName(req.url, req.params.format);
+    const redisKeyMD5 = crypto.createHash('md5').update(uniqueName).digest('hex');
 
-    if (req.params.format === 'optimise') {
-        cleanUniqueName = uniqueName.replace(/\/[^/]+\//, '/');
-    }
-
-    const uniqueNameFinal = cleanUniqueName.split('/').filter((item) => item.length > 0).join('/');
-    const redisKeyMD5 = crypto.createHash('md5').update('/' + uniqueNameFinal).digest('hex');
-    console.log('ONE FILE AFTER 🎉')
     const { datum: file } = await getOneFile(redisKeyMD5);
     const namespace = file?.namespace || null;
 
     if (!allowedNamespaces?.includes(namespace) || !file) {
         return res.status(404).end();
     }
-    res.locals = { ...res.locals, uniqueName: `/${ uniqueNameFinal }`, file };
+    res.locals = { ...res.locals, uniqueName, file };
     next();
 };

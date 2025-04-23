@@ -3,7 +3,6 @@ import { logger } from '../utils/logs/winston';
 const MEDIA_TOKEN = process.env.MEDIA_TOKEN;
 
 export const authMiddleware = async (req, res, next) => {
-    console.log(req.body, 'REQ BPDU ICIII');
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token === MEDIA_TOKEN) {
         return next();

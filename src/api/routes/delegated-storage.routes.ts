@@ -34,7 +34,7 @@ router.get(`/delegated-storage/get-last-dump`, rateLimitMiddleware, getBackupDum
  *       200:
  *         description: A list of backups
  */
-router.get(`/delegated-storage`, rateLimitMiddleware, getBackup);
+//router.get(`/delegated-storage`, rateLimitMiddleware, getBackup);
 
 /**
  * @swagger

@@ -42,7 +42,6 @@ export const getLastDump = async () => {
 };
 
 export const getFile = async ({ filepath, version, mimetype }: FilePathProps): Promise<BackupProps> => {
-
     logger.info(`GET file from backup storage using ${ backupStorageMethod } method...`);
     switch ( backupStorageMethod ) {
         case 'DISTANT_BACKEND':
@@ -64,30 +63,17 @@ export const getFile = async ({ filepath, version, mimetype }: FilePathProps): P
     }
 };
 
-export const generateStream = async ({ filepath, file, version, mimetype, headers = null }: FileProps) => {
-
+export const generateStream = async (stream, file, datum) => {
     logger.info(`Uploading file to backup storage using ${ backupStorageMethod } method...`);
     switch ( backupStorageMethod ) {
         case 'DISTANT_BACKEND':
-            return await distantBackend.upload({
-                filepath,
-                file,
-                version,
-                mimetype,
-                headers
-            });
+            return await distantBackend.upload(stream, file, datum);
         case 'S3':
-            return await s3.upload({ filename: filepath, file });
+            return await s3.upload(stream, file, datum);
         case 'STANDALONE':
-            return await standalone.upload({ filepath, file });
+            return await standalone.upload(stream, file, datum);
         default:
-            return await distantBackend.upload({
-                filepath,
-                file,
-                version,
-                mimetype,
-                headers
-            });
+            return await distantBackend.upload(stream, file, datum);
     }
 };
 
@@ -117,36 +103,17 @@ export const generateStreams = async ({ filespath, files, version, mimetype, hea
     }
 };
 
-export const updateFile = async ({
-    filepath,
-    file,
-    version,
-    mimetype,
-    headers = {}
-}: FileProps): Promise<BackupProps> => {
-
+export const updateFile = async (file, stream, info): Promise<BackupProps> => {
     logger.info(`Updating file from backup storage using ${ backupStorageMethod } method...`);
     switch ( backupStorageMethod ) {
         case 'DISTANT_BACKEND':
-            return await distantBackend.update({
-                filepath,
-                file,
-                version,
-                mimetype,
-                headers
-            });
+            return await distantBackend.update(file, stream, info);
         case 'S3':
-            return await s3.update({ filename: filepath, file });
+            return await s3.update(file, info);
         case 'STANDALONE':
-            return await standalone.update({ filepath, file });
+            return await standalone.update(file, info);
         default:
-            return await distantBackend.update({
-                filepath,
-                file,
-                version,
-                mimetype,
-                headers
-            });
+            return await distantBackend.update(file, stream, info);
     }
 };
 
@@ -184,33 +151,17 @@ export const updateFiles = async ({
 };
 
 
-export const deleteFile = async ({
-    filepath,
-    version,
-    mimetype,
-    headers = {}
-}: FilePathProps): Promise<BackupProps> => {
-
+export const deleteFile = async (itemToUpdate): Promise<BackupProps> => {
     logger.info(`Delete file from backup storage using ${backupStorageMethod} method...`);
     switch ( backupStorageMethod ) {
         case 'DISTANT_BACKEND':
-            return await distantBackend.deleteFile({
-                filepath,
-                version,
-                mimetype,
-                headers
-            });
+            return await distantBackend.deleteFile(itemToUpdate);
         case 'S3':
-            return await s3.deleteFile({ filename: filepath });
+            return await s3.deleteFile(itemToUpdate);
         case 'STANDALONE':
-            return await standalone.deleteFile({ filepath });
+            return await standalone.deleteFile(itemToUpdate);
         default:
-            return await distantBackend.deleteFile({
-                filepath,
-                version,
-                mimetype,
-                headers
-            });
+            return await distantBackend.deleteFile(itemToUpdate);
     }
 };
 

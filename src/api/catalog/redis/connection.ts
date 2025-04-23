@@ -40,33 +40,27 @@ const disconnectClient = async () => {
 };
 
 const getAsync = async (key) => {
-    console.log('GET ASYNC REDIS', key)
     return await redisClient.get(key);
 };
 
 const setAsync = async (key, value) => {
-    console.log('SET ASYNC REDIS', key)
     return await redisClient.set(key, value);
 };
 
 const delAsync = async (key) => {
-    console.log('DEL ASYNC REDIS', key)
     return await redisClient.del(key);
 };
 
 const keysAsync = async (pattern) => {
-    console.log('keys ASYNC REDIS', pattern)
     return await redisClient.keys(pattern);
 };
 
 const generateDump = async () => redisClient.save();
 
 export const updateCacheCatalog = async () => {
-    console.log("Updating catalog cache... 🔆");
     try {
         const { data: catalog } = await getCatalog();
         if (!catalog || catalog.length === 0) {
-            console.error("Empty catalog or not valid");
             await redisHandler.setAsync('catalogCached', JSON.stringify({}));
             inMemoryCatalogCache = {};
             return;
@@ -75,7 +69,6 @@ export const updateCacheCatalog = async () => {
         const validCatalog = catalog.filter(item => item && item.uuid);
 
         if (validCatalog.length === 0) {
-            console.error("No item found in catalog");
             await redisHandler.setAsync('catalogCached', JSON.stringify({}));
             inMemoryCatalogCache = {};
             return;
@@ -96,7 +89,6 @@ export const updateCacheCatalog = async () => {
 };
 
 export const getCachedCatalog = async (id = null) => {
-    console.log('GET CACHED CATALOG')
     try {
         const catalog = inMemoryCatalogCache;
         if (id) {
