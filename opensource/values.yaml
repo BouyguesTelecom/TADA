@@ -83,6 +83,7 @@ mediaApi:
     imageName: 'bouyguestelecom/tada'
     imageVersion: 'api-latest'
     service: 'http://media-service'
+    requestTimeout: 320000
     routes:
         healthcheck:
             get: '/readiness-check'
