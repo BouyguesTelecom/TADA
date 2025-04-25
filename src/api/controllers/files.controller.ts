@@ -86,7 +86,6 @@ export const postAssets = async (req: Request, res: Response) => {
                 contentType: fileData.metadata.mimetype
             });
         });
-
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {

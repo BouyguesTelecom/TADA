@@ -20,11 +20,11 @@ assert {
   res.body.data[0].external_id: isNull
   res.body.data[0].uuid: isDefined
   res.body.data[0].unique_name: isDefined
-  res.body.data[0].unique_name: eq "/DEV/tests/test.webp"
+  res.body.data[0].unique_name: eq "/DEV/tests/test.png"
   res.body.data[0].version: isDefined
   res.body.data[0].version: eq 1
   res.body.data[0].public_url: isDefined
-  res.body.data[0].public_url: eq "{{URL_NGINX}}{{URL_API_PREFIX}}/assets/media/full/DEV/tests/test.webp"
+  res.body.data[0].public_url: eq "{{URL_NGINX}}{{URL_API_PREFIX}}/assets/media/full/DEV/tests/test.png"
   res.body.data[0].original_filename: isDefined
   res.body.data[0].base_url: isDefined
   res.body.data[0].base_url: eq "{{URL_API_PREFIX}}/assets/media"
@@ -34,7 +34,7 @@ assert {
   res.body.data[0].original_mimetype: isDefined
   res.body.data[0].original_mimetype: eq image/png
   res.body.data[0].mimetype: isDefined
-  res.body.data[0].mimetype: eq image/webp
+  res.body.data[0].mimetype: eq image/png
   res.body.data[0].signature: isDefined
   res.body.data[0].size: isDefined
   res.body.data[0].size: isNumber

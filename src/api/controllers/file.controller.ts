@@ -130,7 +130,7 @@ export const postAsset = async (req: Request, res: Response) => {
                 const postBackupFile = await postFileBackup(stream, file, datum)
 
                 if (postBackupFile.status !== 200) {
-                    await deleteCatalogItem(uniqueName);
+                    await deleteCatalogItem(datum.uuid);
                     return sendResponse({
                         res,
                         status: 400,
@@ -140,7 +140,7 @@ export const postAsset = async (req: Request, res: Response) => {
                 }
                 return sendResponse({ res, status: 200, data: [ datum ], purge: 'catalog' });
             } catch ( error ) {
-                await deleteCatalogItem(uniqueName);
+                await deleteCatalogItem(datum.uuid);
                 return sendResponse({
                     res,
                     status: 500,

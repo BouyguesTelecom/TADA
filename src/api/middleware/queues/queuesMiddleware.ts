@@ -20,7 +20,7 @@ export const queueMiddleware = (handler: (req: Request, res: Response) => Promis
     return (req: Request, res: Response) => {
         globalQueue.add(async () => {
             try {
-                await withTimeout(handler(req, res), 20000);
+                await withTimeout(handler(req, res), 60000);
             } catch (err) {
                 console.error('Job timeout ou erreur :', err);
                 if (!res.headersSent) {

@@ -160,7 +160,7 @@ export const uploads = async ({ filespath, files, version, mimetype }: UploadFil
 export const update = async (file, stream, info): Promise<BackupProps> => {
     try {
         const form = generateFormDataWithFile(stream, file, info);
-        const backupUpload: ResponseBackup = await fetch(generateUrl(), generateOptions('POST', '', form));
+        const backupUpload: ResponseBackup = await fetch(generateUrl(), generateOptions('PATCH', '', form));
 
         if (backupUpload.status === 401) {
             console.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);

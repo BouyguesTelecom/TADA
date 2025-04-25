@@ -12,7 +12,6 @@ export const storage = multer.diskStorage({
 
         const sanitizedFilename = name.replace(/[^a-zA-Z0-9\-@_%]+/g, '_') + ext;
         const finalFilename = convertToWebp ? sanitizedFilename.replace(ext, '.webp') : sanitizedFilename;
-
         callback(null, finalFilename);
     },
     destination: (_req, _file, callback) => {

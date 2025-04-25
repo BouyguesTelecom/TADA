@@ -69,7 +69,7 @@ export const validatorFileCatalog = async (req: Request, res: Response, next: Ne
     }
     res.locals = {
         ...res.locals,
-        uniqueName: uniqueName ? uniqueName : itemFound.unique_name,
+        uniqueName: itemFound?.unique_name || uniqueName,
         itemToUpdate: itemFound
     };
     next();
