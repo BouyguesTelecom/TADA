@@ -10,6 +10,7 @@ x-environment-variables:
     VERSION: 0.0.1
     NAMESPACES: CMS,FORMS,DEV
     VALID_MIMETYPES: image/png,image/jpeg,application/pdf,image/jpg,image/webp,image/svg+xml
+    REQUEST_TIMEOUT: 300000
 
     DEV_ENV: true
 

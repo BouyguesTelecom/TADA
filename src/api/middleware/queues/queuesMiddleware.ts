@@ -5,14 +5,14 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
     return new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('Timeout exceeded')), timeoutMs);
         promise
-        .then(result => {
-            clearTimeout(timer);
-            resolve(result);
-        })
-        .catch(err => {
-            clearTimeout(timer);
-            reject(err);
-        });
+            .then((result) => {
+                clearTimeout(timer);
+                resolve(result);
+            })
+            .catch((err) => {
+                clearTimeout(timer);
+                reject(err);
+            });
     });
 }
 
@@ -20,7 +20,7 @@ export const queueMiddleware = (handler: (req: Request, res: Response) => Promis
     return (req: Request, res: Response) => {
         globalQueue.add(async () => {
             try {
-                await withTimeout(handler(req, res), 60000);
+                await withTimeout(handler(req, res), parseInt(process.env.REQUEST_TIMEOUT || '', 10) || 120000);
             } catch (err) {
                 console.error('Job timeout ou erreur :', err);
                 if (!res.headersSent) {
