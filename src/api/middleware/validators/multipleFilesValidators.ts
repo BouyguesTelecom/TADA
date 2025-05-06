@@ -46,7 +46,6 @@ export const validatorFilesFilter = async (req: Request, res: Response, next: Ne
 };
 
 export const validatorUUIds = async (req: Request, res: Response, next: NextFunction) => {
-
     if (req.method === 'PATCH' || req.method === 'DELETE') {
         const { contentType } = res.locals;
 

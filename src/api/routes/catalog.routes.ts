@@ -5,7 +5,7 @@
  *   description: Catalog management
  */
 
-import { createDump, getFile, getFiles, deleteCatalog, updateFileInCatalog, addFileInCatalog, updateFilesInCatalog } from '../controllers/catalog.controller';
+import { createDump, getFile, getFiles, deleteCatalog, updateFileInCatalog, addFileInCatalog, updateFilesInCatalog, deleteFileFromCatalog } from '../controllers/catalog.controller';
 import { Router } from 'express';
 import { deleteCatalogItem } from '../catalog';
 import { redisConnectionMiddleware } from '../middleware/redisMiddleware';
@@ -95,7 +95,7 @@ router.patch(`/catalog/:id`, queueMiddleware(updateFileInCatalog));
  *       200:
  *         description: File deleted
  */
-router.delete(`/catalog/:id`, queueMiddleware(deleteCatalogItem));
+router.delete(`/catalog/:uuid`, queueMiddleware(deleteFileFromCatalog));
 
 /**
  * @swagger

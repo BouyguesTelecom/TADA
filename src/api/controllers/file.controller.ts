@@ -40,12 +40,13 @@ const streamToBuffer = async (stream) => {
 
 export const getAsset = async (req: Request, res: Response & { locals: Locals }) => {
     const { uniqueName, file } = res.locals;
+    console.log(file, 'FILE ICI')
     const fileIsExpired = isExpired(file);
 
     if (!fileIsExpired) {
         const getBackupFile: Readable | null = await getBackup(uniqueName, file.version.toString(), file.mimetype);
         if (!getBackupFile) {
-            await deleteCatalogItem(uniqueName);
+            await deleteCatalogItem(file.uuid);
             return res.status(404).end();
         }
         const bodyBuffer = await streamToBuffer(getBackupFile);
@@ -61,7 +62,7 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
         const item = catalog.find((item: FileProps) => item.unique_name === uniqueName);
 
         bodyStream.on('error', (err) => {
-            logger.error('Error in originalStream:', err);
+            logger.error('Error in originalStream: ', err);
             return res.status(500).end();
         });
 
@@ -114,14 +115,13 @@ export const postAsset = async (req: Request, res: Response) => {
     if (stream) {
         const signature = calculateSHA256(stream);
         const newItem = await formatItemForCatalog(fileInfo, file.filename, namespace, uniqueName, fileInfo?.destination || '', file.mimetype, toWebp, signature, file.size);
-
         const { status, error, datum } = await addCatalogItem(newItem);
         if (status !== 200) {
             return sendResponse({
                 res,
                 status: 400,
-                data: datum ? [ datum ] : null,
-                errors: error ? [ error ] : null
+                data: datum ? [ datum ] : [],
+                errors: error ? [ error ] : []
             });
         }
 
@@ -134,7 +134,7 @@ export const postAsset = async (req: Request, res: Response) => {
                     return sendResponse({
                         res,
                         status: 400,
-                        data: null,
+                        data: [],
                         errors: [ 'Failed to upload in backup ' ]
                     });
                 }
@@ -162,6 +162,7 @@ export const patchAsset = async (req: Request, res: Response) => {
     const stream = file && ( await generateStream(file, uniqueName, toWebp) );
     if (( file && stream ) || !file) {
         const signature = stream && calculateSHA256(stream);
+        console.log(itemToUpdate, 'ITEM TO UPDATE ! ')
         const { datum: catalogData, error } = await updateCatalogItem(uuid, {
             ...itemToUpdate,
             ...fileInfo,
@@ -169,9 +170,10 @@ export const patchAsset = async (req: Request, res: Response) => {
             ...( signature && { signature } ),
             ...( file && { size: file.size } )
         });
-
+        console.log(catalogData, 'AFTER catalogData ITEM TO UPDATE ! ')
         if (stream) {
             const patchBackupFile = await patchFileBackup(file, stream, catalogData)
+            console.log(patchBackupFile, 'AFpatchBackupFileTER catalogData ITEM TO UPDATE ! ')
             if (patchBackupFile.status !== 200) {
                 await deleteCatalogItem(itemToUpdate.uuid);
             }

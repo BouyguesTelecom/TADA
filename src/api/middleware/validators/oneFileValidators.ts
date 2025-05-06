@@ -4,7 +4,6 @@ import { storage, isFileNameInvalid } from './utils/multer';
 import { deleteFile } from '../../utils/file';
 import { getUniqueName } from '../../utils';
 import { NextFunction, Request, Response } from 'express';
-import { logger } from '../../utils/logs/winston';
 import { getCachedCatalog } from '../../catalog/redis/connection';
 import { getOneFile } from '../../catalog/redis/operations';
 import crypto from 'crypto';

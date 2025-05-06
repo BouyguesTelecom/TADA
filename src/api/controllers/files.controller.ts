@@ -29,7 +29,6 @@ export const postAssets = async (req: Request, res: Response) => {
                     signature,
                     file.size
                 );
-
                 const { status, error: errorCatalog, datum: catalogItem } = await addCatalogItem(newItem);
                 if (status !== 200) {
                     errors.push(errorCatalog);

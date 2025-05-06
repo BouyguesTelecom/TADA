@@ -49,8 +49,8 @@ export const updateFilesInCatalog = async (req: Request, res: Response) => {
 };
 
 export const deleteFileFromCatalog = async (req: Request, res: Response) => {
-    const uniqueName = req.body.unique_name;
-    const { status, datum, error } = await deleteCatalogItem(uniqueName);
+    const uuid = req.params.uuid;
+    const { status, datum, error } = await deleteCatalogItem(uuid);
     return sendResponse({ res, status, data: datum ? [ datum ] : null, errors: error ? [ error ] : null });
 };
 
