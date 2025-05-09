@@ -6,6 +6,7 @@ type HeadersInit = {
 };
 
 export async function callAPI(url: string, method: HttpMethod, data?: object, isMultipart: boolean = false) {
+    console.log(`callAPI invoked with url: ${url}, method: ${method}, isMultipart: ${isMultipart}`);
     try {
         logger.info(`Making a ${method} request to ${url}`);
 
@@ -13,12 +14,14 @@ export async function callAPI(url: string, method: HttpMethod, data?: object, is
         let body: BodyInit | null = null;
 
         if (isMultipart && data) {
+            console.log('Preparing multipart form data');
             const formData = new FormData();
             Object.keys(data).forEach((key) => {
                 formData.append(key, data[key as keyof typeof data] as any);
             });
             body = formData;
         } else if (data) {
+            console.log('Preparing JSON body');
             body = JSON.stringify(data);
             headers['Content-Type'] = 'application/json';
         }
@@ -27,19 +30,25 @@ export async function callAPI(url: string, method: HttpMethod, data?: object, is
 
         if (body) {
             logger.debug(`Request body: ${body}`);
+            console.log(`Request body prepared: ${body}`);
         }
 
+        console.log(`Sending request to ${url} with options:`, options);
         const response = await fetch(url, options);
         const responseBody = await response.text();
 
+        console.log(`Response received with status: ${response.status}`);
         if (!response.ok) {
             logger.info(`Error calling API ${method} ${url}: ${response.statusText}`);
+            console.log(`API call failed with status: ${response.status}, statusText: ${response.statusText}`);
             throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
 
+        console.log('API call successful, parsing response body');
         return responseBody ? JSON.parse(responseBody) : null;
     } catch (error) {
         logger.info(`Error: ${(error as Error).message}`);
+        console.log(`Error occurred in callAPI: ${(error as Error).message}`);
         throw error;
     }
 }
@@ -109,7 +118,7 @@ const deleteFilesFromCatalog = async (itemDeletionLog: string[], files: File[], 
 export const processCatalog = async () => {
     try {
         const apiServiceURL = process.env.API_PREFIX ? `${process.env.API_SERVICE}${process.env.API_SERVICE}` : process.env.API_SERVICE!;
-        const catalogRoute =process.env.API_PREFIX ? `${process.env.API_SERVICE}${process.env.CATALOG_ROUTE}` : process.env.CATALOG_ROUTE!;
+        const catalogRoute = process.env.API_PREFIX ? `${process.env.API_SERVICE}${process.env.CATALOG_ROUTE}` : process.env.CATALOG_ROUTE!;
         const nginxServiceURL = process.env.NGINX_SERVICE!;
 
         const files: File[] = await callAPI(`${apiServiceURL}${catalogRoute}`, 'GET');
