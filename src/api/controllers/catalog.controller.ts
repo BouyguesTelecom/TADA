@@ -32,8 +32,14 @@ export const updateFileInCatalog = async (req: Request, res: Response) => {
     const uuid = req.params.id;
     const itemToUpdate = req.body;
     const { status, datum, error } = await updateCatalogItem(uuid, itemToUpdate);
-    return sendResponse({ res, status, data: datum ? [ datum ] : null, errors: error ? [ error ] : null });
+    return sendResponse({
+        res,
+        status,
+        data: datum ? [ { ...datum, catalogItemUrl: datum.base_host + '/catalog/' + datum.uuid } ] : null,
+        errors: error ? [ error ] : null
+    });
 };
+
 export const updateFilesInCatalog = async (req: Request, res: Response) => {
     const valid = [];
     const invalid = [];

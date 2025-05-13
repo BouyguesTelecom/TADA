@@ -1,12 +1,13 @@
 import { checkMissingParam, checkNamespace, fileIsTooLarge, generateUniqueName, sendResponse } from './utils';
 import multer from 'multer';
 import { storage, isFileNameInvalid } from './utils/multer';
-import { deleteFile } from '../../utils/file';
+import { deleteFile, returnDefaultImage } from '../../utils/file';
 import { getUniqueName } from '../../utils';
 import { NextFunction, Request, Response } from 'express';
 import { getCachedCatalog } from '../../catalog/redis/connection';
 import { getOneFile } from '../../catalog/redis/operations';
 import crypto from 'crypto';
+import fs, { createReadStream } from 'fs';
 
 export const validatorNamespace = async (req: Request, res: Response, next: NextFunction) => {
     const namespace = req.body.namespace;
@@ -137,9 +138,13 @@ export const validatorFileBody = async (req: Request, res: Response, next: NextF
     next();
 };
 
+
 export const validatorGetAsset = async (req: Request, res: Response, next: NextFunction) => {
     const allowedNamespaces = process.env.NAMESPACES?.split(',');
     const uniqueName = getUniqueName(req.url, req.params.format);
+    if (uniqueName === '/default.webp' || uniqueName === '/error.webp') {
+        return returnDefaultImage(res, uniqueName)
+    }
     const redisKeyMD5 = crypto.createHash('md5').update(uniqueName).digest('hex');
 
     const { datum: file } = await getOneFile(redisKeyMD5);

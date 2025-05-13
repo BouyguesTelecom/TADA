@@ -2,8 +2,17 @@ import fs from 'fs';
 import { PDFDocument } from 'pdf-lib';
 import { logger } from './logs/winston';
 import sharp from 'sharp';
+import path from 'path';
 
 require('dotenv').config();
+
+export const returnDefaultImage = (res, uniqueName) => {
+    res.setHeader('Content-Type', 'image/webp');
+    const rootPath = process.env.NODE_ENV !== 'production' ? path.resolve(__dirname, '../images') : '/images';
+
+    return res.sendFile(uniqueName, { root: rootPath });
+}
+
 
 const removeUnusedData = (svgFilePath) => {
     // Read SVG

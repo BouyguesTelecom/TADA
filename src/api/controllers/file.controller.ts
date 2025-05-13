@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { calculateSHA256, formatItemForCatalog, isExpired } from '../utils/catalog';
-import { convertToWebpBuffer, generateStream } from '../utils/file';
+import { convertToWebpBuffer, generateStream, returnDefaultImage } from '../utils/file';
 import { sendResponse } from '../middleware/validators/utils';
 import { FileProps } from '../props/catalog';
 import { logger } from '../utils/logs/winston';
@@ -40,7 +40,6 @@ const streamToBuffer = async (stream) => {
 
 export const getAsset = async (req: Request, res: Response & { locals: Locals }) => {
     const { uniqueName, file } = res.locals;
-    console.log(file, 'FILE ICI')
     const fileIsExpired = isExpired(file);
 
     if (!fileIsExpired) {
@@ -105,7 +104,7 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
     }
 
     if (fileIsExpired) {
-        return res.status(404).end();
+        return returnDefaultImage(res, '/default.webp')
     }
     return res.status(404).end();
 };
@@ -162,7 +161,6 @@ export const patchAsset = async (req: Request, res: Response) => {
     const stream = file && ( await generateStream(file, uniqueName, toWebp) );
     if (( file && stream ) || !file) {
         const signature = stream && calculateSHA256(stream);
-        console.log(itemToUpdate, 'ITEM TO UPDATE ! ')
         const { datum: catalogData, error } = await updateCatalogItem(uuid, {
             ...itemToUpdate,
             ...fileInfo,
@@ -170,16 +168,15 @@ export const patchAsset = async (req: Request, res: Response) => {
             ...( signature && { signature } ),
             ...( file && { size: file.size } )
         });
-        console.log(catalogData, 'AFTER catalogData ITEM TO UPDATE ! ')
+
         if (stream) {
             const patchBackupFile = await patchFileBackup(file, stream, catalogData)
-            console.log(patchBackupFile, 'AFpatchBackupFileTER catalogData ITEM TO UPDATE ! ')
             if (patchBackupFile.status !== 200) {
                 await deleteCatalogItem(itemToUpdate.uuid);
             }
         }
-        const data = catalogData ? [ catalogData ] : null;
-        const errors = error ? [ error ] : null;
+        const data = catalogData ? [ catalogData ] : [];
+        const errors = error ? [ error ] : [];
         return sendResponse({ res, status: 200, data, errors, purge: 'true' });
     }
     return sendResponse({
