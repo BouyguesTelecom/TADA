@@ -36,7 +36,8 @@ export const updateFileInCatalog = async (req: Request, res: Response) => {
         res,
         status,
         data: datum ? [ { ...datum, catalogItemUrl: datum.base_host + '/catalog/' + datum.uuid } ] : null,
-        errors: error ? [ error ] : null
+        errors: error ? [ error ] : null,
+        purge: 'true'
     });
 };
 
