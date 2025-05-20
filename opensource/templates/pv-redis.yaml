@@ -5,6 +5,7 @@ metadata:
   name: tada-{{ .Release.Name }}-local-pv-redis
   labels:
     type:  tada-{{ .Release.Name }}-redis
+    usage: tada-redis
 spec:
   capacity:
     storage: 5G
@@ -41,3 +42,6 @@ spec:
         requests:
             storage: "{{.Values.redis.storage.requestedStorage}}"
     storageClassName: "{{.Values.redis.storage.storageClassName}}"
+    selector:
+      matchLabels:
+        usage: tada-redis
