@@ -58,7 +58,7 @@ spec:
                         -   name: DELEGATED_STORAGE_SINGLE_PATH
                             value: "{{ default "" .Values.delegatedStorage.path.single }}"
                         -   name: DELEGATED_STORAGE_MULTI_PATH
-                            value: "{{ default "" .Values.delegatedStorageMulti.path.multi }}"
+                            value: "{{ default "" .Values.delegatedStorage.path.multi }}"
                         -   name: DELEGATED_STORAGE_RATE_LIMIT
                             value: "{{ default "5" .Values.delegatedStorage.rateLimit }}"
                         -   name: DELEGATED_STORAGE_RATE_LIMIT_WINDOW
