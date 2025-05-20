@@ -4,9 +4,15 @@ import { logger } from '../../../utils/logs/winston';
 import { getCachedCatalog, redisHandler } from '../../../catalog/redis/connection';
 
 export const purgeData = async (data) => {
+    console.log(data, 'DATA IN PURGE DATA')
     const safeFetch = async (url) => {
         try {
-            const response = await fetch(url);
+            const response = await fetch(url,{
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache'
+                }
+            });
             if (!response.ok) {
                 console.warn(`Warning: Fetch to ${ url } responded with status: ${ response.status }`);
             }
@@ -17,13 +23,18 @@ export const purgeData = async (data) => {
 
     if (data === 'catalog') {
         await safeFetch(`${ process.env.NGINX_SERVICE }/purge${ process.env.API_PREFIX }/catalog`);
+        await safeFetch(`${ process.env.NGINX_SERVICE }${ process.env.API_PREFIX }/catalog`);
     }
 
     if (data && data.length && typeof data[0] === 'object') {
         for ( const file of data ) {
             await safeFetch(`${ process.env.NGINX_SERVICE }/purge${ process.env.API_PREFIX }/assets/media/original${ file.unique_name }`);
             await safeFetch(`${ process.env.NGINX_SERVICE }/purge${ process.env.API_PREFIX }/assets/media/full${ file.unique_name }`);
+            await safeFetch(`${ process.env.NGINX_SERVICE }${ process.env.API_PREFIX }/assets/media/original${ file.unique_name }`);
+            await safeFetch(`${ process.env.NGINX_SERVICE }${ process.env.API_PREFIX }/assets/media/full${ file.unique_name }`);
         }
+        await safeFetch(`${ process.env.NGINX_SERVICE }/purge${ process.env.API_PREFIX }/catalog`);
+        await safeFetch(`${ process.env.NGINX_SERVICE }${ process.env.API_PREFIX }/catalog`);
     }
 };
 

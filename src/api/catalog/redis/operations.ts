@@ -150,6 +150,7 @@ export const addMultipleFiles = async (files: FileProps[]) => {
 export const updateOneFile = async (fileId: string, updateData: Partial<FileProps>): Promise<ICatalogResponse> => {
     try {
         const fileCatalog = await getCachedCatalog(fileId);
+        console.log(fileCatalog, 'FILE CATALOG !!!!', fileId)
         const redisKeyMD5 = crypto.createHash('md5').update(fileCatalog.unique_name).digest('hex');
         const existingFile = await redisHandler.getAsync(redisKeyMD5);
         if (!existingFile) {

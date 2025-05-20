@@ -2,7 +2,7 @@ import fetch, { Headers } from 'node-fetch';
 import FormData from 'form-data';
 import { BackupProps } from '../../props/delegated-storage';
 import { logger } from '../../utils/logs/winston';
-import { addCatalogItems } from '../../catalog';
+import { addCatalogItems, updateCatalogItem } from '../../catalog';
 
 interface FileProps {
     filepath: string;
@@ -107,7 +107,10 @@ export const upload = async (stream, file, datum): Promise<BackupProps> => {
         if (backupUpload.status === 401) {
             return { status: 401, error: 'Authentication failed' };
         }
-
+        const backupUploadResponse = await backupUpload.json()
+        if(backupUploadResponse.version){
+            await updateCatalogItem(datum.uuid, {version: backupUploadResponse.version})
+        }
         if (backupUpload.status === 201 || backupUpload.status === 200) {
             return { status: 200, stream: backupUpload.body };
         }

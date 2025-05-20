@@ -7,9 +7,9 @@
 
 import { createDump, getFile, getFiles, deleteCatalog, updateFileInCatalog, addFileInCatalog, updateFilesInCatalog, deleteFileFromCatalog } from '../controllers/catalog.controller';
 import { Router } from 'express';
-import { deleteCatalogItem } from '../catalog';
 import { redisConnectionMiddleware } from '../middleware/redisMiddleware';
 import { queueMiddleware } from '../middleware/queues/queuesMiddleware';
+import { validatorFileBody, validatorFileCatalog, validatorParams } from '../middleware/validators/oneFileValidators';
 
 const router = Router();
 
@@ -76,7 +76,7 @@ router.post(`/catalog`, queueMiddleware(addFileInCatalog));
  *         description: File updated
  */
 router.patch(`/catalog`, queueMiddleware(updateFilesInCatalog));
-router.patch(`/catalog/:id`, queueMiddleware(updateFileInCatalog));
+router.patch(`/catalog/:uuid`, [ validatorParams, validatorFileBody, validatorFileCatalog ], queueMiddleware(updateFileInCatalog));
 
 /**
  * @swagger

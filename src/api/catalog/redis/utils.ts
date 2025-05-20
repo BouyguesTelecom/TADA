@@ -97,6 +97,7 @@ export const getFile = async (uuid): Promise<ICatalogResponse> => {
 
 export const updateFileInCatalog = async (uuid: string, itemToUpdate: FileProps): Promise<ICatalogResponse> => {
     try {
+        console.log(uuid, itemToUpdate, '????')
         const updateItem = await updateOneFile(uuid, itemToUpdate);
         if (updateItem.datum && !updateItem.error) {
             await updateCacheCatalog();

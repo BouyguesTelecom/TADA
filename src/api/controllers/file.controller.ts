@@ -104,12 +104,13 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
     }
 
     if (fileIsExpired) {
-        return returnDefaultImage(res, '/default.webp')
+        return returnDefaultImage(res, '/default.webp');
     }
     return res.status(404).end();
 };
 export const postAsset = async (req: Request, res: Response) => {
     const { uniqueName, fileInfo, toWebp, namespace, file } = res.locals;
+    console.log(uniqueName, fileInfo, namespace, file, 'ICIIIII')
     const stream = await generateStream(file, uniqueName, toWebp);
     if (stream) {
         const signature = calculateSHA256(stream);
@@ -126,8 +127,8 @@ export const postAsset = async (req: Request, res: Response) => {
 
         if (datum) {
             try {
-                const postBackupFile = await postFileBackup(stream, file, datum)
-
+                const postBackupFile = await postFileBackup(stream, file, datum);
+                console.log(postBackupFile, 'POSTBACKUPFILE')
                 if (postBackupFile.status !== 200) {
                     await deleteCatalogItem(datum.uuid);
                     return sendResponse({
@@ -170,7 +171,7 @@ export const patchAsset = async (req: Request, res: Response) => {
         });
 
         if (stream) {
-            const patchBackupFile = await patchFileBackup(file, stream, catalogData)
+            const patchBackupFile = await patchFileBackup(file, stream, catalogData);
             if (patchBackupFile.status !== 200) {
                 await deleteCatalogItem(itemToUpdate.uuid);
             }
@@ -198,7 +199,7 @@ export const deleteAsset = async (req: Request, res: Response) => {
         });
     }
 
-   const deleteBackupFile = await deleteFileBackup(itemToUpdate)
+    const deleteBackupFile = await deleteFileBackup(itemToUpdate);
 
     if (deleteBackupFile.status !== 200) {
         return sendResponse({

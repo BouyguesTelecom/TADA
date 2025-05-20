@@ -29,7 +29,7 @@ export const getFile = async (req: Request, res: Response) => {
 };
 
 export const updateFileInCatalog = async (req: Request, res: Response) => {
-    const uuid = req.params.id;
+    const uuid = req.params.uuid;
     const itemToUpdate = req.body;
     const { status, datum, error } = await updateCatalogItem(uuid, itemToUpdate);
     return sendResponse({
@@ -58,7 +58,13 @@ export const updateFilesInCatalog = async (req: Request, res: Response) => {
 export const deleteFileFromCatalog = async (req: Request, res: Response) => {
     const uuid = req.params.uuid;
     const { status, datum, error } = await deleteCatalogItem(uuid);
-    return sendResponse({ res, status, data: datum ? [ datum ] : null, errors: error ? [ error ] : null });
+    return sendResponse({
+        res,
+        status,
+        data: datum ? [ datum ] : null,
+        errors: error ? [ error ] : null,
+        purge: 'true'
+    });
 };
 
 export const deleteCatalog = async (req: Request, res: Response) => {

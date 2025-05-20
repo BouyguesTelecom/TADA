@@ -41,7 +41,7 @@ export const validatorFileCatalog = async (req: Request, res: Response, next: Ne
     const fileUUID = uuid ? uuid : await crypto.createHash('md5').update(uniqueName).digest('hex');
     const itemFound = await getCachedCatalog(fileUUID);
     if (itemFound) {
-        if (req.method === 'PATCH') {
+        if (req.method === 'PATCH' && file) {
             if (file.mimetype !== itemFound.original_mimetype && req.body.toWebp === 'false' && itemFound.mimetype === 'image/webp') {
                 return sendResponse({
                     res,

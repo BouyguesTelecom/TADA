@@ -89,6 +89,7 @@ export const updateCacheCatalog = async () => {
 };
 
 export const getCachedCatalog = async (id = null) => {
+    console.log(id, 'ID ICIII')
     try {
         const catalog = inMemoryCatalogCache;
         if (id) {
