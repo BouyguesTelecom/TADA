@@ -35,8 +35,8 @@ delegatedStorage:
     accessToken: 'NinjaDesIles'
     storageMethod: 'S3'
     path:
-        single: '/file'
-        multi: '/files'
+        single: /file
+        multi: /files
 
 s3:
     port: '9000'
