@@ -8,7 +8,7 @@ require('dotenv').config();
 
 export const returnDefaultImage = (res, uniqueName) => {
     res.setHeader('Content-Type', 'image/webp');
-    const rootPath = process.env.NODE_ENV !== 'production' ? path.resolve(__dirname, '../images') : '/images';
+    const rootPath = process.env.NODE_ENV !== 'production' ? path.resolve(__dirname, '../images') : '/tmp/images';
 
     return res.sendFile(uniqueName, { root: rootPath });
 }
