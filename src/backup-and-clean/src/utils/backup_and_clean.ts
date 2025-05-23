@@ -117,8 +117,8 @@ const deleteFilesFromCatalog = async (itemDeletionLog: string[], files: File[], 
 
 export const processCatalog = async () => {
     try {
-        const apiServiceURL = process.env.API_PREFIX ? `${process.env.API_SERVICE}${process.env.API_SERVICE}` : process.env.API_SERVICE!;
-        const catalogRoute = process.env.API_PREFIX ? `${process.env.API_SERVICE}${process.env.CATALOG_ROUTE}` : process.env.CATALOG_ROUTE!;
+        const apiServiceURL = process.env.IMAGE_SERVICE!;
+        const catalogRoute = process.env.CATALOG_ROUTE!;
         const nginxServiceURL = process.env.NGINX_SERVICE!;
 
         const files: File[] = await callAPI(`${apiServiceURL}${catalogRoute}`, 'GET');
@@ -135,8 +135,9 @@ export const processCatalog = async () => {
             logger.info(`Some items are still present in the catalog: ${remainingItems.join(', ')}`);
         }
 
-        logger.info('Creating a dump of the DB...');
-        await callAPI(`${apiServiceURL}${catalogRoute}/create-dump`, 'POST');
+        const dumpUrl = `${apiServiceURL}${catalogRoute}/create-dump`;
+        logger.info(`Triggering catalog dump via POST ${dumpUrl}`);
+        await callAPI(dumpUrl, 'POST');
         logger.info('Database dump created successfully.');
     } catch (error) {
         logger.info(`Error in processCatalog: ${(error as Error).message}`);
