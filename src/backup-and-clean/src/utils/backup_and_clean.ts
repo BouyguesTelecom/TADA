@@ -115,31 +115,31 @@ const deleteFilesFromCatalog = async (itemDeletionLog: string[], files: File[], 
     return files.filter((file) => !itemDeletionLog.includes(file.uuid));
 };
 
-export const processCatalog = async () => {
-    try {
-        const apiServiceURL = process.env.API_SERVICE! || 'http://media-service';
-        const catalogRoute = process.env.CATALOG_ROUTE!;
-        const nginxServiceURL = process.env.NGINX_SERVICE!;
+// export const processCatalog = async () => {
+//     try {
+//         const apiServiceURL = process.env.API_SERVICE! || 'http://media-service';
+//         const catalogRoute = process.env.CATALOG_ROUTE!;
+//         const nginxServiceURL = process.env.NGINX_SERVICE!;
 
-        const files: File[] = await callAPI(`${apiServiceURL}${catalogRoute}`, 'GET');
+//         const files: File[] = await callAPI(`${apiServiceURL}${catalogRoute}`, 'GET');
 
-        const { updatedFiles, itemDeletionLog } = await processFiles(files, apiServiceURL, nginxServiceURL);
+//         const { updatedFiles, itemDeletionLog } = await processFiles(files, apiServiceURL, nginxServiceURL);
 
-        const remainingFiles = await deleteFilesFromCatalog(itemDeletionLog, updatedFiles, apiServiceURL);
+//         const remainingFiles = await deleteFilesFromCatalog(itemDeletionLog, updatedFiles, apiServiceURL);
 
-        const remainingItems = itemDeletionLog.filter((uuid) => remainingFiles.some((file) => file.uuid === uuid));
+//         const remainingItems = itemDeletionLog.filter((uuid) => remainingFiles.some((file) => file.uuid === uuid));
 
-        if (remainingItems.length === 0) {
-            logger.info('All expired and 404 items have been successfully removed from the catalog.');
-        } else {
-            logger.info(`Some items are still present in the catalog: ${remainingItems.join(', ')}`);
-        }
+//         if (remainingItems.length === 0) {
+//             logger.info('All expired and 404 items have been successfully removed from the catalog.');
+//         } else {
+//             logger.info(`Some items are still present in the catalog: ${remainingItems.join(', ')}`);
+//         }
 
-        const dumpUrl = `${apiServiceURL}${catalogRoute}/create-dump`;
-        logger.info(`Triggering catalog dump via POST ${dumpUrl}`);
-        await callAPI(dumpUrl, 'POST');
-        logger.info('Database dump created successfully.');
-    } catch (error) {
-        logger.info(`Error in processCatalog: ${(error as Error).message}`);
-    }
-};
+//         const dumpUrl = `${apiServiceURL}${catalogRoute}/create-dump`;
+//         logger.info(`Triggering catalog dump via POST ${dumpUrl}`);
+//         await callAPI(dumpUrl, 'POST');
+//         logger.info('Database dump created successfully.');
+//     } catch (error) {
+//         logger.info(`Error in processCatalog: ${(error as Error).message}`);
+//     }
+// };

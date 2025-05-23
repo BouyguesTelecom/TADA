@@ -255,7 +255,7 @@ export const createDump = async (): Promise<{ status: number; data: string[]; er
             console.log('sending dump.rdb to :', backupUrl);
             const response = await fetch(backupUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/octet-stream' },
+                headers: { 'Content-Type': 'application/octet-stream', Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}` },
                 body: dumpBuffer
             });
             if (response.ok) {
