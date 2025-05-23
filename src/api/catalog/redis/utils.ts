@@ -1,4 +1,4 @@
-import fs from 'fs/promises';
+import * as fs from 'fs';
 import app from '../../app';
 import { purgeData } from '../../middleware/validators/utils';
 import { FileProps, ICatalogResponse, ICatalogResponseMulti } from '../../props/catalog';
@@ -249,28 +249,34 @@ export const createDump = async (): Promise<{ status: number; data: string[]; er
     if (rdbBackupSuccess) {
         try {
             const dumpPath = process.env.DUMP_FOLDER_PATH ? `${process.env.DUMP_FOLDER_PATH}/dump.rdb` : '/dumps/dump.rdb';
-            const dumpBuffer = await fs.readFile(dumpPath);
             const backupUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_POST_BACKUP}`;
 
             console.log('sending dump.rdb to :', backupUrl);
 
+            const FormData = require('form-data');
             const formData = new FormData();
             const filename = `dump_${getCurrentDateVersion()}.rdb`;
 
-            formData.append('file', new Blob([dumpBuffer]), filename);
+            formData.append('file', fs.createReadStream(dumpPath), {
+                filename: filename,
+                contentType: 'application/octet-stream'
+            });
 
             const response = await fetch(backupUrl, {
                 method: 'POST',
                 headers: {
-                    Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
+                    Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`,
+                    ...formData.getHeaders()
                 },
                 body: formData
             });
 
             if (response.ok) {
                 rdbUploadSuccess = true;
+                console.log('✅ dump.rdb uploaded successfully');
             } else {
-                errors.push(`Error when sending dump.rdb: ${response.statusText}`);
+                const errorText = await response.text();
+                errors.push(`Error when sending dump.rdb: ${response.status} ${response.statusText} - ${errorText}`);
             }
         } catch (err) {
             errors.push('Error when reading or sending dump.rdb: ' + (err as Error).message);
