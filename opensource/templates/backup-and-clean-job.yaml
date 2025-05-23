@@ -33,14 +33,14 @@ spec:
             - name: create-dump-cronjob
               image: curlimages/curl:latest
               command: ["/bin/sh", "-c"]
-              args:
-                - |
-                  echo "Triggering /catalog/create-dump...";
-                  curl -X POST "{{ include "mediaService" . }}{{ .Values.mediaApi.routes.catalog.get }}/create-dump" -H 'Content-Type: application/json';
               resources:
                 requests:
                     cpu: {{ .Values.backupAndCleanJob.resources.requests.cpu }}
                     memory: {{ .Values.backupAndCleanJob.resources.requests.memory }}
+              args:
+                - |
+                  echo "Triggering /catalog/create-dump...";
+                  curl -X POST "{{ include "mediaService" . }}{{ .Values.mediaApi.routes.catalog.get }}/create-dump" -H 'Content-Type: application/json';
           restartPolicy: Never
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 1

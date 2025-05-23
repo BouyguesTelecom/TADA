@@ -117,7 +117,7 @@ const deleteFilesFromCatalog = async (itemDeletionLog: string[], files: File[], 
 
 export const processCatalog = async () => {
     try {
-        const apiServiceURL = process.env.API_SERVICE!;
+        const apiServiceURL = process.env.API_SERVICE! || 'http://media-service';
         const catalogRoute = process.env.CATALOG_ROUTE!;
         const nginxServiceURL = process.env.NGINX_SERVICE!;
 

@@ -74,7 +74,7 @@ backupAndCleanJob:
     imageVersion: 'job-latest'
     resources:
         requests:
-            cpu: 50m
+            cpu: 60m
             memory: 64Mi
 
 mediaApi:
