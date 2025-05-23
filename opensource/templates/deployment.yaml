@@ -97,6 +97,8 @@ spec:
                         {{- end }}
                         -   name: MEDIA_TOKEN
                             value: "{{ .Values.mediaApi.mediaToken }}"
+                        -   name: URL_TO_POST_BACKUP
+                            value: "{{ .Values.mediaApi.routes.post_backup.post }}"
             volumes:
                 -   name: redis-storage
                     persistentVolumeClaim:

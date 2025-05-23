@@ -94,6 +94,8 @@ mediaApi:
             get: '/assets/media/'
         catalog:
             get: '/catalog'
+        post_backup:
+            post: '/upload-backup-glouton'
     payloadMaxSize: '10mb'
     originsAllowed: "localhost,*"
     methodsAllowed: 'GET,POST'
