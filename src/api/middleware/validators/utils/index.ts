@@ -1,40 +1,38 @@
-import { MissingParamsProps, NamespaceProps } from './props';
 import fetch from 'node-fetch';
-import { logger } from '../../../utils/logs/winston';
-import { getCachedCatalog, redisHandler } from '../../../catalog/redis/connection';
+import { getCachedCatalog } from '../../../catalog/redis/connection';
+import { MissingParamsProps, NamespaceProps } from './props';
 
 export const purgeData = async (data) => {
-    console.log(data, 'DATA IN PURGE DATA')
     const safeFetch = async (url) => {
         try {
-            const response = await fetch(url,{
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Cache-Control': 'no-cache'
                 }
             });
             if (!response.ok) {
-                console.warn(`Warning: Fetch to ${ url } responded with status: ${ response.status }`);
+                console.warn(`Warning: Fetch to ${url} responded with status: ${response.status}`);
             }
-        } catch ( error ) {
-            console.warn(`Warning: Fetch to ${ url } failed: ${ error.message }`);
+        } catch (error) {
+            console.warn(`Warning: Fetch to ${url} failed: ${error.message}`);
         }
     };
 
     if (data === 'catalog') {
-        await safeFetch(`${ process.env.NGINX_SERVICE }/purge${ process.env.API_PREFIX }/catalog`);
-        await safeFetch(`${ process.env.NGINX_SERVICE }${ process.env.API_PREFIX }/catalog`);
+        await safeFetch(`${process.env.NGINX_SERVICE}/purge${process.env.API_PREFIX}/catalog`);
+        await safeFetch(`${process.env.NGINX_SERVICE}${process.env.API_PREFIX}/catalog`);
     }
 
     if (data && data.length && typeof data[0] === 'object') {
-        for ( const file of data ) {
-            await safeFetch(`${ process.env.NGINX_SERVICE }/purge${ process.env.API_PREFIX }/assets/media/original${ file.unique_name }`);
-            await safeFetch(`${ process.env.NGINX_SERVICE }/purge${ process.env.API_PREFIX }/assets/media/full${ file.unique_name }`);
-            await safeFetch(`${ process.env.NGINX_SERVICE }${ process.env.API_PREFIX }/assets/media/original${ file.unique_name }`);
-            await safeFetch(`${ process.env.NGINX_SERVICE }${ process.env.API_PREFIX }/assets/media/full${ file.unique_name }`);
+        for (const file of data) {
+            await safeFetch(`${process.env.NGINX_SERVICE}/purge${process.env.API_PREFIX}/assets/media/original${file.unique_name}`);
+            await safeFetch(`${process.env.NGINX_SERVICE}/purge${process.env.API_PREFIX}/assets/media/full${file.unique_name}`);
+            await safeFetch(`${process.env.NGINX_SERVICE}${process.env.API_PREFIX}/assets/media/original${file.unique_name}`);
+            await safeFetch(`${process.env.NGINX_SERVICE}${process.env.API_PREFIX}/assets/media/full${file.unique_name}`);
         }
-        await safeFetch(`${ process.env.NGINX_SERVICE }/purge${ process.env.API_PREFIX }/catalog`);
-        await safeFetch(`${ process.env.NGINX_SERVICE }${ process.env.API_PREFIX }/catalog`);
+        await safeFetch(`${process.env.NGINX_SERVICE}/purge${process.env.API_PREFIX}/catalog`);
+        await safeFetch(`${process.env.NGINX_SERVICE}${process.env.API_PREFIX}/catalog`);
     }
 };
 
@@ -54,27 +52,26 @@ export const checkNamespace = ({ namespace }: NamespaceProps): boolean => {
 
 export const checkMissingParam = ({ requiredParams, params }: MissingParamsProps) => {
     const errors = [];
-    for ( const param of requiredParams ) {
+    for (const param of requiredParams) {
         if (!params.hasOwnProperty(param)) {
-            errors.push(`${ param } is required`);
+            errors.push(`${param} is required`);
         }
     }
     return errors;
 };
 
 export const generateUniqueName = (file, body, namespace, toWebp) => {
-    return file && `/${ namespace }/${ body.destination ?
-        `${ body.destination }/` :
-        '' }${ toWebp && [ 'image/jpeg', 'image/png' ].includes(file.mimetype) ?
-        file.filename.split('.')[0] + '.webp' :
-        file.filename }`;
+    return (
+        file &&
+        `/${namespace}/${body.destination ? `${body.destination}/` : ''}${toWebp && ['image/jpeg', 'image/png'].includes(file.mimetype) ? file.filename.split('.')[0] + '.webp' : file.filename}`
+    );
 };
 
 export const fileIsTooLarge = async (file, params, method = 'POST') => {
     const { uuid, namespace } = params;
     if (file) {
         if (file.size > 10000000) {
-            const itemFound = method === 'PATCH' && ( await getCachedCatalog(uuid) );
+            const itemFound = method === 'PATCH' && (await getCachedCatalog(uuid));
             return {
                 filename: file.filename,
                 size: file.size,

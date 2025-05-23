@@ -13,7 +13,7 @@ const redisClient = createClient({
 });
 
 redisClient.on('error', (err) => {
-    logger.error(`Redis Client Error: ${ err.message } ${JSON.stringify(err)}`);
+    logger.error(`Redis Client Error: ${err.message} ${JSON.stringify(err)}`);
 });
 
 redisClient.on('connect', () => {
@@ -26,8 +26,8 @@ const connectClient = async () => {
             await redisClient.connect();
             logger.info('Connected to Redis and ready for operations.');
         }
-    } catch ( err ) {
-        logger.error(`Error connecting to Redis: ${ err.message }`);
+    } catch (err) {
+        logger.error(`Error connecting to Redis: ${err.message}`);
         throw new Error('Failed to connect to Redis');
     }
 };
@@ -66,7 +66,7 @@ export const updateCacheCatalog = async () => {
             return;
         }
 
-        const validCatalog = catalog.filter(item => item && item.uuid);
+        const validCatalog = catalog.filter((item) => item && item.uuid);
 
         if (validCatalog.length === 0) {
             await redisHandler.setAsync('catalogCached', JSON.stringify({}));
@@ -82,14 +82,12 @@ export const updateCacheCatalog = async () => {
         await delAsync('catalogCached');
         await setAsync('catalogCached', JSON.stringify(catalogObjectUUID));
         inMemoryCatalogCache = catalogObjectUUID;
-
     } catch (error) {
-        console.error("Erreur lors de la mise à jour du cache du catalogue:", error);
+        console.error('Erreur lors de la mise à jour du cache du catalogue:', error);
     }
 };
 
 export const getCachedCatalog = async (id = null) => {
-    console.log(id, 'ID ICIII')
     try {
         const catalog = inMemoryCatalogCache;
         if (id) {
@@ -97,7 +95,7 @@ export const getCachedCatalog = async (id = null) => {
         }
         return catalog;
     } catch (error) {
-        console.error("Erreur lors de la récupération du catalogue en cache:", error);
+        console.error('Erreur lors de la récupération du catalogue en cache:', error);
         return null;
     }
 };

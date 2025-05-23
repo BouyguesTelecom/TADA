@@ -40,7 +40,7 @@ spec:
               args:
                 - |
                   echo "Triggering /catalog/create-dump...";
-                  curl -X POST "{{ include "mediaService" . }}{{ .Values.mediaApi.routes.catalog.get }}/create-dump" -H 'Content-Type: application/json';
+                  curl -X POST "{{ include "mediaService" . }}/catalog/create-dump" -H 'Content-Type: application/json';
           restartPolicy: Never
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 1

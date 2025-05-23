@@ -222,6 +222,7 @@ export const createDump = async (): Promise<{ status: number; data: string[]; er
             errors: null
         };
     }
+
     try {
         const postBackupFileJson = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${filePath}`, {
             method: 'POST',
@@ -237,7 +238,7 @@ export const createDump = async (): Promise<{ status: number; data: string[]; er
         errors.push('Error when uploading JSON: ' + (err as Error).message);
     }
 
-    // generate dmp.rdb
+    // generate dump.rdb
     try {
         await redisHandler.generateDump();
         rdbBackupSuccess = true;
@@ -245,19 +246,27 @@ export const createDump = async (): Promise<{ status: number; data: string[]; er
         errors.push('Error generating dump.rdb: ' + (err as Error).message);
     }
 
-    // Send dump.rdb to backup server
     if (rdbBackupSuccess) {
         try {
             const dumpPath = process.env.DUMP_FOLDER_PATH ? `${process.env.DUMP_FOLDER_PATH}/dump.rdb` : '/dumps/dump.rdb';
             const dumpBuffer = await fs.readFile(dumpPath);
             const backupUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_POST_BACKUP}`;
-            console.log('sending to backup file : ', dumpBuffer);
+
             console.log('sending dump.rdb to :', backupUrl);
+
+            const formData = new FormData();
+            const filename = `dump_${getCurrentDateVersion()}.rdb`;
+
+            formData.append('file', new Blob([dumpBuffer]), filename);
+
             const response = await fetch(backupUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/octet-stream', Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}` },
-                body: dumpBuffer
+                headers: {
+                    Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
+                },
+                body: formData
             });
+
             if (response.ok) {
                 rdbUploadSuccess = true;
             } else {

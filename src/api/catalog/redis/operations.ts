@@ -1,12 +1,12 @@
-import { FileProps, ICatalogResponse } from '../../props/catalog';
-import { filePathIsUnique, validateMultipleFile, validateOneFile } from '../validators';
-import { logger } from '../../utils/logs/winston';
-import { getCachedCatalog, redisHandler } from './connection';
-import app from '../../app';
 import crypto from 'crypto';
+import app from '../../app';
+import { FileProps, ICatalogResponse } from '../../props/catalog';
+import { logger } from '../../utils/logs/winston';
+import { filePathIsUnique, validateMultipleFile, validateOneFile } from '../validators';
+import { getCachedCatalog, redisHandler } from './connection';
 
 const parseDateVersion = (name: string): Date => {
-    const prefix = `${ app.locals.PREFIXED_CATALOG }/`;
+    const prefix = `${app.locals.PREFIXED_CATALOG}/`;
     const suffix = '.json';
 
     if (!name.startsWith(prefix) || !name.endsWith(suffix)) {
@@ -44,8 +44,8 @@ export const getOneFile = async (id: string, redis = false) => {
             datum: catalogItem ? catalogItem : null,
             error: null
         };
-    } catch ( err ) {
-        logger.error(`Error getting file: ${ err }`);
+    } catch (err) {
+        logger.error(`Error getting file: ${err}`);
         return {
             datum: null,
             error: err
@@ -59,7 +59,7 @@ export const getAllFiles = async () => {
         const files = [];
 
         if (ids && ids.length) {
-            for ( let id of ids ) {
+            for (let id of ids) {
                 const file = await redisHandler.getAsync(id);
                 if (file && Object.keys(JSON.parse(file)).length) {
                     files.push(JSON.parse(file));
@@ -70,21 +70,21 @@ export const getAllFiles = async () => {
             data: files,
             errors: null
         };
-    } catch ( err ) {
-        logger.error(`Error listing items: ${ err }`);
+    } catch (err) {
+        logger.error(`Error listing items: ${err}`);
         return {
             data: null,
-            errors: [ err ]
+            errors: [err]
         };
     }
 };
 
 export const addOneFile = async (file: FileProps) => {
     try {
-        if (!( await filePathIsUnique(file) )) {
+        if (!(await filePathIsUnique(file))) {
             return {
                 datum: null,
-                error: `${ file.filename } already exists in namespace ${ file.namespace }`
+                error: `${file.filename} already exists in namespace ${file.namespace}`
             };
         }
         const errorValidation = validateOneFile(file);
@@ -99,15 +99,15 @@ export const addOneFile = async (file: FileProps) => {
             }
             return {
                 datum: null,
-                error: `Unable to retrieve file with id ${ file.uuid } after adding it...`
+                error: `Unable to retrieve file with id ${file.uuid} after adding it...`
             };
         }
         return {
             datum: null,
-            error: `File for catalog not valid : ${ JSON.stringify(errorValidation) }`
+            error: `File for catalog not valid : ${JSON.stringify(errorValidation)}`
         };
-    } catch ( err ) {
-        logger.error(`Error adding item: ${ err }`);
+    } catch (err) {
+        logger.error(`Error adding item: ${err}`);
         return {
             datum: null,
             error: err
@@ -121,7 +121,7 @@ export const addMultipleFiles = async (files: FileProps[]) => {
         if (!errorValidation) {
             const successfulUploadFiles: FileProps[] = [];
             const failedUploadFiles: string[] = [];
-            for ( let file of files ) {
+            for (let file of files) {
                 const response = await addOneFile(file);
                 if (response.datum && !response.error) {
                     successfulUploadFiles.push(response.datum);
@@ -136,13 +136,13 @@ export const addMultipleFiles = async (files: FileProps[]) => {
         }
         return {
             data: null,
-            errors: [ `Files for catalog not valid : ${ JSON.stringify(errorValidation) }` ]
+            errors: [`Files for catalog not valid : ${JSON.stringify(errorValidation)}`]
         };
-    } catch ( err ) {
-        logger.error(`Error adding items: ${ err }`);
+    } catch (err) {
+        logger.error(`Error adding items: ${err}`);
         return {
             data: null,
-            errors: [ err ]
+            errors: [err]
         };
     }
 };
@@ -150,11 +150,10 @@ export const addMultipleFiles = async (files: FileProps[]) => {
 export const updateOneFile = async (fileId: string, updateData: Partial<FileProps>): Promise<ICatalogResponse> => {
     try {
         const fileCatalog = await getCachedCatalog(fileId);
-        console.log(fileCatalog, 'FILE CATALOG !!!!', fileId)
         const redisKeyMD5 = crypto.createHash('md5').update(fileCatalog.unique_name).digest('hex');
         const existingFile = await redisHandler.getAsync(redisKeyMD5);
         if (!existingFile) {
-            return { error: `File with id ${ fileId } does not exist`, datum: null };
+            return { error: `File with id ${fileId} does not exist`, datum: null };
         }
 
         const parsedExistingFile = JSON.parse(existingFile);
@@ -163,7 +162,7 @@ export const updateOneFile = async (fileId: string, updateData: Partial<FileProp
         await redisHandler.setAsync(fileId, JSON.stringify(updatedFile));
 
         return { datum: updatedFile, error: null };
-    } catch ( err ) {
+    } catch (err) {
         return { error: err.message, datum: null };
     }
 };
@@ -173,7 +172,7 @@ export const updateMultipleFiles = async (files: FileProps[]) => {
         const successfulUpdateFiles: FileProps[] = [];
         const failedUpdateFiles: string[] = [];
 
-        for ( let file of files ) {
+        for (let file of files) {
             const response = await updateOneFile(file.uuid, file);
             if (response.datum && !response.error) {
                 successfulUpdateFiles.push(response.datum);
@@ -186,21 +185,20 @@ export const updateMultipleFiles = async (files: FileProps[]) => {
             data: successfulUpdateFiles,
             errors: failedUpdateFiles.length ? failedUpdateFiles : null
         };
-    } catch ( err ) {
-        logger.error(`Error updating items: ${ err }`);
+    } catch (err) {
+        logger.error(`Error updating items: ${err}`);
         return {
             data: null,
-            errors: [ err ]
+            errors: [err]
         };
     }
 };
 
-
 export const deleteOneFile = async (id: string): Promise<{ datum?: string; error?: string }> => {
     try {
         await redisHandler.delAsync(id);
-        return { datum: `File with id ${ id } successfully deleted` };
-    } catch ( err ) {
+        return { datum: `File with id ${id} successfully deleted` };
+    } catch (err) {
         return { error: err.message };
     }
 };
@@ -210,23 +208,23 @@ export const deleteMultipleFiles = async (files: FileProps[]) => {
         const successfulDeleteFiles: FileProps[] = [];
         const failedDeleteFiles: string[] = [];
 
-        for ( const file of files ) {
+        for (const file of files) {
             const { datum, error } = await deleteOneFile(file.uuid);
             if (datum && !error) {
                 successfulDeleteFiles.push(file);
             } else {
-                failedDeleteFiles.push(`Failed to delete file ${ file.uuid }`);
+                failedDeleteFiles.push(`Failed to delete file ${file.uuid}`);
             }
         }
         return {
             data: successfulDeleteFiles,
             errors: failedDeleteFiles.length ? failedDeleteFiles : null
         };
-    } catch ( err ) {
-        logger.error(`Error deleting items: ${ err }`);
+    } catch (err) {
+        logger.error(`Error deleting items: ${err}`);
         return {
             data: null,
-            errors: [ err ]
+            errors: [err]
         };
     }
 };
