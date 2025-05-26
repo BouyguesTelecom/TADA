@@ -102,7 +102,6 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
             }
         }
     }
-
     if (fileIsExpired) {
         return returnDefaultImage(res, '/default.webp');
     }
