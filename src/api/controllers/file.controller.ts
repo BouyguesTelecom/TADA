@@ -122,7 +122,6 @@ export const postAsset = async (req: Request, res: Response) => {
                 errors: error ? [error] : []
             });
         }
-
         if (datum) {
             try {
                 const postBackupFile = await postFileBackup(stream, file, datum);
