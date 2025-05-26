@@ -142,7 +142,7 @@ export const validatorFileBody = async (req: Request, res: Response, next: NextF
 export const validatorGetAsset = async (req: Request, res: Response, next: NextFunction) => {
     const allowedNamespaces = process.env.NAMESPACES?.split(',');
     const uniqueName = getUniqueName(req.url, req.params.format);
-    if (uniqueName === '/default.webp' || uniqueName === '/error.webp') {
+    if (uniqueName === '/default.svg' || uniqueName === '/error.svg') {
         return returnDefaultImage(res, uniqueName)
     }
     const redisKeyMD5 = crypto.createHash('md5').update(uniqueName).digest('hex');

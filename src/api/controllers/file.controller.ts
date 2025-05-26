@@ -103,7 +103,7 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
         }
     }
     if (fileIsExpired) {
-        return returnDefaultImage(res, '/default.webp');
+        return returnDefaultImage(res, '/default.svg');
     }
     return res.status(404).end();
 };
