@@ -77,6 +77,14 @@ backupAndCleanJob:
             cpu: 60m
             memory: 64Mi
 
+createDumpCronJob:
+    imageName: 'curlimages/curl'
+    imageVersion: 'latest'
+    resources:
+        requests:
+            cpu: 60m
+            memory: 64Mi
+
 mediaApi:
     mediaToken: 'token'
     useStripMetadata: true

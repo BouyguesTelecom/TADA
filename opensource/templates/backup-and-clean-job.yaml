@@ -31,12 +31,12 @@ spec:
                 - name: DELEGATED_STORAGE_METHOD
                   value: '{{ .Values.mediaApi.backupStorageMethod }}'
             - name: create-dump-cronjob
-              image: curlimages/curl:latest
+              image: '{{ .Values.createDumpCronJob.imageName }}:{{ .Values.createDumpCronJob.imageVersion }}'
               command: ["/bin/sh", "-c"]
               resources:
                 requests:
-                    cpu: {{ .Values.backupAndCleanJob.resources.requests.cpu }}
-                    memory: {{ .Values.backupAndCleanJob.resources.requests.memory }}
+                    cpu: {{ .Values.createDumpCronJob.resources.requests.cpu }}
+                    memory: {{ .Values.createDumpCronJob.resources.requests.memory }}
               args:
                 - |
                   echo "Triggering /catalog/create-dump...";
