@@ -18,9 +18,6 @@ export interface FilesPathProps {
     headers?: any;
 }
 
-export interface FileProps extends FilePathProps {
-    file: any;
-}
 
 export interface FilesProps extends FilesPathProps {
     files: any;
