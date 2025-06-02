@@ -141,7 +141,7 @@ jobs:
     needs:
       - determine-version
       - build-and-push-docker-api
-      - build-and-push-docker-job
+      # - build-and-push-docker-job
 
     steps:
       - name: Checkout repository
