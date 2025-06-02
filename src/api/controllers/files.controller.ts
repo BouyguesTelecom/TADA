@@ -99,7 +99,7 @@ export const postAssets = async (req: Request, res: Response) => {
             let errorDetails = 'Failed to upload images in backup';
 
             try {
-                const errorResponse = await response.json().catch(() => response.text());
+                const errorResponse: any = await response.json().catch(() => response.text());
                 if (typeof errorResponse === 'object') {
                     errorDetails =
                         errorResponse.error || ( errorResponse.details ?
@@ -127,7 +127,7 @@ export const postAssets = async (req: Request, res: Response) => {
                 errors
             });
         } else {
-            const responseData = await response.json().catch(() => ( {} ));
+            const responseData: any = await response.json().catch(() => ( {} ));
             console.log('Delegated storage success response:', responseData);
 
             if (responseData.error || ( responseData.result && responseData.result.status !== 200 ) || ( responseData.status && responseData.status !== 200 )) {

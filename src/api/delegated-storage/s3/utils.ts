@@ -46,6 +46,45 @@ export const getLastDump = async () => {
     return { data: 'OK', errors: null };
 };
 
+export const createDump = async () => {
+    const getObjectAsync = promisify(minioClient.getObject.bind(minioClient));
+    const listObjects = new Promise<any[]>((resolve, reject) => {
+        const objectsList: any[] = [];
+        const stream = minioClient.listObjectsV2('media', `${ app.locals.PREFIXED_CATALOG }/`, true);
+        stream.on('data', (obj) => objectsList.push(obj.name));
+        stream.on('end', () => resolve(objectsList));
+        stream.on('error', (err) => reject(err));
+    });
+
+    const objectsList = await listObjects;
+    if (!Array.isArray(objectsList) || objectsList.length === 0) {
+        return { data: null, errors: 'No dump found' };
+    }
+
+    const lastObject = getLastVersion(objectsList);
+    const dataStream = await getObjectAsync('media', lastObject);
+
+    const lastDump = await new Promise<string>((resolve, reject) => {
+        let data = '';
+        dataStream.on('data', (chunk: Buffer) => {
+            data += chunk.toString('utf-8');
+        });
+        dataStream.on('end', () => {
+            resolve(data);
+        });
+        dataStream.on('error', (err: Error) => {
+            reject(err);
+        });
+    });
+    const files = JSON.parse(lastDump);
+
+    if (files.length) {
+        await addCatalogItems(files);
+    }
+    return { data: 'OK', errors: null };
+};
+
+
 export const getFile = async ({ filename }: any) => {
     try {
         const dataStream = await minioClient.getObject(process.env.S3_BUCKET_NAME, filename);

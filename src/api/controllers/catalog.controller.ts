@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { sendResponse } from '../middleware/validators/utils';
-import { addCatalogItem, deleteCatalogItem, getCatalogItem, updateCatalogItem, deleteAllCatalog, createDumpCatalog } from '../catalog';
+import { addCatalogItem, deleteCatalogItem, getCatalogItem, updateCatalogItem, deleteAllCatalog, createDumpCatalog, restoreDumpCatalog, getDumpCatalog } from '../catalog';
 import { validateOneFile } from '../catalog/validators';
 import { getCachedCatalog } from '../catalog/redis/connection';
+import proxy from 'express-http-proxy';
 
 export const addFileInCatalog = async (req: Request, res: Response): Promise<any> => {
     const item = req.body;
@@ -72,7 +73,30 @@ export const deleteCatalog = async (req: Request, res: Response) => {
     return sendResponse({ res, status, data, errors });
 };
 
+export const getDump = async (req: Request, res: Response, next) => {
+
+    const { filename, format } = req.query;
+    if (process.env.DELEGATED_STORAGE_METHOD === 'DISTANT_BACKEND') {
+        const delegatedStorageHost = process.env.DELEGATED_STORAGE_HOST;
+        const urlToGetBackup = process.env.URL_TO_GET_BACKUP || '/get-dump';
+        const targetHost = `${ delegatedStorageHost }`;
+        const targetURLPath = `${ urlToGetBackup }/${ encodeURIComponent(filename.toString()) }`;
+        req.headers['Authorization'] = `Bearer ${ process.env.DELEGATED_STORAGE_TOKEN }`;
+
+        return proxy(targetHost, { proxyReqPathResolver: () => targetURLPath })(req, res, next);
+    }
+
+    const { status, data, errors } = await getDumpCatalog(filename, format);
+    return sendResponse({ res, status, data, errors });
+};
+
 export const createDump = async (req: Request, res: Response) => {
-    const { status, data, errors } = await createDumpCatalog();
+    const { filename, format } = req.query;
+    const { status, data, errors } = await createDumpCatalog(filename, format);
+    return sendResponse({ res, status, data, errors });
+};
+
+export const restoreDump = async (req: Request, res: Response) => {
+    const { status, data, errors } = await restoreDumpCatalog();
     return sendResponse({ res, status, data, errors });
 };

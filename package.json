@@ -12,6 +12,7 @@
         "start-s3": "concurrently \"npm run dev-s3-up\" \"npm run dev-nodemon-s3\""
     },
     "dependencies": {
+        "node-fetch": "^3.3.2",
         "prettier": "^3.4.1"
     },
     "devDependencies": {

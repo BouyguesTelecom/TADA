@@ -93,6 +93,14 @@ export const deleteCatalog = async (): Promise<ICatalogResponseMulti> => {
     }
 };
 
+export const getDump = async (): Promise<{ status: number; data: string[]; errors: string[] }> => {
+    return { status: 200, data: [ 'Dump created successfully' ], errors: null };
+};
+
 export const createDump = async (): Promise<{ status: number; data: string[]; errors: string[] }> => {
+    return { status: 200, data: ['Dump created successfully'], errors: null };
+};
+
+export const restoreDump = async (): Promise<{ status: number; data: string[]; errors: string[] }> => {
     return { status: 200, data: [ 'Dump created successfully' ], errors: null };
 };

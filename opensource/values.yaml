@@ -12,6 +12,13 @@ ingress:
         annotations:
             nginx.ingress.kubernetes.io/proxy-body-size: 100m
 redis:
+    initScript:
+        imageName:
+        dumpFileNameOnInit: latest
+        dumpFileNameOnRestart: latest
+        restoreOnInit: true
+        restoreOnRestart: true
+        urlToGetBackup: '/get-dump'
     imageName: bitnami/redis:7.0.15-debian-12-r20
     dumpFolderPath: '/dumps'
     storage:
@@ -68,22 +75,6 @@ nginxPurge:
         limits:
             cpu: 800m
             memory: 512Mi
-
-backupAndCleanJob:
-    imageName: 'bouyguestelecom/tada'
-    imageVersion: 'job-latest'
-    resources:
-        requests:
-            cpu: 60m
-            memory: 64Mi
-
-createDumpCronJob:
-    imageName: 'curlimages/curl'
-    imageVersion: 'latest'
-    resources:
-        requests:
-            cpu: 60m
-            memory: 64Mi
 
 mediaApi:
     mediaToken: 'token'

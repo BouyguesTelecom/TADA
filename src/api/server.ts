@@ -1,16 +1,17 @@
 import app from './app';
 import { logger } from './utils/logs/winston';
 import fs from 'fs';
-import { redisHandler } from './catalog/redis/connection';
+import { redisHandler, updateCacheCatalog } from './catalog/redis/connection';
 import { getLastDump } from './delegated-storage/index';
 import { minioClient } from './delegated-storage/s3/connection';
 import fetch from 'node-fetch';
 import { deleteCatalogItem, getCatalog } from './catalog';
 import listEndpoints from 'express-list-endpoints';
+
 const port = parseInt(process.env.PORT, 10) || 3001;
 const standalone = process.env.DELEGATED_STORAGE_METHOD === 'STANDALONE' || !process.env.DELEGATED_STORAGE_METHOD;
-if(standalone){
-    logger.warning('Standalone mode isn\'t recommanded, please set the DELEGATED_STORAGE_METHOD variable to S3 or DISTANT_BACKEND : see the docs. ')
+if (standalone) {
+    logger.warning('Standalone mode isn\'t recommanded, please set the DELEGATED_STORAGE_METHOD variable to S3 or DISTANT_BACKEND : see the docs. ');
 }
 
 const printRoutes = () => {
@@ -18,7 +19,7 @@ const printRoutes = () => {
     logger.info('Available Routes:');
     endpoints.forEach((endpoint) => {
         endpoint.methods.forEach((method) => {
-            logger.info(`${method} ${endpoint.path}`);
+            logger.info(`${ method } ${ endpoint.path }`);
         });
     });
 };
@@ -47,6 +48,7 @@ const connectToRedisWithRetry = async (maxRetries, delay) => {
     while ( attempts < maxRetries ) {
         try {
             await redisHandler.connectClient();
+            await updateCacheCatalog();
             const { data: catalog } = await getCatalog();
             if (catalog.length) {
                 for ( const item of catalog ) {
@@ -79,19 +81,20 @@ const createStandaloneFolderAndCatalog = () => {
     }
 };
 
-( async () => {
+( async (req, res) => {
     try {
         if (!standalone) {
             await checkAccessToBackup();
             await connectToRedisWithRetry(3, 10000);
 
             const dbDump = fs.existsSync(`${ process.env.DUMP_FOLDER_PATH }/dump.rdb`);
-
+            console.log(`${ process.env.DUMP_FOLDER_PATH }/dump.rdb`, dbDump);
             if (!dbDump) {
                 logger.info('dump.rdb doesn\'t exists : getting latest dump from backup ✅');
-                const dump = await getLastDump();
-                if(dump.errors){
-                    logger.warning('Failed to get last dump from delegated storage : initializing empty dump.rdb')
+                const dump: any = await getLastDump(req, res);
+                console.log(dump, 'DUMP ICIIII');
+                if (dump && dump.errors) {
+                    logger.warning('Failed to get last dump from delegated storage : initializing empty dump.rdb');
                 }
                 await redisHandler.generateDump();
             } else {
@@ -104,7 +107,7 @@ const createStandaloneFolderAndCatalog = () => {
         }
 
         app.listen(port, async () => {
-            printRoutes()
+            printRoutes();
             logger.info(`\n✨  ${ standalone ?
                 'Using fs in standalone mode' :
                 'Connected to Redis' }, server running => http://localhost:${ port }\n`);

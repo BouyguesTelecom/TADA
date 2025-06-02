@@ -25,18 +25,30 @@ export interface FilesProps extends FilesPathProps {
 
 const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
 
-export const getLastDump = async () => {
-
+export const getLastDump = async (req, res) => {
     logger.info(`GET DUMP from backup storage using ${ backupStorageMethod } method...`);
     switch ( backupStorageMethod ) {
         case 'DISTANT_BACKEND':
-            return await distantBackend.getLastDump();
+            return await distantBackend.getLastDump(req,res);
         case 'S3':
             return await s3.getLastDump();
         default:
-            return await distantBackend.getLastDump();
+            return await distantBackend.getLastDump(req,res);
     }
 };
+
+export const createDumpDelegatedStorage = async (req, res) => {
+    logger.info(`GET DUMP from backup storage using ${ backupStorageMethod } method...`);
+    switch ( backupStorageMethod ) {
+        case 'DISTANT_BACKEND':
+            return await distantBackend.createDump(req,res);
+        case 'S3':
+            return await s3.createDump();
+        default:
+            return await distantBackend.createDump(req,res);
+    }
+};
+
 
 export const getFile = async ({ filepath, version, mimetype }: FilePathProps): Promise<BackupProps> => {
     logger.info(`GET file from backup storage using ${ backupStorageMethod } method...`);

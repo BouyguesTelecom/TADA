@@ -50,6 +50,25 @@ services:
             - ../redis/dumps:/dumps
         networks:
             - redis_net
+        depends_on:
+            -   redis-init
+    redis-init:
+        image: curlimages/curl:latest
+        command: ["/bin/sh", "/scripts/redis-init.sh"]
+        volumes:
+            - ./local/redis/dumps:/dumps
+            - ../../scripts:/scripts
+        networks:
+            - redis_net
+        environment:
+            DELEGATED_STORAGE_HOST: ${DELEGATED_STORAGE_HOST}
+            URL_TO_GET_BACKUP: ${URL_TO_GET_BACKUP}
+            DELEGATED_STORAGE_TOKEN: ${DELEGATED_STORAGE_TOKEN}
+            RESTORE_ON_INIT: true
+            DUMP_FILE_NAME_ON_INIT: latest
+            RESTORE_ON_RESTART: true
+            DUMP_FILE_NAME_ON_RESTART: latest
+
     nginx-purge:
         image: emcniece/nginx-cache-purge:1.13-alpine
         ports:

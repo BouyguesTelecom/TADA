@@ -1,0 +1,27 @@
+# eslint-disable
+# prettier-ignore
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tada-{{ .Release.Name }}-backup-and-clean
+spec:
+  schedule: '0 0 * * *'
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: create-dump-cronjob
+              image: '{{ .Values.createDumpCronJob.imageName }}:{{ .Values.createDumpCronJob.imageVersion }}'
+              command: ["/bin/sh", "-c"]
+              resources:
+                requests:
+                    cpu: {{ .Values.createDumpCronJob.resources.requests.cpu }}
+                    memory: {{ .Values.createDumpCronJob.resources.requests.memory }}
+              args:
+                - |
+                  echo "Triggering /catalog/create-dump...";
+                  curl -X POST "{{ include "mediaService" . }}/catalog/create-dump" -H 'Content-Type: application/json';
+          restartPolicy: Never
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1

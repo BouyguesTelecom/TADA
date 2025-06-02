@@ -5,7 +5,7 @@
  *   description: Catalog management
  */
 
-import { createDump, getFile, getFiles, deleteCatalog, updateFileInCatalog, addFileInCatalog, updateFilesInCatalog, deleteFileFromCatalog } from '../controllers/catalog.controller';
+import { createDump, getFile, getFiles, deleteCatalog, updateFileInCatalog, addFileInCatalog, updateFilesInCatalog, deleteFileFromCatalog, restoreDump, getDump } from '../controllers/catalog.controller';
 import { Router } from 'express';
 import { redisConnectionMiddleware } from '../middleware/redisMiddleware';
 import { queueMiddleware } from '../middleware/queues/queuesMiddleware';
@@ -14,7 +14,7 @@ import { validatorFileBody, validatorFileCatalog, validatorParams } from '../mid
 const router = Router();
 
 router.use(redisConnectionMiddleware);
-
+router.get(`/catalog/get-dump`, getDump);
 /**
  * @swagger
  * /catalog:
@@ -119,6 +119,10 @@ router.delete(`/catalog`, queueMiddleware(deleteCatalog));
  *       201:
  *         description: Dump created
  */
+
+
 router.post(`/catalog/create-dump`, queueMiddleware(createDump));
+
+router.post(`/catalog/restore-dump`, queueMiddleware(restoreDump));
 
 export { router };

@@ -10,9 +10,9 @@ const filePath = (filePath) => {
 };
 
 export const getBackupDump = async (req: Request, res: Response) => {
-    const result = await getLastDump();
-    return res.status(result.data ? 200 : 400).send(result).end();
+    return await getLastDump(req, res);
 };
+
 
 export const getBackup = async (filepath, version = '', mimetype = '') => {
     const params = { filepath, version, mimetype };

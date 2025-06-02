@@ -1,39 +1,70 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name:  tada-{{ .Release.Name }}-redis-deployment
+    name: tada-{{ .Release.Name }}-redis-deployment
 spec:
     replicas: 1
     selector:
         matchLabels:
-            app:  tada-{{ .Release.Name }}-redis
+            app: tada-{{ .Release.Name }}-redis
     template:
         metadata:
             labels:
-                app:  tada-{{ .Release.Name }}-redis
+                app: tada-{{ .Release.Name }}-redis
         spec:
+            initContainers:
+                -   name: tada-{{ .Release.Name }}-redis-init
+                    image: {{ .Values.redis.initScript.imageName }}
+                    command: ["/scripts/dump_init.sh"]
+                    volumeMounts:
+                        -   name: redis-storage
+                            mountPath: /dumps
+                        -   name: auto-dump-volume
+                            mountPath: /scripts
+                    env:
+                        -   name: DUMP_FILE_NAME_ON_INIT
+                            value: {{ .Values.redis.initScript.dumpFileNameOnInit }}
+                        -   name: DUMP_FILE_NAME_ON_RESTART
+                            value: {{ .Values.redis.initScript.dumpFileNameOnRestart }}
+                        -   name: DELEGATED_STORAGE_HOST
+                            value: "{{ if eq .Values.delegatedStorage.storageMethod "S3" }}http://{{ include "minioService" . }}:{{ .Values.s3.port }}{{ else }}{{ .Values.delegatedStorage.host }}{{ end }}"
+                        -   name: URL_TO_GET_BACKUP
+                            value: {{ .Values.redis.initScript.urlToGetBackup }}
+                        -   name: DELEGATED_STORAGE_TOKEN
+                            value: "{{ default "NinjaDesIles" .Values.delegatedStorage.accessToken }}"
+                        -   name: RESTORE_ON_INIT
+                            value: {{ .Values.redis.initScript.restoreOnInit }}
+                        -   name: RESTORE_ON_RESTART
+                            value: {{ .Values.redis.initScript.restoreOnRestart }}
+
             containers:
-                - name:  tada-{{ .Release.Name }}-redis
-                  image: {{ .Values.redis.imageName }}
-                  command:
-                      - 'redis-server'
-                      - '--protected-mode'
-                      - 'no'
-                      - '--dir'
-                      - '/dumps'
-                  ports:
-                      - containerPort: 6379
-                  volumeMounts:
-                      - name: redis-storage
-                        mountPath: /dumps
-                  resources:
-                    requests:
-                      cpu: {{ .Values.redis.resources.requests.cpu }}
-                      memory: {{ .Values.redis.resources.requests.memory }}
-                    limits:
-                      cpu: {{ .Values.redis.resources.limits.cpu }}
-                      memory: {{ .Values.redis.resources.limits.memory }}
+                -   name: tada-{{ .Release.Name }}-redis
+                    image: {{ .Values.redis.imageName }}
+                    command:
+                        - 'redis-server'
+                        - '--protected-mode'
+                        - 'no'
+                        - '--dir'
+                        - '/dumps'
+                    ports:
+                        -   containerPort: 6379
+                    volumeMounts:
+                        -   name: redis-storage
+                            mountPath: /dumps
+                    resources:
+                        requests:
+                            cpu: {{ .Values.redis.resources.requests.cpu }}
+                            memory: {{ .Values.redis.resources.requests.memory }}
+                        limits:
+                            cpu: {{ .Values.redis.resources.limits.cpu }}
+                            memory: {{ .Values.redis.resources.limits.memory }}
             volumes:
-                - name: redis-storage
-                  persistentVolumeClaim:
-                      claimName:  tada-{{ .Release.Name }}-redis-pv
+                -   name: redis-storage
+                    persistentVolumeClaim:
+                        claimName: tada-{{ .Release.Name }}-redis-pv
+                -   name: shared-volume
+                    emptyDir: {}
+                -   name: dump-volume
+                    configMap:
+                        name: dump-configmap
+                        defaultMode: 0777

@@ -22,7 +22,7 @@ const router = Router();
  *       200:
  *         description: A backup dump
  */
-router.get(`/delegated-storage/get-last-dump`, rateLimitMiddleware, getBackupDump);
+router.get(`/delegated-storage/get-dump/:filename`, rateLimitMiddleware, getBackupDump);
 
 /**
  * @swagger
