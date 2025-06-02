@@ -102,8 +102,12 @@ export const getFile = async (uuid): Promise<ICatalogResponse> => {
 
 export const updateFileInCatalog = async (uuid: string, itemToUpdate: FileProps): Promise<ICatalogResponse> => {
     try {
-        console.log(uuid, itemToUpdate, '????');
-        const updateItem = await updateOneFile(uuid, itemToUpdate);
+        const updatedItemToUpdate = {
+            ...itemToUpdate,
+            updated_date: new Date().toISOString()
+        };
+        console.log(uuid, updatedItemToUpdate, '????');
+        const updateItem = await updateOneFile(uuid, updatedItemToUpdate);
         if (updateItem.datum && !updateItem.error) {
             await updateCacheCatalog();
             await purgeData('catalog');

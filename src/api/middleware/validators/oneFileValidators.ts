@@ -1,13 +1,12 @@
-import { checkMissingParam, checkNamespace, fileIsTooLarge, generateUniqueName, sendResponse } from './utils';
-import multer from 'multer';
-import { storage, isFileNameInvalid } from './utils/multer';
-import { deleteFile, returnDefaultImage } from '../../utils/file';
-import { getUniqueName } from '../../utils';
+import crypto from 'crypto';
 import { NextFunction, Request, Response } from 'express';
+import multer from 'multer';
 import { getCachedCatalog } from '../../catalog/redis/connection';
 import { getOneFile } from '../../catalog/redis/operations';
-import crypto from 'crypto';
-import fs, { createReadStream } from 'fs';
+import { getUniqueName } from '../../utils';
+import { deleteFile, returnDefaultImage } from '../../utils/file';
+import { checkMissingParam, checkNamespace, fileIsTooLarge, generateUniqueName, sendResponse } from './utils';
+import { isFileNameInvalid, storage } from './utils/multer';
 
 export const validatorNamespace = async (req: Request, res: Response, next: NextFunction) => {
     const namespace = req.body.namespace;
@@ -16,7 +15,7 @@ export const validatorNamespace = async (req: Request, res: Response, next: Next
         return sendResponse({
             res,
             status: 401,
-            errors: [ 'invalid namespace' ]
+            errors: ['invalid namespace']
         });
     }
     res.locals.namespace = namespace;
@@ -24,7 +23,7 @@ export const validatorNamespace = async (req: Request, res: Response, next: Next
 };
 
 export const validatorParams = async (req: Request, res: Response, next: NextFunction) => {
-    const requiredParams = [ 'uuid' ];
+    const requiredParams = ['uuid'];
     const params = req.params;
 
     const missingParams = checkMissingParam({ requiredParams, params });
@@ -46,7 +45,7 @@ export const validatorFileCatalog = async (req: Request, res: Response, next: Ne
                 return sendResponse({
                     res,
                     status: 400,
-                    errors: [ `Mimetypes are not the same` ]
+                    errors: [`Mimetypes are not the same`]
                 });
             }
         }
@@ -54,7 +53,7 @@ export const validatorFileCatalog = async (req: Request, res: Response, next: Ne
             return sendResponse({
                 res,
                 status: 400,
-                errors: [ 'File already exists in catalog, please use patch instead.' ]
+                errors: ['File already exists in catalog, please use patch instead.']
             });
         }
     }
@@ -63,9 +62,8 @@ export const validatorFileCatalog = async (req: Request, res: Response, next: Ne
         return sendResponse({
             res,
             status: 404,
-            errors: [ `Item not found in catalog with namespace ${ namespace } and UUID ${ uuid }` ]
+            errors: [`Item not found in catalog with namespace ${namespace} and UUID ${uuid}`]
         });
-
     }
     res.locals = {
         ...res.locals,
@@ -90,7 +88,7 @@ export const validatorFileFilter = async (req: Request, res: Response, next: Nex
             return sendResponse({
                 res,
                 status: 400,
-                errors: [ mimeTypeIsAllowed ? errorFileName : `File type ${ fileFromMulter.mimetype } unauthorized.` ]
+                errors: [mimeTypeIsAllowed ? errorFileName : `File type ${fileFromMulter.mimetype} unauthorized.`]
             });
         }
         res.locals.file = req.file;
@@ -99,7 +97,7 @@ export const validatorFileFilter = async (req: Request, res: Response, next: Nex
     return sendResponse({
         res,
         status: 400,
-        errors: [ `No file detected` ]
+        errors: [`No file detected`]
     });
 };
 
@@ -108,20 +106,31 @@ export const validatorFileSize = async (req: Request, res: Response, next: NextF
     const fileTooLarge = await fileIsTooLarge(file, { uuid, namespace }, req.method);
     if (fileTooLarge) {
         await deleteFile(file.path);
-        return sendResponse({ res, status: 400, errors: [ fileTooLarge ] });
+        return sendResponse({ res, status: 400, errors: [fileTooLarge] });
     }
     next();
 };
 
 export const generateFileInfo = (body, method = 'PATCH') => {
-    const keysAllowed = [ 'external_id', 'expired', 'expiration_date', 'information', 'signature', 'namespace', 'size', 'base_host', 'base_url', ...( method === 'POST' ?
-        [ 'destination' ] :
-        [] ) ];
+    const keysAllowed = [
+        'external_id',
+        'expired',
+        'expiration_date',
+        'information',
+        'signature',
+        'namespace',
+        'size',
+        'base_host',
+        'base_url',
+        'uploaded_date',
+        'updated_date',
+        ...(method === 'POST' ? ['destination'] : [])
+    ];
     const bodyKeys = Object.keys(body.changes ?? body);
     const hasAllowedKey = bodyKeys.some((key) => keysAllowed.includes(key));
     if (hasAllowedKey) {
         const fileInfo = {};
-        for ( let key of bodyKeys ) {
+        for (let key of bodyKeys) {
             if (keysAllowed.includes(key)) {
                 fileInfo[key] = body.changes ? body.changes[key] : body[key];
             }
@@ -138,12 +147,11 @@ export const validatorFileBody = async (req: Request, res: Response, next: NextF
     next();
 };
 
-
 export const validatorGetAsset = async (req: Request, res: Response, next: NextFunction) => {
     const allowedNamespaces = process.env.NAMESPACES?.split(',');
     const uniqueName = getUniqueName(req.url, req.params.format);
     if (uniqueName === '/default.svg' || uniqueName === '/error.svg') {
-        return returnDefaultImage(res, uniqueName)
+        return returnDefaultImage(res, uniqueName);
     }
     const redisKeyMD5 = crypto.createHash('md5').update(uniqueName).digest('hex');
 

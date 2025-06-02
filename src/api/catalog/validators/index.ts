@@ -1,7 +1,6 @@
 import * as Joi from 'joi';
 import { FileProps } from '../../props/catalog';
 import { logger } from '../../utils/logs/winston';
-import { getCatalog } from '../index';
 import { getCachedCatalog } from '../redis/connection';
 
 const fileSchema = Joi.object({
@@ -22,7 +21,13 @@ const fileSchema = Joi.object({
     original_mimetype: Joi.string().optional(),
     mimetype: Joi.string().optional(),
     signature: Joi.string().required(),
-    size: Joi.number().allow(null).optional()
+    size: Joi.number().allow(null).optional(),
+    uploaded_date: Joi.date()
+        .default(() => new Date())
+        .optional(),
+    updated_date: Joi.date()
+        .default(() => new Date())
+        .optional()
 });
 
 interface ValidateSchemaProps {
@@ -32,7 +37,7 @@ interface ValidateSchemaProps {
 
 interface ValidationErrorDetail {
     message: string;
-    path: ( string | number )[];
+    path: (string | number)[];
     type: string;
     context?: {
         key?: string;
