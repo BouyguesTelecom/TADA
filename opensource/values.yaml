@@ -19,6 +19,13 @@ redis:
         restoreOnInit: true
         restoreOnRestart: true
         urlToGetBackup: '/get-dump'
+        resources:
+            requests:
+                cpu: 200m
+                memory: 128Mi
+            limits:
+                cpu: 800m
+                memory: 512Mi
     imageName: bitnami/redis:7.0.15-debian-12-r20
     dumpFolderPath: '/dumps'
     storage:
