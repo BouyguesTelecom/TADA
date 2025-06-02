@@ -23,21 +23,21 @@ spec:
                             mountPath: /scripts
                     env:
                         -   name: DUMP_FOLDER_PATH
-                            value: {{ .Values.redis.dumpFolderPath}}
+                            value: "{{ .Values.redis.dumpFolderPath}}"
                         -   name: DUMP_FILE_NAME_ON_INIT
-                            value: {{ .Values.redis.initScript.dumpFileNameOnInit }}
+                            value: "{{ .Values.redis.initScript.dumpFileNameOnInit }}"
                         -   name: DUMP_FILE_NAME_ON_RESTART
-                            value: {{ .Values.redis.initScript.dumpFileNameOnRestart }}
+                            value: "{{ .Values.redis.initScript.dumpFileNameOnRestart }}"
                         -   name: DELEGATED_STORAGE_HOST
                             value: "{{ if eq .Values.delegatedStorage.storageMethod "S3" }}http://{{ include "minioService" . }}:{{ .Values.s3.port }}{{ else }}{{ .Values.delegatedStorage.host }}{{ end }}"
                         -   name: URL_TO_GET_BACKUP
-                            value: {{ .Values.redis.initScript.urlToGetBackup }}
+                            value: "{{ .Values.redis.initScript.urlToGetBackup }}"
                         -   name: DELEGATED_STORAGE_TOKEN
                             value: "{{ default "NinjaDesIles" .Values.delegatedStorage.accessToken }}"
                         -   name: RESTORE_ON_INIT
-                            value: {{ .Values.redis.initScript.restoreOnInit }}
+                            value: "{{ .Values.redis.initScript.restoreOnInit }}"
                         -   name: RESTORE_ON_RESTART
-                            value: {{ .Values.redis.initScript.restoreOnRestart }}
+                            value: "{{ .Values.redis.initScript.restoreOnRestart }}"
 
             containers:
                 -   name: tada-{{ .Release.Name }}-redis
