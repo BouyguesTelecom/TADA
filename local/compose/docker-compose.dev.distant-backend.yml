@@ -56,7 +56,7 @@ services:
         image: curlimages/curl:latest
         command: ["/bin/sh", "/scripts/redis-init.sh"]
         volumes:
-            - ./local/redis/dumps:/dumps
+            - ../redis/dumps:/dumps
             - ../../scripts:/scripts
         networks:
             - redis_net

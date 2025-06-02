@@ -1,6 +1,4 @@
 #!/bin/bash
-
-DUMP_LOCATION="/path/to/dump/location"
 DUMP_FILE_PATH="/dumps/dump.rdb"
 
 HOST="${DELEGATED_STORAGE_HOST}"
@@ -33,6 +31,8 @@ if [ -f "${DUMP_FILE_PATH}" ]; then
   fi
 
 else
+
+
   echo "No dump found. Proceeding with full initialization."
   echo "Starting with an empty dump.rdb."
   rm -f "${DUMP_FILE_PATH}"

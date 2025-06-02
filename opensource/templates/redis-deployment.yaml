@@ -19,9 +19,11 @@ spec:
                     volumeMounts:
                         -   name: redis-storage
                             mountPath: /dumps
-                        -   name: auto-dump-volume
+                        -   name: dump-volume
                             mountPath: /scripts
                     env:
+                        -   name: DUMP_FOLDER_PATH
+                            value: {{ .Values.redis.dumpFolderPath}}
                         -   name: DUMP_FILE_NAME_ON_INIT
                             value: {{ .Values.redis.initScript.dumpFileNameOnInit }}
                         -   name: DUMP_FILE_NAME_ON_RESTART
