@@ -38,6 +38,13 @@ spec:
                             value: "{{ .Values.redis.initScript.restoreOnInit }}"
                         -   name: RESTORE_ON_RESTART
                             value: "{{ .Values.redis.initScript.restoreOnRestart }}"
+                    resources:
+                        requests:
+                            cpu: {{ .Values.redis.initScript.requests.cpu }}
+                            memory: {{ .Values.redis.initScript.requests.memory }}
+                        limits:
+                            cpu: {{ .Values.redis.initScript.limits.cpu }}
+                            memory: {{ .Values.redis.initScript.limits.memory }}
 
             containers:
                 -   name: tada-{{ .Release.Name }}-redis
