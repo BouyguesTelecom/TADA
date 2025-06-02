@@ -15,7 +15,7 @@ spec:
             initContainers:
                 -   name: tada-{{ .Release.Name }}-redis-init
                     image: {{ .Values.redis.initScript.imageName }}
-                    command: ["/scripts/redis_init.sh"]
+                    command: ["/scripts/redis-init.sh"]
                     volumeMounts:
                         -   name: redis-storage
                             mountPath: /dumps
