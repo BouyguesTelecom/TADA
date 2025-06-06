@@ -106,7 +106,7 @@ export const updateFileInCatalog = async (uuid: string, itemToUpdate: FileProps)
             ...itemToUpdate,
             updated_date: new Date().toISOString()
         };
-        console.log(uuid, updatedItemToUpdate, '????');
+        console.log(uuid, updatedItemToUpdate);
         const updateItem = await updateOneFile(uuid, updatedItemToUpdate);
         if (updateItem.datum && !updateItem.error) {
             await updateCacheCatalog();
