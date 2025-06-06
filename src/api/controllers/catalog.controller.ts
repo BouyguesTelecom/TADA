@@ -4,6 +4,7 @@ import { addCatalogItem, deleteCatalogItem, getCatalogItem, updateCatalogItem, d
 import { validateOneFile } from '../catalog/validators';
 import { getCachedCatalog } from '../catalog/redis/connection';
 import proxy from 'express-http-proxy';
+import { patchFileBackup } from './delegated-storage.controller';
 
 export const addFileInCatalog = async (req: Request, res: Response): Promise<any> => {
     const item = req.body;
@@ -33,6 +34,8 @@ export const updateFileInCatalog = async (req: Request, res: Response) => {
     const uuid = req.params.uuid;
     const itemToUpdate = req.body;
     const { status, datum, error } = await updateCatalogItem(uuid, itemToUpdate);
+
+    const patchBackupFile = await patchFileBackup(datum, null, itemToUpdate);
     return sendResponse({
         res,
         status,
