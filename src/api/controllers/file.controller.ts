@@ -61,7 +61,6 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
         // const item = catalog.find((item: FileProps) => item.unique_name === uniqueName);
 
         const item = file;
-        console.log('item retrouvé :', item);
 
         bodyStream.on('error', (err) => {
             logger.error('Error in originalStream: ', err);

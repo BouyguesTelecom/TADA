@@ -81,7 +81,7 @@ export const cache = {
     async init() {
         if (isInitialized) return;
 
-        logger.info('Initialisation cache unifié...');
+        logger.info('Init cache.');
         const start = Date.now();
 
         const keys = await scanAsync('file:*');
@@ -96,7 +96,7 @@ export const cache = {
         }
 
         isInitialized = true;
-        logger.info(`Cache initialisé: ${memoryCache.size} fichiers en ${Date.now() - start}ms`);
+        logger.info(`Cache initialised: ${memoryCache.size} files in ${Date.now() - start}ms`);
     },
 
     async get(id: string) {
@@ -119,13 +119,13 @@ export const cache = {
         // Mémoire (performance)
         memoryCache.set(key, data);
 
-        logger.debug(`Cache mis à jour: ${key}`);
+        logger.debug(`Cache updated: ${key}`);
     },
 
     async delete(id: string) {
         await delAsync(id);
         const deleted = memoryCache.delete(id);
-        logger.debug(`Cache supprimé: ${id}`);
+        logger.debug(`Cache deleted: ${id}`);
         return deleted;
     }
 };

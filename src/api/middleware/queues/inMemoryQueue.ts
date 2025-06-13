@@ -28,19 +28,19 @@ export class InMemoryQueue {
         this.processing = true;
         const job = this.queue.shift();
         if (job) {
-            console.log(`Traitement job ${job.id}...`);
+            console.log(`Processing job ${job.id}...`);
             try {
                 await job.fn();
-                console.log(`Job ${job.id} terminé.`);
+                console.log(`Job ${job.id} done.`);
             } catch (e) {
-                console.error(`Erreur dans job ${job.id} :`, e);
+                console.error(`Error in job ${job.id} :`, e);
             }
             this.processNext();
         }
     }
 
     getCurrentQueue(): number[] {
-        return this.queue.map(job => job.id);
+        return this.queue.map((job) => job.id);
     }
 
     isProcessing(): boolean {

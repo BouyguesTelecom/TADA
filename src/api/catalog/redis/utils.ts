@@ -219,7 +219,6 @@ export const deleteCatalog = async (): Promise<ICatalogResponseMulti> => {
 };
 
 export const getDump = async (filename, format): Promise<{ status: number; data: string[]; errors: string[] }> => {
-    console.log('FILENAME:::', filename, 'FORMAT:::', format);
     const fileFormat = format ?? 'rdb';
     console.log(`${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_GET_BACKUP}/${filename}`, 'wAZAAAA');
     return proxy(`${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_GET_BACKUP}/${filename}`);
@@ -256,22 +255,6 @@ export const restoreDump = async (): Promise<{ status: number; data: string[]; e
             errors: null
         };
     }
-
-    /*try {
-     console.log('je vais fetch ::::', `${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${filePath}`)
-     const postBackupFileJson = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${filePath}`, {
-     method: 'POST',
-     headers: { 'Content-Type': 'application/json' },
-     body: JSON.stringify(catalog)
-     });
-     if (postBackupFileJson.status === 200) {
-     jsonBackupSuccess = true;
-     } else {
-     errors.push('Failed to upload JSON in backup');
-     }
-     } catch (err) {
-     errors.push('Error when uploading JSON: ' + (err as Error).message);
-     }*/
 
     // generate dump.rdb
     try {
