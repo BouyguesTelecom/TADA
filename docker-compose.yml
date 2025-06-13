@@ -15,7 +15,7 @@ x-environment-variables:
 
     DEV_ENV: true
 
-    # GLOUTON API:
+    # DELEGATED_STORAGE API:
     DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
     DELEGATED_STORAGE_READINESS_CHECK: /readiness-check
     DELEGATED_STORAGE_GET_PATH:
