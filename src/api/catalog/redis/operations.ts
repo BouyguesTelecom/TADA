@@ -235,7 +235,7 @@ export const getLastVersion = (list) => {
     });
 };
 
-export const getCatalog = async () => {
+export const getCatalogRedis = async () => {
     const catalog = await getAllFiles();
     return catalog || { data: null };
 };

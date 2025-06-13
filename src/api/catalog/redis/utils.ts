@@ -9,7 +9,7 @@ import { FileProps, ICatalogResponse, ICatalogResponseMulti } from '../../props/
 import { getCurrentDateVersion } from '../../utils/catalog';
 import { logger } from '../../utils/logs/winston';
 import { redisHandler, updateCacheCatalog } from './connection';
-import { addMultipleFiles, addOneFile, deleteMultipleFiles, deleteOneFile, getAllFiles, getCatalog, getOneFile, updateMultipleFiles, updateOneFile } from './operations';
+import { addMultipleFiles, addOneFile, deleteMultipleFiles, deleteOneFile, getAllFiles, getCatalogRedis, getOneFile, updateMultipleFiles, updateOneFile } from './operations';
 
 export const addFileInCatalog = async (item: FileProps): Promise<ICatalogResponse> => {
     try {
@@ -247,7 +247,7 @@ export const createDump = async (filename, format): Promise<any> => {
 };
 
 export const restoreDump = async (): Promise<{ status: number; data: string[]; errors: string[] }> => {
-    const { data: catalog } = await getCatalog();
+    const { data: catalog } = await getCatalogRedis();
     const fileVersion = getCurrentDateVersion();
     const filePath = `${app.locals.PREFIXED_CATALOG}/${fileVersion}.json`;
     let jsonBackupSuccess = false;

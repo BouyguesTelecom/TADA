@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Readable } from 'node:stream';
 import { PassThrough } from 'stream';
-import { addCatalogItem, deleteCatalogItem, getCatalog, updateCatalogItem } from '../catalog';
+import { addCatalogItem, deleteCatalogItem, updateCatalogItem } from '../catalog';
 import { sendResponse } from '../middleware/validators/utils';
 import { FileProps } from '../props/catalog';
 import { calculateSHA256, formatItemForCatalog, isExpired } from '../utils/catalog';
@@ -57,8 +57,11 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
         bodyStream.pipe(streamForSignature);
         bodyStream.pipe(streamForResponse);
 
-        const { data: catalog } = await getCatalog();
-        const item = catalog.find((item: FileProps) => item.unique_name === uniqueName);
+        // const { data: catalog } = await getCatalog(); //ou utiliser getCatalogItem()
+        // const item = catalog.find((item: FileProps) => item.unique_name === uniqueName);
+
+        const item = file;
+        console.log('item retrouvé :', item);
 
         bodyStream.on('error', (err) => {
             logger.error('Error in originalStream: ', err);

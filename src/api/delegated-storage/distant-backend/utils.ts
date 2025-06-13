@@ -1,9 +1,8 @@
 import FormData from 'form-data';
 import fs from 'fs';
 import fetch, { Headers } from 'node-fetch';
-import { updateCatalogItem } from '../../catalog';
+import { getCatalog, updateCatalogItem } from '../../catalog';
 import { redisHandler } from '../../catalog/redis/connection';
-import { getCatalog } from '../../catalog/redis/operations';
 import { BackupProps } from '../../props/delegated-storage';
 import { logger } from '../../utils/logs/winston';
 
