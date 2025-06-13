@@ -3,7 +3,7 @@ name: CI Docker and Helm
 on:
   push:
     branches:
-      - improve/redis-call
+      - improve/redis-performance
 
 env:
   IMAGE_NAME: bouyguestelecom/tada
