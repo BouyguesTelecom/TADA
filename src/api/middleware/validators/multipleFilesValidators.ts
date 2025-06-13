@@ -1,10 +1,10 @@
-import multer from 'multer';
-import { isFileNameInvalid, storage } from './utils/multer';
-import { fileIsTooLarge, generateUniqueName, sendResponse } from './utils';
-import { generateFileInfo } from './oneFileValidators';
-import { NextFunction, Request, Response } from 'express';
-import { getCachedCatalog } from '../../catalog/redis/connection';
 import crypto from 'crypto';
+import { NextFunction, Request, Response } from 'express';
+import multer from 'multer';
+import { getCatalogItem } from '../../catalog';
+import { generateFileInfo } from './oneFileValidators';
+import { fileIsTooLarge, generateUniqueName, sendResponse } from './utils';
+import { isFileNameInvalid, storage } from './utils/multer';
 
 export const validatorFiles = multer({
     storage: storage
@@ -24,15 +24,15 @@ export const validatorFilesFilter = async (req: Request, res: Response, next: Ne
                 const errorFileName = isFileNameInvalid(file);
 
                 if (errorFileName || !mimeTypeIsAllowed) {
-                    const message = mimeTypeIsAllowed ? errorFileName : `File type ${ file.mimetype } unauthorized.`;
+                    const message = mimeTypeIsAllowed ? errorFileName : `File type ${file.mimetype} unauthorized.`;
                     return {
                         ...acc,
-                        invalidFiles: [ ...invalidFiles, { ...file, message, uuid } ]
+                        invalidFiles: [...invalidFiles, { ...file, message, uuid }]
                     };
                 }
 
                 return {
-                    validFiles: [ ...validFiles, { ...file, uuid } ],
+                    validFiles: [...validFiles, { ...file, uuid }],
                     invalidFiles
                 };
             },
@@ -55,7 +55,7 @@ export const validatorUUIds = async (req: Request, res: Response, next: NextFunc
                 return sendResponse({
                     res,
                     status: 400,
-                    errors: [ 'No uuids provided' ]
+                    errors: ['No uuids provided']
                 });
             }
             const numberOfFiles = req.files.length;
@@ -65,7 +65,7 @@ export const validatorUUIds = async (req: Request, res: Response, next: NextFunc
                 return sendResponse({
                     res,
                     status: 400,
-                    errors: [ 'Number of UUIDs and number of files provided different' ]
+                    errors: ['Number of UUIDs and number of files provided different']
                 });
             }
             res.locals.uuids = uuidsFromBody;
@@ -73,21 +73,23 @@ export const validatorUUIds = async (req: Request, res: Response, next: NextFunc
 
         if (contentType === 'application/json') {
             if (Array.isArray(req.body)) {
-                const { validFiles, invalidFiles } = await req.body.reduce(async (acc, file, index) => {
-                    const { validFiles, invalidFiles } = await acc;
-                    const catalogFile = await getCachedCatalog(file.uuid);
-                    if (catalogFile) {
-
+                const { validFiles, invalidFiles } = await req.body.reduce(
+                    async (acc, file, index) => {
+                        const { validFiles, invalidFiles } = await acc;
+                        const { datum: catalogFile } = await getCatalogItem({ uuid: file.uuid });
+                        if (catalogFile) {
+                            return {
+                                validFiles: [...validFiles, { ...file, catalogItem: catalogFile }],
+                                invalidFiles
+                            };
+                        }
                         return {
-                            validFiles: [ ...validFiles, { ...file, catalogItem: catalogFile } ],
-                            invalidFiles
+                            validFiles,
+                            invalidFiles: [...invalidFiles, { ...file, message: 'UUID not found' }]
                         };
-                    }
-                    return {
-                        validFiles,
-                        invalidFiles: [ ...invalidFiles, { ...file, message: 'UUID not found' } ]
-                    };
-                }, Promise.resolve({ validFiles: [], invalidFiles: [] }));
+                    },
+                    Promise.resolve({ validFiles: [], invalidFiles: [] })
+                );
                 if (!validFiles.length) {
                     return sendResponse({ res, status: 400, errors: invalidFiles });
                 }
@@ -98,7 +100,6 @@ export const validatorUUIds = async (req: Request, res: Response, next: NextFunc
 
         return next();
     }
-
 
     return next();
 };
@@ -112,11 +113,11 @@ export const validatorFilesSize = async (req: Request, res: Response, next: Next
                 const fileTooLarge = await fileIsTooLarge(file, req.params, req.method);
                 if (fileTooLarge) {
                     return {
-                        invalidFiles: [ ...invalidFiles, fileTooLarge ],
+                        invalidFiles: [...invalidFiles, fileTooLarge],
                         validFiles
                     };
                 }
-                return { invalidFiles, validFiles: [ ...validFiles, file ] };
+                return { invalidFiles, validFiles: [...validFiles, file] };
             },
             Promise.resolve({
                 invalidFiles: invalidFilesFromLocal,
@@ -135,11 +136,11 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
         return sendResponse({
             res,
             status: 400,
-            errors: [ `Body has to be an array` ]
+            errors: [`Body has to be an array`]
         });
     }
-    if(req.method === 'DELETE'){
-        return next()
+    if (req.method === 'DELETE') {
+        return next();
     }
     const { namespace, validFiles: validFilesFromLocal, invalidFiles: invalidFilesFromLocal } = res.locals;
     const toWebp = req.body.toWebp !== 'false';
@@ -160,9 +161,7 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
                     ]
                 };
             }
-            const fileInfo: Object = generateFileInfo(Array.isArray(req.body) ?
-                req.body.find((item: any) => ( item.uuid === file.uuid )) :
-                req.body, req.method);
+            const fileInfo: Object = generateFileInfo(Array.isArray(req.body) ? req.body.find((item: any) => item.uuid === file.uuid) : req.body, req.method);
 
             if (!fileInfo && !req.files) {
                 return {
@@ -181,9 +180,7 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
                     ...validFiles,
                     {
                         ...file,
-                        uniqueName: file.catalogItem ?
-                            file.catalogItem.unique_name :
-                            generateUniqueName(file, req.body, namespace, toWebp),
+                        uniqueName: file.catalogItem ? file.catalogItem.unique_name : generateUniqueName(file, req.body, namespace, toWebp),
                         fileInfo,
                         toWebp
                     }
@@ -206,35 +203,38 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
 
 export const validatorCatalog = async (req: Request, res: Response, next: NextFunction) => {
     const { validFiles: validFilesFromLocal, invalidFiles: invalidFilesFromLocal, uuids } = res.locals;
-    if((req.method === 'PATCH' && !req.files) || req.method === 'DELETE') {
+    if ((req.method === 'PATCH' && !req.files) || req.method === 'DELETE') {
         return next();
     }
-    const { validFiles, invalidFiles } = await validFilesFromLocal.reduce(async (accumulator, file) => {
+    const { validFiles, invalidFiles } = await validFilesFromLocal.reduce(
+        async (accumulator, file) => {
             const { validFiles, invalidFiles } = await accumulator;
             if (req.method === 'POST') {
                 const fileUUID = await crypto.createHash('md5').update(file.uniqueName).digest('hex');
-                if (!await getCachedCatalog(fileUUID)) {
+                const { datum: catalogItem } = await getCatalogItem({ uuid: fileUUID });
+
+                if (!catalogItem) {
                     return {
-                        validFiles: [ ...validFiles, file ],
+                        validFiles: [...validFiles, file],
                         invalidFiles
                     };
                 }
                 return {
                     validFiles,
-                    invalidFiles: [ ...invalidFiles, { ...file, message: 'UUID already exists' } ]
+                    invalidFiles: [...invalidFiles, { ...file, message: 'UUID already exists' }]
                 };
             }
             if (req.method === 'PATCH') {
-                const catalogItem = await getCachedCatalog(file.uuid)
+                const { datum: catalogItem } = await getCatalogItem({ uuid: file.uuid });
                 if (catalogItem) {
                     return {
-                        validFiles: [ ...validFiles, {...file, catalogItem } ],
+                        validFiles: [...validFiles, { ...file, catalogItem }],
                         invalidFiles
                     };
                 }
                 return {
                     validFiles,
-                    invalidFiles: [ ...invalidFiles, { ...file, message: 'UUID does not exist' } ]
+                    invalidFiles: [...invalidFiles, { ...file, message: 'UUID does not exist' }]
                 };
             }
         },

@@ -1,8 +1,7 @@
 import crypto from 'crypto';
 import { NextFunction, Request, Response } from 'express';
 import multer from 'multer';
-import { getCachedCatalog } from '../../catalog/redis/connection';
-import { getOneFile } from '../../catalog/redis/operations';
+import { getCatalogItem } from '../../catalog';
 import { getUniqueName } from '../../utils';
 import { deleteFile, returnDefaultImage } from '../../utils/file';
 import { checkMissingParam, checkNamespace, fileIsTooLarge, generateUniqueName, sendResponse } from './utils';
@@ -38,7 +37,7 @@ export const validatorFileCatalog = async (req: Request, res: Response, next: Ne
     const { uuid, namespace, toWebp, file } = res.locals;
     const uniqueName = generateUniqueName(file, req.body, namespace, toWebp);
     const fileUUID = uuid ? uuid : await crypto.createHash('md5').update(uniqueName).digest('hex');
-    const itemFound = await getCachedCatalog(fileUUID);
+    const { datum: itemFound } = await getCatalogItem({ uuid: fileUUID });
     if (itemFound) {
         if (req.method === 'PATCH' && file) {
             if (file.mimetype !== itemFound.original_mimetype && req.body.toWebp === 'false' && itemFound.mimetype === 'image/webp') {
@@ -155,7 +154,7 @@ export const validatorGetAsset = async (req: Request, res: Response, next: NextF
     }
     const redisKeyMD5 = crypto.createHash('md5').update(uniqueName).digest('hex');
 
-    const { datum: file } = await getOneFile(redisKeyMD5);
+    const { datum: file } = await getCatalogItem({ uuid: redisKeyMD5 });
     const namespace = file?.namespace || null;
 
     if (!allowedNamespaces?.includes(namespace) || !file) {

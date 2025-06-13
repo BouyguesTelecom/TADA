@@ -1,7 +1,7 @@
 import * as Joi from 'joi';
+import { getCatalog } from '..';
 import { FileProps } from '../../props/catalog';
 import { logger } from '../../utils/logs/winston';
-import { getCachedCatalog } from '../redis/connection';
 
 const fileSchema = Joi.object({
     filename: Joi.string().required(),
@@ -67,12 +67,20 @@ interface CatalogResponse {
 }
 
 export const filePathIsUnique = async (file: FileProps): Promise<boolean> => {
-    const response: CatalogResponse = await getCachedCatalog();
-    if (response) {
-        const allFilesInNamespace: FileProps[] = Object.values(response).filter((f: FileProps) => f.namespace === file.namespace);
+    try {
+        const { data: allFiles } = await getCatalog();
+
+        if (!allFiles || allFiles.length === 0) {
+            return true;
+        }
+
+        const allFilesInNamespace: FileProps[] = allFiles.filter((f: FileProps) => f.namespace === file.namespace);
+
         const fileExists = allFilesInNamespace.find((f: FileProps) => f.unique_name === file.unique_name);
+
         return !fileExists;
+    } catch (error) {
+        logger.error('Error checking file uniqueness:', error);
+        return false;
     }
-    logger.error('Error getting cached catalog !');
-    return false;
 };

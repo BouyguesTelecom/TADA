@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import { getCachedCatalog } from '../../../catalog/redis/connection';
+import { getCatalogItem } from '../../../catalog';
 import { MissingParamsProps, NamespaceProps } from './props';
 
 export const purgeData = async (data) => {
@@ -71,7 +71,13 @@ export const fileIsTooLarge = async (file, params, method = 'POST') => {
     const { uuid, namespace } = params;
     if (file) {
         if (file.size > 10000000) {
-            const itemFound = method === 'PATCH' && (await getCachedCatalog(uuid));
+            let itemFound = null;
+
+            if (method === 'PATCH') {
+                const { datum } = await getCatalogItem({ uuid });
+                itemFound = datum;
+            }
+
             return {
                 filename: file.filename,
                 size: file.size,

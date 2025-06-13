@@ -1,27 +1,26 @@
-import crypto from 'crypto';
 import app from '../../app';
 import { FileProps, ICatalogResponse } from '../../props/catalog';
 import { logger } from '../../utils/logs/winston';
 import { filePathIsUnique, validateMultipleFile, validateOneFile } from '../validators';
-import { getCachedCatalog, redisHandler } from './connection';
+import { redisHandler } from './connection';
 
 const parseDateVersion = (name: string): Date => {
     const prefix = `${app.locals.PREFIXED_CATALOG}/`;
     const suffix = '.json';
 
     if (!name.startsWith(prefix) || !name.endsWith(suffix)) {
-        throw new Error('Le format du nom de fichier est incorrect.');
+        throw new Error('Filename format is incorrect');
     }
 
     const timestamp = name.slice(prefix.length, -suffix.length);
 
     const regex = /^\d{8}T\d{6}$/;
     if (!regex.test(timestamp)) {
-        throw new Error('Le format du timestamp est incorrect.');
+        throw new Error('Timestamp format is incorrect');
     }
 
     const year = parseInt(timestamp.substring(0, 4));
-    const month = parseInt(timestamp.substring(4, 6)) - 1; // Les mois commencent à 0
+    const month = parseInt(timestamp.substring(4, 6)) - 1;
     const day = parseInt(timestamp.substring(6, 8));
     const hours = parseInt(timestamp.substring(9, 11));
     const minutes = parseInt(timestamp.substring(11, 13));
@@ -39,9 +38,10 @@ export const getOneFile = async (id: string, redis = false) => {
                 error: null
             };
         }
-        const catalogItem = await getCachedCatalog(id);
+        // if no redis use catalog from the cachedCatalog
+        const file = await redisHandler.getAsync(id);
         return {
-            datum: catalogItem ? catalogItem : null,
+            datum: file ? JSON.parse(file) : null,
             error: null
         };
     } catch (err) {
@@ -149,9 +149,7 @@ export const addMultipleFiles = async (files: FileProps[]) => {
 
 export const updateOneFile = async (fileId: string, updateData: Partial<FileProps>): Promise<ICatalogResponse> => {
     try {
-        const fileCatalog = await getCachedCatalog(fileId);
-        const redisKeyMD5 = crypto.createHash('md5').update(fileCatalog.unique_name).digest('hex');
-        const existingFile = await redisHandler.getAsync(redisKeyMD5);
+        const existingFile = await redisHandler.getAsync(fileId);
         if (!existingFile) {
             return { error: `File with id ${fileId} does not exist`, datum: null };
         }

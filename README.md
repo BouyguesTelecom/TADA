@@ -102,7 +102,9 @@ structure:
         "mimetype": "image/webp",
         "signature": "ca71754acda70e41cb23e465fbb5ecc683186cf779a2bae2cbf290527b1f6671",
         "size": 16730,
-        "destination": "DEV"
+        "destination": "DEV",
+        "uploaded_date": "2025-06-05T10:29:17.029+02:00",
+        "updated_date": "2025-06-05T10:29:17.030+02:00"
     },
     {
         "uuid": "d26a191f-1087-4169-b6cd-3db96f38ece4",
@@ -120,7 +122,9 @@ structure:
         "original_mimetype": "image/webp",
         "mimetype": "image/webp",
         "signature": "368ba95afb311edfe0cb7f3b4a221e8b2a3edeb4e16fc5683762791f9619b28a",
-        "size": 10614
+        "size": 10614,
+        "uploaded_date": "2025-06-05T10:29:17.029+02:00",
+        "updated_date": "2025-06-05T10:29:17.030+02:00"
     }
 ]
 ```

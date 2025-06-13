@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { sendResponse } from '../middleware/validators/utils';
-import { addCatalogItem, deleteCatalogItem, getCatalogItem, updateCatalogItem, deleteAllCatalog, createDumpCatalog, restoreDumpCatalog, getDumpCatalog } from '../catalog';
-import { validateOneFile } from '../catalog/validators';
-import { getCachedCatalog } from '../catalog/redis/connection';
 import proxy from 'express-http-proxy';
+import { addCatalogItem, createDumpCatalog, deleteAllCatalog, deleteCatalogItem, getCatalogItem, getDumpCatalog, restoreDumpCatalog, updateCatalogItem } from '../catalog';
+import { getAllFiles } from '../catalog/redis/operations';
+import { validateOneFile } from '../catalog/validators';
+import { sendResponse } from '../middleware/validators/utils';
 import { patchFileBackup } from './delegated-storage.controller';
 
 export const addFileInCatalog = async (req: Request, res: Response): Promise<any> => {
@@ -17,17 +17,24 @@ export const addFileInCatalog = async (req: Request, res: Response): Promise<any
 };
 
 export const getFiles = async (req: Request, res: Response) => {
-    const catalog = await getCachedCatalog();
-    if (req.query.filterByKey && req.query.filterByValue) {
-        return res.json(Object.values(catalog).filter((item) => item[`${ req.query.filterByKey }`] === req.query.filterByValue));
+    const { data: catalog, errors } = await getAllFiles();
+
+    if (errors) {
+        return res.status(500).json({ errors });
     }
-    return res.status(200).json(Object.values(catalog));
+
+    if (req.query.filterByKey && req.query.filterByValue) {
+        const filtered = catalog.filter((item) => item[`${req.query.filterByKey}`] === req.query.filterByValue);
+        return res.json(filtered);
+    }
+
+    return res.status(200).json(catalog);
 };
 
 export const getFile = async (req: Request, res: Response) => {
     const uuid = req.params.id;
     const { status, datum, error } = await getCatalogItem({ uuid });
-    return sendResponse({ res, status, data: datum ? [ datum ] : null, errors: error ? [ error ] : null });
+    return sendResponse({ res, status, data: datum ? [datum] : null, errors: error ? [error] : null });
 };
 
 export const updateFileInCatalog = async (req: Request, res: Response) => {
@@ -39,8 +46,8 @@ export const updateFileInCatalog = async (req: Request, res: Response) => {
     return sendResponse({
         res,
         status,
-        data: datum ? [ { ...datum, catalogItemUrl: datum.base_host + '/catalog/' + datum.uuid } ] : null,
-        errors: error ? [ error ] : null,
+        data: datum ? [{ ...datum, catalogItemUrl: datum.base_host + '/catalog/' + datum.uuid }] : null,
+        errors: error ? [error] : null,
         purge: 'true'
     });
 };
@@ -48,7 +55,7 @@ export const updateFileInCatalog = async (req: Request, res: Response) => {
 export const updateFilesInCatalog = async (req: Request, res: Response) => {
     const valid = [];
     const invalid = [];
-    for ( const item of req.body ) {
+    for (const item of req.body) {
         const { status, datum, error } = await updateCatalogItem(item.uuid, item);
         if (status === 200) {
             valid.push(datum);
@@ -65,8 +72,8 @@ export const deleteFileFromCatalog = async (req: Request, res: Response) => {
     return sendResponse({
         res,
         status,
-        data: datum ? [ datum ] : null,
-        errors: error ? [ error ] : null,
+        data: datum ? [datum] : null,
+        errors: error ? [error] : null,
         purge: 'true'
     });
 };
@@ -77,14 +84,13 @@ export const deleteCatalog = async (req: Request, res: Response) => {
 };
 
 export const getDump = async (req: Request, res: Response, next) => {
-
     const { filename, format } = req.query;
     if (process.env.DELEGATED_STORAGE_METHOD === 'DISTANT_BACKEND') {
         const delegatedStorageHost = process.env.DELEGATED_STORAGE_HOST;
         const urlToGetBackup = process.env.URL_TO_GET_BACKUP || '/get-dump';
-        const targetHost = `${ delegatedStorageHost }`;
-        const targetURLPath = `${ urlToGetBackup }/${ encodeURIComponent(filename.toString()) }`;
-        req.headers['Authorization'] = `Bearer ${ process.env.DELEGATED_STORAGE_TOKEN }`;
+        const targetHost = `${delegatedStorageHost}`;
+        const targetURLPath = `${urlToGetBackup}/${encodeURIComponent(filename.toString())}`;
+        req.headers['Authorization'] = `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`;
 
         return proxy(targetHost, { proxyReqPathResolver: () => targetURLPath })(req, res, next);
     }

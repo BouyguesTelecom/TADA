@@ -8,7 +8,7 @@ import { purgeData } from '../../middleware/validators/utils';
 import { FileProps, ICatalogResponse, ICatalogResponseMulti } from '../../props/catalog';
 import { getCurrentDateVersion } from '../../utils/catalog';
 import { logger } from '../../utils/logs/winston';
-import { getCachedCatalog, redisHandler, updateCacheCatalog } from './connection';
+import { redisHandler, updateCacheCatalog } from './connection';
 import { addMultipleFiles, addOneFile, deleteMultipleFiles, deleteOneFile, getAllFiles, getCatalog, getOneFile, updateMultipleFiles, updateOneFile } from './operations';
 
 export const addFileInCatalog = async (item: FileProps): Promise<ICatalogResponse> => {
@@ -85,7 +85,7 @@ export const getFiles = async (): Promise<ICatalogResponseMulti> => {
 
 export const getFile = async (uuid): Promise<ICatalogResponse> => {
     try {
-        const response = await getOneFile(uuid);
+        const response = await getOneFile(uuid, true);
         if (response.datum && (!response.error || response.error.length === 0)) {
             return { status: 200, datum: response.datum, error: null };
         }
@@ -159,7 +159,15 @@ export const updateFilesInCatalog = async (items: FileProps[]): Promise<ICatalog
 
 export const deleteFileFromCatalog = async (uuid: string): Promise<ICatalogResponse> => {
     try {
-        const file = await getCachedCatalog(uuid);
+        const { datum: file, error } = await getOneFile(uuid, true);
+
+        if (!file || error) {
+            return {
+                status: 404,
+                datum: null,
+                error: `File with UUID ${uuid} not found`
+            };
+        }
         await deleteOneFile(file.uuid);
         await updateCacheCatalog();
         await purgeData('catalog');
@@ -203,15 +211,16 @@ export const deleteFilesInCatalog = async (items: FileProps[]): Promise<ICatalog
 };
 
 export const deleteCatalog = async (): Promise<ICatalogResponseMulti> => {
-    const response = await getCachedCatalog();
-    if (response) {
-        for (const item of Object.values(response) as any) {
+    const { data: files } = await getAllFiles();
+
+    if (files && files.length > 0) {
+        for (const item of files) {
             await deleteFileFromCatalog(item.uuid);
         }
         await updateCacheCatalog();
         await purgeData('catalog');
-        ``;
     }
+
     return { status: 200, data: [], errors: null };
 };
 
@@ -272,7 +281,6 @@ export const restoreDump = async (): Promise<{ status: number; data: string[]; e
 
     // generate dump.rdb
     try {
-        console.log('JE PASSE ICI SA MAMA');
         await redisHandler.generateDump();
         rdbBackupSuccess = true;
     } catch (err) {

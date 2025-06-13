@@ -2,8 +2,6 @@ import { createClient } from '@redis/client';
 import { logger } from '../../utils/logs/winston';
 import { getCatalog } from '../index';
 
-let inMemoryCatalogCache = {};
-
 const redisClient = createClient({
     socket: {
         host: process.env.REDIS_SERVICE || 'localhost',
@@ -61,16 +59,15 @@ export const updateCacheCatalog = async () => {
     try {
         const { data: catalog } = await getCatalog();
         if (!catalog || catalog.length === 0) {
-            await redisHandler.setAsync('catalogCached', JSON.stringify({}));
-            inMemoryCatalogCache = {};
+            await setAsync('catalogCached', JSON.stringify({}));
             return;
         }
 
         const validCatalog = catalog.filter((item) => item && item.uuid);
 
         if (validCatalog.length === 0) {
-            await redisHandler.setAsync('catalogCached', JSON.stringify({}));
-            inMemoryCatalogCache = {};
+            await setAsync('catalogCached', JSON.stringify({}));
+            logger.info('No file found');
             return;
         }
 
@@ -81,21 +78,29 @@ export const updateCacheCatalog = async () => {
 
         await delAsync('catalogCached');
         await setAsync('catalogCached', JSON.stringify(catalogObjectUUID));
-        inMemoryCatalogCache = catalogObjectUUID;
+
+        logger.info(`Catalog updated with ${validCatalog.length} items`);
     } catch (error) {
-        console.error('Erreur lors de la mise à jour du cache du catalogue:', error);
+        console.error('Error when updating catalog cache:', error);
     }
 };
 
 export const getCachedCatalog = async (id = null) => {
     try {
-        const catalog = inMemoryCatalogCache;
+        const catalogData = await getAsync('catalogCached');
+
+        if (!catalogData) {
+            logger.warn('No catalog data found in cache');
+        }
+
+        const catalog = JSON.parse(catalogData);
+
         if (id) {
             return catalog[id];
         }
         return catalog;
     } catch (error) {
-        console.error('Erreur lors de la récupération du catalogue en cache:', error);
+        console.error('Error when getting catalog from cache:', error);
         return null;
     }
 };

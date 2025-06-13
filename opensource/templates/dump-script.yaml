@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
     name: dump-configmap
 data:
-    redis-init.sh: |
+    redis-init.sh: 
         #!/bin/bash
         DUMP_FILE_PATH="${DUMP_FOLDER_PATH}/dump.rdb"
 
