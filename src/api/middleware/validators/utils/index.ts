@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import { getCatalogItem } from '../../../catalog';
+import { logger } from '../../../utils/logs/winston';
 import { MissingParamsProps, NamespaceProps } from './props';
 
 export const purgeData = async (data) => {
@@ -12,10 +13,10 @@ export const purgeData = async (data) => {
                 }
             });
             if (!response.ok) {
-                console.warn(`Warning: Fetch to ${url} responded with status: ${response.status}`);
+                logger.warn(`Warning: Fetch to ${url} responded with status: ${response.status}`);
             }
         } catch (error) {
-            console.warn(`Warning: Fetch to ${url} failed: ${error.message}`);
+            logger.warn(`Warning: Fetch to ${url} failed: ${error.message}`);
         }
     };
 

@@ -1,3 +1,5 @@
+import { logger } from '../../utils/logs/winston';
+
 type Job = {
     id: number;
     fn: () => Promise<void>;
@@ -28,12 +30,12 @@ export class InMemoryQueue {
         this.processing = true;
         const job = this.queue.shift();
         if (job) {
-            console.log(`Processing job ${job.id}...`);
+            logger.info(`Processing job ${job.id}...`);
             try {
                 await job.fn();
-                console.log(`Job ${job.id} done.`);
+                logger.info(`Job ${job.id} done.`);
             } catch (e) {
-                console.error(`Error in job ${job.id} :`, e);
+                logger.error(`Error in job ${job.id} :`, e);
             }
             this.processNext();
         }

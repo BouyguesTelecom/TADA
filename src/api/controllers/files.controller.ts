@@ -1,14 +1,14 @@
 import { Request, Response } from 'express';
-import { generateStream } from '../utils/file';
-import { calculateSHA256, formatItemForCatalog } from '../utils/catalog';
-import { sendResponse } from '../middleware/validators/utils';
-import { generateFileInfo } from '../middleware/validators/oneFileValidators';
-import app from '../app';
 import FormData from 'form-data';
 import fetch from 'node-fetch';
-import { addCatalogItem, deleteCatalogItem, updateCatalogItem, deleteCatalogItems } from '../catalog';
-import { deleteFilesBackup } from './delegated-storage.controller';
+import app from '../app';
+import { addCatalogItem, deleteCatalogItem, deleteCatalogItems, updateCatalogItem } from '../catalog';
+import { generateFileInfo } from '../middleware/validators/oneFileValidators';
+import { sendResponse } from '../middleware/validators/utils';
+import { calculateSHA256, formatItemForCatalog } from '../utils/catalog';
+import { generateStream } from '../utils/file';
 import { logger } from '../utils/logs/winston';
+import { deleteFilesBackup } from './delegated-storage.controller';
 
 export const postAssets = async (req: Request, res: Response) => {
     const { validFiles, invalidFiles } = res.locals;
@@ -41,12 +41,12 @@ export const postAssets = async (req: Request, res: Response) => {
                         mimetype: file.mimetype,
                         publicUrl: newItem.public_url
                     });
-                    return { data: [ ...data, catalogItem ], errors, forms };
+                    return { data: [...data, catalogItem], errors, forms };
                 }
             } else {
                 logger.error('Failed to generate stream for file:', file.filename);
             }
-            return { data, errors: [ ...errors, file ], forms };
+            return { data, errors: [...errors, file], forms };
         },
         Promise.resolve({ data: [], errors: invalidFiles, forms: [] })
     );
@@ -54,29 +54,31 @@ export const postAssets = async (req: Request, res: Response) => {
     const { data, errors, forms } = accumulatedResult;
 
     try {
-        const apiUrl = `${ process.env.DELEGATED_STORAGE_HOST }/files`;
+        const apiUrl = `${process.env.DELEGATED_STORAGE_HOST}/files`;
 
         const formData = new FormData();
-        const filesData = forms.map((formItem) => {
-            const catalogItem = data.find((item) => item.unique_name === formItem.uniqueName);
-            if (!catalogItem) return null;
+        const filesData = forms
+            .map((formItem) => {
+                const catalogItem = data.find((item) => item.unique_name === formItem.uniqueName);
+                if (!catalogItem) return null;
 
-            return {
-                file: formItem.stream,
-                metadata: {
-                    unique_name: catalogItem.unique_name,
-                    base_host: catalogItem.base_host,
-                    base_url: catalogItem.base_url,
-                    destination: catalogItem.destination,
-                    filename: catalogItem.filename,
-                    mimetype: catalogItem.mimetype,
-                    size: catalogItem.size,
-                    namespace: catalogItem.namespace,
-                    version: catalogItem.version,
-                    publicUrl: catalogItem.public_url
-                }
-            };
-        }).filter(Boolean);
+                return {
+                    file: formItem.stream,
+                    metadata: {
+                        unique_name: catalogItem.unique_name,
+                        base_host: catalogItem.base_host,
+                        base_url: catalogItem.base_url,
+                        destination: catalogItem.destination,
+                        filename: catalogItem.filename,
+                        mimetype: catalogItem.mimetype,
+                        size: catalogItem.size,
+                        namespace: catalogItem.namespace,
+                        version: catalogItem.version,
+                        publicUrl: catalogItem.public_url
+                    }
+                };
+            })
+            .filter(Boolean);
 
         formData.append('metadata', JSON.stringify(filesData.map((item) => item.metadata)));
         filesData.forEach((fileData) => {
@@ -88,9 +90,9 @@ export const postAssets = async (req: Request, res: Response) => {
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
-                Authorization: `Bearer ${ process.env.DELEGATED_STORAGE_TOKEN }`,
-                'x-version': req.query.version ? `${ req.query.version }` : '',
-                'x-mimetype': req.query.mimetype ? `${ req.query.mimetype }` : ''
+                Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`,
+                'x-version': req.query.version ? `${req.query.version}` : '',
+                'x-mimetype': req.query.mimetype ? `${req.query.mimetype}` : ''
             },
             body: formData
         });
@@ -101,21 +103,18 @@ export const postAssets = async (req: Request, res: Response) => {
             try {
                 const errorResponse: any = await response.json().catch(() => response.text());
                 if (typeof errorResponse === 'object') {
-                    errorDetails =
-                        errorResponse.error || ( errorResponse.details ?
-                            JSON.stringify(errorResponse.details) :
-                            null ) || errorDetails;
-                    console.error('Delegated storage structured error:', errorResponse);
+                    errorDetails = errorResponse.error || (errorResponse.details ? JSON.stringify(errorResponse.details) : null) || errorDetails;
+                    logger.error('Delegated storage structured error:', errorResponse);
                 } else {
                     errorDetails = errorResponse || errorDetails;
-                    console.error('Delegated storage text error:', errorResponse);
+                    logger.error('Delegated storage text error:', errorResponse);
                 }
-            } catch ( parseError ) {
-                console.error('Error parsing error response:', parseError);
+            } catch (parseError) {
+                logger.error('Error parsing error response:', parseError);
             }
 
-            for ( const form of forms ) {
-                console.log('Deleting catalog item due to failed upload:', form.uniqueName);
+            for (const form of forms) {
+                logger.info('Deleting catalog item due to failed upload:', form.uniqueName);
                 await deleteCatalogItem(form.uniqueName);
             }
             errors.push(errorDetails);
@@ -127,18 +126,18 @@ export const postAssets = async (req: Request, res: Response) => {
                 errors
             });
         } else {
-            const responseData: any = await response.json().catch(() => ( {} ));
-            console.log('Delegated storage success response:', responseData);
+            const responseData: any = await response.json().catch(() => ({}));
+            logger.info('Delegated storage success response:', responseData);
 
-            if (responseData.error || ( responseData.result && responseData.result.status !== 200 ) || ( responseData.status && responseData.status !== 200 )) {
-                const errorMsg = responseData.error || ( responseData.result && responseData.result.error ) || 'Pipeline failed';
+            if (responseData.error || (responseData.result && responseData.result.status !== 200) || (responseData.status && responseData.status !== 200)) {
+                const errorMsg = responseData.error || (responseData.result && responseData.result.error) || 'Pipeline failed';
 
-                const errorDetails = responseData.details || ( responseData.data && responseData.data.message ) || ( responseData.result && responseData.result.data );
+                const errorDetails = responseData.details || (responseData.data && responseData.data.message) || (responseData.result && responseData.result.data);
 
-                console.error('Pipeline error:', { errorMsg, errorDetails });
+                logger.error('Pipeline error:', { errorMsg, errorDetails });
 
-                for ( const form of forms ) {
-                    console.log('Deleting catalog item due to pipeline failure:', form.uniqueName);
+                for (const form of forms) {
+                    logger.info('Deleting catalog item due to pipeline failure:', form.uniqueName);
                     await deleteCatalogItem(form.uniqueName);
                 }
 
@@ -163,28 +162,26 @@ export const postAssets = async (req: Request, res: Response) => {
                 purge: 'catalog'
             });
         }
-    } catch ( error ) {
-        console.error('Backup process error:', error);
-        console.error('Error details:', error instanceof Error ? error.stack : String(error));
+    } catch (error) {
+        logger.error('Backup process error:', error);
+        logger.error('Error details:', error instanceof Error ? error.stack : String(error));
 
-        for ( const form of forms ) {
+        for (const form of forms) {
             try {
-                console.log('Deleting catalog item due to exception:', form.uniqueName);
+                logger.info('Deleting catalog item due to exception:', form.uniqueName);
                 await deleteCatalogItem(form.uniqueName);
-            } catch ( deleteError ) {
-                console.error('Error deleting catalog item:', deleteError);
+            } catch (deleteError) {
+                logger.error('Error deleting catalog item:', deleteError);
             }
         }
 
-        const errorMessage = error instanceof Error ?
-            `Backup process error: ${ error.message }` :
-            'An unexpected error occurred during the backup process';
+        const errorMessage = error instanceof Error ? `Backup process error: ${error.message}` : 'An unexpected error occurred during the backup process';
 
         return sendResponse({
             res,
             status: 500,
             data: null,
-            errors: [ errorMessage ],
+            errors: [errorMessage],
             purge: 'catalog'
         });
     }
@@ -204,7 +201,7 @@ export const patchAssets = async (req: Request, res: Response) => {
                         filename: file.catalogItem.unique_name,
                         contentType: file.mimetype
                     });
-                    const patchBackupFile = await fetch(`${ app.locals.PREFIXED_API_URL }/delegated-storage?filepath=${ file.catalogItem.unique_name }`, {
+                    const patchBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${file.catalogItem.unique_name}`, {
                         method: 'PATCH',
                         body: form
                     });
@@ -212,7 +209,7 @@ export const patchAssets = async (req: Request, res: Response) => {
                         await deleteCatalogItem(file.catalogItem.unique_name);
                         return {
                             data,
-                            errors: [ ...errors, 'Failed to upload in backup /files' ]
+                            errors: [...errors, 'Failed to upload in backup /files']
                         };
                     }
                     signature = calculateSHA256(stream);
@@ -225,13 +222,13 @@ export const patchAssets = async (req: Request, res: Response) => {
                 ...file.fileInfo,
                 ...fileInfo,
                 version,
-                ...( signature && { signature } ),
-                ...( file?.size && { size: file.size } )
+                ...(signature && { signature }),
+                ...(file?.size && { size: file.size })
             });
             if (updatedItem.datum) {
-                return { data: [ ...data, updatedItem.datum ], errors };
+                return { data: [...data, updatedItem.datum], errors };
             }
-            return { data, errors: [ ...errors, updatedItem.error ] };
+            return { data, errors: [...errors, updatedItem.error] };
         },
         Promise.resolve({ data: [], errors: invalidFiles })
     );
@@ -242,13 +239,12 @@ export const patchAssets = async (req: Request, res: Response) => {
 export const deleteAssets = async (req: Request, res: Response) => {
     const { validFiles, invalidFiles } = res.locals;
     const { status, data, errors } = await deleteCatalogItems(validFiles);
-    const {
-        status: backupStatus
-    } = await deleteFilesBackup(data.map((item: any) => ( { ...item.catalogItem } )));
+    const { status: backupStatus } = await deleteFilesBackup(data.map((item: any) => ({ ...item.catalogItem })));
     return sendResponse({
         res,
         status: backupStatus,
         purge: 'true',
-        data, errors
+        data,
+        errors
     });
 };

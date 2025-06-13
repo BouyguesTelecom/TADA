@@ -84,7 +84,7 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
                 res.setHeader('Content-Type', 'image/webp');
                 return res.send(webpBuffer);
             } catch (error) {
-                console.error('Error during WebP conversion:', error);
+                logger.error('Error during WebP conversion:', error);
                 return res.status(500).send('Internal Server Error');
             }
         }

@@ -172,7 +172,7 @@ export const upload = async (stream, file, datum): Promise<BackupProps> => {
         return { status: backupUpload.status, stream: null };
     } catch (errorMessage: any) {
         logger.error(`ERROR: ${errorMessage}`);
-        console.error('Upload error details:', errorMessage);
+        logger.error('Upload error details:', errorMessage);
     }
     return null;
 };
@@ -200,7 +200,7 @@ export const uploads = async ({ filespath, files, version, mimetype }: UploadFil
         const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('POST', '', form));
 
         if (backupUpload.status === 401) {
-            console.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
+            logger.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
             return { status: 401, error: 'Authentication failed' };
         }
 
@@ -210,7 +210,7 @@ export const uploads = async ({ filespath, files, version, mimetype }: UploadFil
         return { status: backupUpload.status, stream: null };
     } catch (errorMessage: any) {
         logger.error(`ERROR: ${errorMessage}`);
-        console.error('Upload error details:', errorMessage);
+        logger.error('Upload error details:', errorMessage);
     }
     return null;
 };
@@ -234,7 +234,7 @@ export const update = async (file, stream, info): Promise<BackupProps> => {
         );
 
         if (backupUpload.status === 401) {
-            console.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
+            logger.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
             return { status: 401, error: 'Authentication failed' };
         }
 
@@ -244,7 +244,7 @@ export const update = async (file, stream, info): Promise<BackupProps> => {
         return { status: backupUpload.status, stream: null };
     } catch (errorMessage: any) {
         logger.error(`ERROR: ${errorMessage}`);
-        console.error('Upload error details:', errorMessage);
+        logger.error('Upload error details:', errorMessage);
     }
     return null;
 };
@@ -272,7 +272,7 @@ export const updates = async ({ filespath, files, version, mimetype }: UploadFil
         const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('PUT', '', form));
 
         if (backupUpload.status === 401) {
-            console.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
+            logger.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
             return { status: 401, error: 'Authentication failed' };
         }
 
@@ -282,7 +282,7 @@ export const updates = async ({ filespath, files, version, mimetype }: UploadFil
         return { status: backupUpload.status, stream: null };
     } catch (errorMessage: any) {
         logger.error(`ERROR: ${errorMessage}`);
-        console.error('Upload error details:', errorMessage);
+        logger.error('Upload error details:', errorMessage);
     }
     return null;
 };
@@ -292,7 +292,7 @@ export const deleteFile = async (itemToUpdate): Promise<BackupProps> => {
         const backupUpload: ResponseBackup = await fetch(generateUrl(), generateOptions('DELETE', 'application/json', JSON.stringify({ ...itemToUpdate })));
 
         if (backupUpload.status === 401) {
-            console.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
+            logger.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
             return { status: 401, error: 'Authentication failed' };
         }
 
@@ -302,7 +302,7 @@ export const deleteFile = async (itemToUpdate): Promise<BackupProps> => {
         return { status: backupUpload.status };
     } catch (errorMessage: any) {
         logger.error(`ERROR: ${errorMessage}`);
-        console.error('Delete error details:', errorMessage);
+        logger.error('Delete error details:', errorMessage);
     }
     return null;
 };
@@ -312,7 +312,7 @@ export const deleteFiles = async (files: any): Promise<BackupProps> => {
         const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('DELETE', 'application/json', JSON.stringify(files)));
 
         if (backupUpload.status === 401) {
-            console.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
+            logger.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
             return { status: 401, error: 'Authentication failed' };
         }
 
@@ -322,7 +322,7 @@ export const deleteFiles = async (files: any): Promise<BackupProps> => {
         return { status: backupUpload.status };
     } catch (errorMessage: any) {
         logger.error(`ERROR: ${errorMessage}`);
-        console.error('Delete error details:', errorMessage);
+        logger.error('Delete error details:', errorMessage);
     }
     return null;
 };

@@ -156,7 +156,7 @@ export const updateCacheCatalog = async () => {
 
         logger.info(`Catalog updated with ${validCatalog.length} items`);
     } catch (error) {
-        console.error('Error when updating catalog cache:', error);
+        logger.error('Error when updating catalog cache:', error);
     }
 };
 
@@ -175,7 +175,7 @@ export const getCachedCatalog = async (id = null) => {
         }
         return catalog;
     } catch (error) {
-        console.error('Error when getting catalog from cache:', error);
+        logger.error('Error when getting catalog from cache:', error);
         return null;
     }
 };

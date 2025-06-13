@@ -88,7 +88,7 @@ const createStandaloneFolderAndCatalog = () => {
             await connectToRedisWithRetry(3, 10000);
 
             const dbDump = fs.existsSync(`${process.env.DUMP_FOLDER_PATH}/dump.rdb`);
-            console.log(`${process.env.DUMP_FOLDER_PATH}/dump.rdb`, dbDump);
+            logger.info(`${process.env.DUMP_FOLDER_PATH}/dump.rdb`, dbDump);
             if (!dbDump) {
                 logger.info("dump.rdb doesn't exists : getting latest dump from backup ✅");
                 const dump: any = await getLastDump(req, res);

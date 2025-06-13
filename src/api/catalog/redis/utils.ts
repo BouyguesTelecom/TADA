@@ -104,7 +104,7 @@ export const updateFileInCatalog = async (uuid: string, itemToUpdate: FileProps)
             ...itemToUpdate,
             updated_date: new Date().toISOString()
         };
-        console.log(uuid, updatedItemToUpdate);
+        logger.info(uuid, updatedItemToUpdate);
         const updateItem = await updateOneFile(uuid, updatedItemToUpdate);
         if (updateItem.datum && !updateItem.error) {
             await purgeData('catalog');
@@ -220,7 +220,7 @@ export const deleteCatalog = async (): Promise<ICatalogResponseMulti> => {
 
 export const getDump = async (filename, format): Promise<{ status: number; data: string[]; errors: string[] }> => {
     const fileFormat = format ?? 'rdb';
-    console.log(`${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_GET_BACKUP}/${filename}`, 'wAZAAAA');
+    logger.info(`${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_GET_BACKUP}/${filename}`);
     return proxy(`${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_GET_BACKUP}/${filename}`);
 };
 
@@ -269,7 +269,7 @@ export const restoreDump = async (): Promise<{ status: number; data: string[]; e
             const dumpPath = process.env.DUMP_FOLDER_PATH ? `${process.env.DUMP_FOLDER_PATH}/dump.rdb` : '/dumps/dump.rdb';
             const backupUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_POST_BACKUP}`;
 
-            console.log('sending dump.rdb to :', backupUrl);
+            logger.info('sending dump.rdb to :', backupUrl);
 
             const formData = new FormData();
             const filename = `dump_${getCurrentDateVersion()}.rdb`;
@@ -288,7 +288,7 @@ export const restoreDump = async (): Promise<{ status: number; data: string[]; e
 
             if (response.ok) {
                 rdbUploadSuccess = true;
-                console.log('✅ dump.rdb uploaded successfully');
+                logger.info('✅ dump.rdb uploaded successfully');
             } else {
                 const errorText = await response.text();
                 errors.push(`Error when sending dump.rdb: ${response.status} ${response.statusText} - ${errorText}`);
