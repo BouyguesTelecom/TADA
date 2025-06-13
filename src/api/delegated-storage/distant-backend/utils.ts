@@ -157,7 +157,6 @@ export const getFile = async ({ filepath, version, mimetype }: FileProps): Promi
 export const upload = async (stream, file, datum): Promise<BackupProps> => {
     try {
         const form = generateFormDataWithFile(stream, file, datum);
-        console.log('FORM :', form);
         const backupUpload: ResponseBackup = await fetch(generateUrl(), generateOptions('POST', '', form));
 
         if (backupUpload.status === 401) {

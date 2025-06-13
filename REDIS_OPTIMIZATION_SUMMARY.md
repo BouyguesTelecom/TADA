@@ -189,7 +189,7 @@ await redisHandler.setAsync(file.uuid, data); // Source de vérité
 ## 🎯 IMPACT BUSINESS
 
 - **Problème résolu :** Plus de timeout lors des opérations PATCH
-- **Performance :** 94.1% d'amélioration de vitesse
+- **Performance :** 94.1% d'amélioration de vitesse (askip)
 - **Scalabilité :** Architecture prête pour croissance du catalogue
 - **Maintenabilité :** Code plus simple, principe KISS respecté
 - **Fiabilité :** Cache mémoire + Redis fallback = haute disponibilité
