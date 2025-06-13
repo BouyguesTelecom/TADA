@@ -15,7 +15,6 @@ export const addFileInCatalog = async (item: FileProps): Promise<ICatalogRespons
     try {
         const response: ICatalogResponse = await addOneFile(item);
         if (response.datum && (!response.error || response.error.length === 0)) {
-            await updateCacheCatalog();
             await purgeData('catalog');
             return {
                 status: 200,
@@ -42,7 +41,6 @@ export const addFilesInCatalog = async (items: FileProps[]): Promise<ICatalogRes
     try {
         const response = await addMultipleFiles(items);
         if (response.data && (!response.errors || response.errors.length === 0)) {
-            await updateCacheCatalog();
             await purgeData('catalog');
             return {
                 status: 200,
@@ -109,7 +107,6 @@ export const updateFileInCatalog = async (uuid: string, itemToUpdate: FileProps)
         console.log(uuid, updatedItemToUpdate);
         const updateItem = await updateOneFile(uuid, updatedItemToUpdate);
         if (updateItem.datum && !updateItem.error) {
-            await updateCacheCatalog();
             await purgeData('catalog');
             return { status: 200, datum: updateItem.datum, error: null };
         }
@@ -133,7 +130,6 @@ export const updateFilesInCatalog = async (items: FileProps[]): Promise<ICatalog
     try {
         const response = await updateMultipleFiles(items);
         if (response.data && (!response.errors || response.errors.length === 0)) {
-            await updateCacheCatalog();
             await purgeData('catalog');
             return {
                 status: 200,
@@ -169,7 +165,6 @@ export const deleteFileFromCatalog = async (uuid: string): Promise<ICatalogRespo
             };
         }
         await deleteOneFile(file.uuid);
-        await updateCacheCatalog();
         await purgeData('catalog');
         return { status: 200, datum: { ...file, message: `Successfully deleted ${uuid}` }, error: null };
     } catch (err: unknown) {
@@ -186,7 +181,6 @@ export const deleteFilesInCatalog = async (items: FileProps[]): Promise<ICatalog
     try {
         const response = await deleteMultipleFiles(items);
         if (response.data && (!response.errors || response.errors.length === 0)) {
-            await updateCacheCatalog();
             await purgeData('catalog');
             return {
                 status: 200,

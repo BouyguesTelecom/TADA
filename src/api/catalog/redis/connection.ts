@@ -2,6 +2,10 @@ import { createClient } from '@redis/client';
 import { logger } from '../../utils/logs/winston';
 import { getCatalog } from '../index';
 
+// Cache mémoire simple et unifiéf
+let memoryCache: Map<string, any> = new Map();
+let isInitialized = false;
+
 const redisClient = createClient({
     socket: {
         host: process.env.REDIS_SERVICE || 'localhost',
@@ -53,7 +57,78 @@ const keysAsync = async (pattern) => {
     return await redisClient.keys(pattern);
 };
 
+// SCAN from redis instead of KEYS
+const scanAsync = async (pattern) => {
+    const keys = [];
+    let cursor = 0;
+
+    do {
+        const result = await redisClient.scan(cursor, {
+            MATCH: pattern,
+            COUNT: 100
+        });
+
+        cursor = result.cursor;
+        keys.push(...result.keys);
+    } while (cursor !== 0);
+
+    return keys;
+};
+
 const generateDump = async () => redisClient.save();
+
+export const cache = {
+    async init() {
+        if (isInitialized) return;
+
+        logger.info('Initialisation cache unifié...');
+        const start = Date.now();
+
+        const keys = await scanAsync('file:*');
+        memoryCache.clear();
+
+        for (const key of keys) {
+            const data = await getAsync(key);
+            if (data) {
+                const file = JSON.parse(data);
+                memoryCache.set(file.uuid, { ...file, id: file.uuid });
+            }
+        }
+
+        isInitialized = true;
+        logger.info(`Cache initialisé: ${memoryCache.size} fichiers en ${Date.now() - start}ms`);
+    },
+
+    async get(id: string) {
+        await this.init();
+        return memoryCache.get(id) || null;
+    },
+
+    async getAll() {
+        await this.init();
+        return Array.from(memoryCache.values());
+    },
+
+    async set(file: any) {
+        const key = file.uuid;
+        const data = { ...file, id: key };
+
+        // Redis (persistance)
+        await setAsync(key, JSON.stringify(file));
+
+        // Mémoire (performance)
+        memoryCache.set(key, data);
+
+        logger.debug(`Cache mis à jour: ${key}`);
+    },
+
+    async delete(id: string) {
+        await delAsync(id);
+        const deleted = memoryCache.delete(id);
+        logger.debug(`Cache supprimé: ${id}`);
+        return deleted;
+    }
+};
 
 export const updateCacheCatalog = async () => {
     try {
@@ -111,7 +186,8 @@ export const redisHandler = {
     getAsync,
     setAsync,
     delAsync,
-    keysAsync,
+    keysAsync, // Deprecated - utiliser scanAsync
+    scanAsync,
     generateDump,
     redisClient
 };
