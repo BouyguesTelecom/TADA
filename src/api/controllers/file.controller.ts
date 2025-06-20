@@ -186,7 +186,6 @@ export const patchAsset = async (req: Request, res: Response) => {
 export const deleteAsset = async (req: Request, res: Response) => {
     const { itemToUpdate } = res.locals;
     const { status, datum } = await deleteCatalogItem(itemToUpdate.uuid);
-
     if (status !== 200) {
         return sendResponse({
             res,

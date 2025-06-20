@@ -19,6 +19,7 @@ export interface FileProps {
     size?: number | string;
     uploaded_date?: string;
     updated_date?: string;
+    message?: string;
 }
 
 export interface ICatalogResponse {

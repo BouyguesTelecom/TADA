@@ -3,8 +3,8 @@ import { isFileNameInvalid, storage } from './utils/multer';
 import { fileIsTooLarge, generateUniqueName, sendResponse } from './utils';
 import { generateFileInfo } from './oneFileValidators';
 import { NextFunction, Request, Response } from 'express';
-import { getCachedCatalog } from '../../catalog/redis/connection';
 import crypto from 'crypto';
+import { getCatalogItem } from '../../catalog';
 
 export const validatorFiles = multer({
     storage: storage
@@ -75,7 +75,7 @@ export const validatorUUIds = async (req: Request, res: Response, next: NextFunc
             if (Array.isArray(req.body)) {
                 const { validFiles, invalidFiles } = await req.body.reduce(async (acc, file, index) => {
                     const { validFiles, invalidFiles } = await acc;
-                    const catalogFile = await getCachedCatalog(file.uuid);
+                    const {datum:catalogFile} = await getCatalogItem(file.uuid, 'uuid');
                     if (catalogFile) {
 
                         return {
@@ -138,8 +138,8 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
             errors: [ `Body has to be an array` ]
         });
     }
-    if(req.method === 'DELETE'){
-        return next()
+    if (req.method === 'DELETE') {
+        return next();
     }
     const { namespace, validFiles: validFilesFromLocal, invalidFiles: invalidFilesFromLocal } = res.locals;
     const toWebp = req.body.toWebp !== 'false';
@@ -206,29 +206,30 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
 
 export const validatorCatalog = async (req: Request, res: Response, next: NextFunction) => {
     const { validFiles: validFilesFromLocal, invalidFiles: invalidFilesFromLocal, uuids } = res.locals;
-    if((req.method === 'PATCH' && !req.files) || req.method === 'DELETE') {
+    if (( req.method === 'PATCH' && !req.files ) || req.method === 'DELETE') {
         return next();
     }
     const { validFiles, invalidFiles } = await validFilesFromLocal.reduce(async (accumulator, file) => {
             const { validFiles, invalidFiles } = await accumulator;
             if (req.method === 'POST') {
                 const fileUUID = await crypto.createHash('md5').update(file.uniqueName).digest('hex');
-                if (!await getCachedCatalog(fileUUID)) {
+                const {datum: fileFound} = await getCatalogItem(fileUUID, 'uuid')
+                if (fileFound) {
                     return {
-                        validFiles: [ ...validFiles, file ],
-                        invalidFiles
+                        validFiles,
+                        invalidFiles: [ ...invalidFiles, { ...file, message: 'UUID already exists' } ]
                     };
                 }
                 return {
-                    validFiles,
-                    invalidFiles: [ ...invalidFiles, { ...file, message: 'UUID already exists' } ]
+                    validFiles: [ ...validFiles, file ],
+                    invalidFiles
                 };
             }
             if (req.method === 'PATCH') {
-                const catalogItem = await getCachedCatalog(file.uuid)
+                const {datum: catalogItem} = await getCatalogItem(file.uuid, 'uuid');
                 if (catalogItem) {
                     return {
-                        validFiles: [ ...validFiles, {...file, catalogItem } ],
+                        validFiles: [ ...validFiles, { ...file, catalogItem } ],
                         invalidFiles
                     };
                 }

@@ -1,7 +1,7 @@
 import * as Joi from 'joi';
 import { FileProps } from '../../props/catalog';
 import { logger } from '../../utils/logs/winston';
-import { getCachedCatalog } from '../redis/connection';
+import { getCatalog } from '../index';
 
 const fileSchema = Joi.object({
     filename: Joi.string().required(),
@@ -67,9 +67,9 @@ interface CatalogResponse {
 }
 
 export const filePathIsUnique = async (file: FileProps): Promise<boolean> => {
-    const response: CatalogResponse = await getCachedCatalog();
-    if (response) {
-        const allFilesInNamespace: FileProps[] = Object.values(response).filter((f: FileProps) => f.namespace === file.namespace);
+    const response: CatalogResponse = await getCatalog();
+    if (response.data) {
+        const allFilesInNamespace: FileProps[] = response.data.filter((f: FileProps) => f.namespace === file.namespace);
         const fileExists = allFilesInNamespace.find((f: FileProps) => f.unique_name === file.unique_name);
         return !fileExists;
     }

@@ -30,9 +30,8 @@ export const isExpired = (itemBody: FileProps): boolean => {
 
 function getDestinationPath(finalPath, namespace) {
     const destinationWithLeadingSlash = path.dirname(finalPath);
-
     const destination = destinationWithLeadingSlash.startsWith('/') ? destinationWithLeadingSlash.slice(1) : destinationWithLeadingSlash;
-    return destination.split(`${namespace}/`)[1].replace(/[^a-zA-Z0-9\-@_%]+/g, '_');
+    return destination.split(`${namespace}/`)[1]?.replace(/[^a-zA-Z0-9\-@_%]+/g, '_');
 }
 
 export const formatItemForCatalog = async (

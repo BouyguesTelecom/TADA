@@ -16,13 +16,13 @@ export const getCatalog = async (): Promise<ICatalogResponseMulti> => {
     }
 };
 
-export const getCatalogItem = async ({ uuid }): Promise<ICatalogResponse> => {
+export const getCatalogItem = async (param, key): Promise<ICatalogResponse> => {
     logger.info(`Retrieve file from catalog ${ backupStorageMethod === 'STANDALONE' ? 'catalog.json' : 'REDIS' } ...`);
     switch ( backupStorageMethod ) {
         case 'STANDALONE':
-            return await standalone.getFile(uuid);
+            return await standalone.getFile(param);
         default:
-            return await redis.getFile(uuid);
+            return await redis.getFile(param, key);
     }
 };
 

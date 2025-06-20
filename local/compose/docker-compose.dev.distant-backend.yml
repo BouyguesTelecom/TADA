@@ -41,7 +41,7 @@ x-environment-variables:
 
 services:
     redis:
-        image: bitnami/redis:7.0.15-debian-12-r20
+        image: redis:8.0.2
         container_name: redis_server
         command: redis-server --protected-mode no --dir /dumps
         ports:
@@ -52,6 +52,7 @@ services:
             - redis_net
         depends_on:
             -   redis-init
+        restart: always
     redis-init:
         image: curlimages/curl:latest
         command: ["/bin/sh", "/scripts/redis-init.sh"]

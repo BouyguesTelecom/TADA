@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
 import { sendResponse } from '../middleware/validators/utils';
-import { addCatalogItem, deleteCatalogItem, getCatalogItem, updateCatalogItem, deleteAllCatalog, createDumpCatalog, restoreDumpCatalog, getDumpCatalog } from '../catalog';
+import { addCatalogItem, deleteCatalogItem, getCatalogItem, updateCatalogItem, deleteAllCatalog, createDumpCatalog, restoreDumpCatalog, getDumpCatalog, getCatalog } from '../catalog';
 import { validateOneFile } from '../catalog/validators';
-import { getCachedCatalog } from '../catalog/redis/connection';
 import proxy from 'express-http-proxy';
 import { patchFileBackup } from './delegated-storage.controller';
 
@@ -17,16 +16,16 @@ export const addFileInCatalog = async (req: Request, res: Response): Promise<any
 };
 
 export const getFiles = async (req: Request, res: Response) => {
-    const catalog = await getCachedCatalog();
+    const catalog = await getCatalog();
     if (req.query.filterByKey && req.query.filterByValue) {
-        return res.json(Object.values(catalog).filter((item) => item[`${ req.query.filterByKey }`] === req.query.filterByValue));
+        return res.json(catalog.data.filter((item) => item[`${ req.query.filterByKey }`] === req.query.filterByValue));
     }
-    return res.status(200).json(Object.values(catalog));
+    return res.status(200).json(catalog.data);
 };
 
 export const getFile = async (req: Request, res: Response) => {
     const uuid = req.params.id;
-    const { status, datum, error } = await getCatalogItem({ uuid });
+    const { status, datum, error } = await getCatalogItem(uuid, 'uuid');
     return sendResponse({ res, status, data: datum ? [ datum ] : null, errors: error ? [ error ] : null });
 };
 
@@ -34,7 +33,6 @@ export const updateFileInCatalog = async (req: Request, res: Response) => {
     const uuid = req.params.uuid;
     const itemToUpdate = req.body;
     const { status, datum, error } = await updateCatalogItem(uuid, itemToUpdate);
-
     const patchBackupFile = await patchFileBackup(datum, null, itemToUpdate);
     return sendResponse({
         res,

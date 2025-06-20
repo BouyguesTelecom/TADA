@@ -1,7 +1,7 @@
 import app from './app';
 import { logger } from './utils/logs/winston';
 import fs from 'fs';
-import { redisHandler, updateCacheCatalog } from './catalog/redis/connection';
+import { redisHandler } from './catalog/redis/connection';
 import { getLastDump } from './delegated-storage/index';
 import { minioClient } from './delegated-storage/s3/connection';
 import fetch from 'node-fetch';
@@ -48,7 +48,6 @@ const connectToRedisWithRetry = async (maxRetries, delay) => {
     while ( attempts < maxRetries ) {
         try {
             await redisHandler.connectClient();
-            await updateCacheCatalog();
             const { data: catalog } = await getCatalog();
             if (catalog.length) {
                 for ( const item of catalog ) {
@@ -83,16 +82,14 @@ const createStandaloneFolderAndCatalog = () => {
 
 ( async (req, res) => {
     try {
+
         if (!standalone) {
             await checkAccessToBackup();
             await connectToRedisWithRetry(3, 10000);
-
             const dbDump = fs.existsSync(`${ process.env.DUMP_FOLDER_PATH }/dump.rdb`);
-            console.log(`${ process.env.DUMP_FOLDER_PATH }/dump.rdb`, dbDump);
             if (!dbDump) {
                 logger.info('dump.rdb doesn\'t exists : getting latest dump from backup ✅');
                 const dump: any = await getLastDump(req, res);
-                console.log(dump, 'DUMP ICIIII');
                 if (dump && dump.errors) {
                     logger.warning('Failed to get last dump from delegated storage : initializing empty dump.rdb');
                 }
