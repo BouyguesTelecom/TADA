@@ -3,7 +3,7 @@ import app from '../../app';
 import { FileProps, ICatalogResponse } from '../../props/catalog';
 import { logger } from '../../utils/logs/winston';
 import { filePathIsUnique, validateMultipleFile, validateOneFile } from '../validators';
-import { redisClient, cache } from './connection';
+import { redisClient } from './connection';
 import { RedisJSON } from '@redis/json/dist/lib/commands';
 
 const parseDateVersion = (name: string): Date => {
@@ -34,7 +34,7 @@ const parseDateVersion = (name: string): Date => {
 export const getOneFile = async (param: string, key = 'uuid') => {
     try {
         if (key === 'uuid') {
-            const file = await cache.get(param);;
+            const file = await redisClient.json.get(`file:${ param }`);
             return {
                 datum: file as FileProps || null,
                 error: null
