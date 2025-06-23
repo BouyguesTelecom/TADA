@@ -41,9 +41,9 @@ x-environment-variables:
 
 services:
     redis:
-        image: redis:8.0.2
+        image: redis/redis-stack-server
         container_name: redis_server
-        command: redis-server --protected-mode no --dir /dumps
+        command: redis-server --protected-mode no --dir /dumps --loadmodule /opt/redis-stack/lib/redisearch.so --loadmodule /opt/redis-stack/lib/rejson.so
         ports:
             - '6379:6379'
         volumes:

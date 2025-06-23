@@ -25,7 +25,7 @@ redis:
         limits:
             cpu: 800m
             memory: 512Mi
-    imageName: redis:8.0.2
+    imageName: redis/redis-stack-server
     dumpFolderPath: '/dumps'
     storage:
         storageClassName: hostpath
