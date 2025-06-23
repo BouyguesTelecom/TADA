@@ -13,10 +13,10 @@ export const purgeData = async (data) => {
                 }
             });
             if (!response.ok) {
-                logger.warn(`Warning: Fetch to ${url} responded with status: ${response.status}`);
+                logger.warning(`Warning: Fetch to ${url} responded with status: ${response.status}`);
             }
         } catch (error) {
-            logger.warn(`Warning: Fetch to ${url} failed: ${error.message}`);
+            logger.warning(`Warning: Fetch to ${url} failed: ${error.message}`);
         }
     };
 

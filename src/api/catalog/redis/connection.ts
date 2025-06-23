@@ -10,8 +10,7 @@ const redisClient = createClient({
     socket: {
         host: process.env.REDIS_SERVICE || 'localhost',
         port: 6379
-    },
-    legacyMode: false
+    }
 });
 
 redisClient.on('error', (err) => {
@@ -63,19 +62,19 @@ const scanAsync = async (pattern) => {
     let cursor = 0;
 
     do {
-        const result = await redisClient.scan(cursor, {
+        const result = await redisClient.scan(cursor.toString(), {
             MATCH: pattern,
             COUNT: 100
         });
 
-        cursor = result.cursor;
+        cursor = Number(result.cursor);
         keys.push(...result.keys);
     } while (cursor !== 0);
 
     return keys;
 };
 
-const generateDump = async () => redisClient.save();
+const generateDump = async () => await redisClient.sendCommand(['SAVE']);
 
 export const cache = {
     async init() {
@@ -89,7 +88,7 @@ export const cache = {
 
         for (const key of keys) {
             const data = await getAsync(key);
-            if (data) {
+            if (typeof data === 'string') {
                 const file = JSON.parse(data);
                 memoryCache.set(file.uuid, { ...file, id: file.uuid });
             }
@@ -165,13 +164,16 @@ export const getCachedCatalog = async (id = null) => {
         const catalogData = await getAsync('catalogCached');
 
         if (!catalogData) {
-            logger.warn('No catalog data found in cache');
+            logger.warning('No catalog data found in cache');
         }
 
-        const catalog = JSON.parse(catalogData);
+        let catalog: any = catalogData;
+        if (typeof catalogData === 'string') {
+            catalog = JSON.parse(catalogData);
+        }
 
         if (id) {
-            return catalog[id];
+            return catalog ? catalog[id] : undefined;
         }
         return catalog;
     } catch (error) {

@@ -32,7 +32,13 @@ function getDestinationPath(finalPath, namespace) {
     const destinationWithLeadingSlash = path.dirname(finalPath);
 
     const destination = destinationWithLeadingSlash.startsWith('/') ? destinationWithLeadingSlash.slice(1) : destinationWithLeadingSlash;
-    return destination.split(`${namespace}/`)[1].replace(/[^a-zA-Z0-9\-@_%]+/g, '_');
+
+    const splitResult = destination.split(`${namespace}/`);
+    if (splitResult.length < 2) {
+        return destination.replace(/[^a-zA-Z0-9\-@_%]+/g, '_');
+    }
+
+    return splitResult[1].replace(/[^a-zA-Z0-9\-@_%]+/g, '_');
 }
 
 export const formatItemForCatalog = async (
