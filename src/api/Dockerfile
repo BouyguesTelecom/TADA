@@ -7,7 +7,7 @@ RUN npm run build
 WORKDIR /images
 COPY ./images .
 
-FROM node:18-slim
+FROM node:18-alpine
 WORKDIR /
 
 COPY --from=builder /app/package*.json ./
