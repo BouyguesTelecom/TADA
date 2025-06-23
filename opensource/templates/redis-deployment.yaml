@@ -50,15 +50,15 @@ spec:
                 -   name: tada-{{ .Release.Name }}-redis
                     image: {{ .Values.redis.imageName }}
                     command:
-                        - 'redis-server'
-                        - '--protected-mode'
-                        - 'no'
-                        - '--dir'
-                        - '/dumps'
-                        - '--loadmodule'
-                        - '/opt/redis-stack/lib/redisearch.so'
-                        - '--loadmodule'
-                        - '/opt/redis-stack/lib/rejson.so'
+                        - "redis-server"
+                        - "--protected-mode"
+                        - "no"
+                        - "--dir"
+                        - "/dumps"
+                        - "--loadmodule"
+                        - "/opt/redis-stack/lib/redisearch.so"
+                        - "--loadmodule"
+                        - "/opt/redis-stack/lib/rejson.so"
                     ports:
                         -   containerPort: 6379
                     volumeMounts:

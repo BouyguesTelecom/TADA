@@ -1,7 +1,19 @@
 import { createClient, SCHEMA_FIELD_TYPE } from 'redis';
 import { logger } from '../../utils/logs/winston';
 
+const setupRedis = async () => {
+    await redisClient.connect();
+    await initializeIndex();
+    logger.info('Redis client connected and index initialized');
+};
+export const redisClient = createClient({
+    socket: {
+        host: process.env.REDIS_SERVICE || 'localhost',
+        port: 6379
+    }
+});
 const initializeIndex = async () => {
+    console.log('Modules installés pour Redis :', await redisClient.moduleList())
     try {
         await redisClient.ft.create('idx:files', {
             '$.unique_name': {
@@ -20,26 +32,13 @@ const initializeIndex = async () => {
         logger.info('RediSearch index created successfully');
     } catch ( err ) {
         if (!err.message.includes('Index already exists')) {
+            console.log(err, 'ERROR REDIS')
             logger.error(`Error creating RediSearch index: ${ err.message }`);
         } else {
             logger.info('RediSearch index already exists');
         }
     }
 };
-
-// Assurez-vous que l'index est créé lors de la connexion
-const setupRedis = async () => {
-    await redisClient.connect();
-    await initializeIndex();
-    logger.info('Redis client connected and index initialized');
-};
-export const redisClient = createClient({
-    socket: {
-        host: process.env.REDIS_SERVICE || 'localhost',
-        port: 6379
-    }
-});
-
 redisClient.on('error', (err) => {
     logger.error(`Redis Client Error: ${ err.message } ${ JSON.stringify(err) }`);
 });
