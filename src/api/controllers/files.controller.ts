@@ -9,6 +9,7 @@ import { calculateSHA256, formatItemForCatalog } from '../utils/catalog';
 import { generateStream } from '../utils/file';
 import { logger } from '../utils/logs/winston';
 import { deleteFilesBackup } from './delegated-storage.controller';
+import crypto from 'crypto';
 
 export const postAssets = async (req: Request, res: Response) => {
     const { validFiles, invalidFiles } = res.locals;
@@ -115,7 +116,8 @@ export const postAssets = async (req: Request, res: Response) => {
 
             for (const form of forms) {
                 logger.info('Deleting catalog item due to failed upload:', form.uniqueName);
-                await deleteCatalogItem(form.uniqueName);
+                const redisKeyMD5 = crypto.createHash('md5').update(form.uniqueName).digest('hex');
+                await deleteCatalogItem(redisKeyMD5);
             }
             errors.push(errorDetails);
 
