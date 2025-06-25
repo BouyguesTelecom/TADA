@@ -71,6 +71,11 @@ nginx:
         limits:
             cpu: 800m
             memory: 512Mi
+    cdn:
+        enabled: true
+        maxAge: 900
+        expires: '15m'
+
 
 nginxPurge:
     imageName: emcniece/nginx-cache-purge:1.13-alpine
