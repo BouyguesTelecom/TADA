@@ -8,7 +8,7 @@ import { purgeData } from '../../middleware/validators/utils';
 import { FileProps, ICatalogResponse, ICatalogResponseMulti } from '../../props/catalog';
 import { getCurrentDateVersion } from '../../utils/catalog';
 import { logger } from '../../utils/logs/winston';
-import { redisHandler, updateCacheCatalog } from './connection';
+import { redisHandler } from './connection';
 import { addMultipleFiles, addOneFile, deleteMultipleFiles, deleteOneFile, getAllFiles, getCatalogRedis, getOneFile, updateMultipleFiles, updateOneFile } from './operations';
 
 export const addFileInCatalog = async (item: FileProps): Promise<ICatalogResponse> => {
@@ -211,7 +211,6 @@ export const deleteCatalog = async (): Promise<ICatalogResponseMulti> => {
         for (const item of files) {
             await deleteFileFromCatalog(item.uuid);
         }
-        await updateCacheCatalog();
         await purgeData('catalog');
     }
 

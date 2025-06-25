@@ -81,22 +81,38 @@ export const cache = {
     async init() {
         if (isInitialized) return;
 
-        logger.info('Init cache.');
-        const start = Date.now();
+        try {
+            logger.info('Init cache.');
+            const start = Date.now();
 
-        const keys = await scanAsync('file:*');
-        memoryCache.clear();
+            const ids = await redisHandler.keysAsync('*');
 
-        for (const key of keys) {
-            const data = await getAsync(key);
-            if (data) {
-                const file = JSON.parse(data);
-                memoryCache.set(file.uuid, { ...file, id: file.uuid });
+            if (ids && ids.length) {
+                const filesPromises = ids.map(async (id) => {
+                    const file = await redisHandler.getAsync(id);
+                    if (file && Object.keys(JSON.parse(file)).length) {
+                        return JSON.parse(file);
+                    }
+                    return null;
+                });
+
+                const files = (await Promise.all(filesPromises)).filter(file => file !== null);
+
+                memoryCache.clear();
+
+                files.forEach(file => {
+                    if (file && file.uuid) {
+                        memoryCache.set(file.uuid, { ...file, id: file.uuid });
+                    }
+                });
             }
-        }
 
-        isInitialized = true;
-        logger.info(`Cache initialised: ${memoryCache.size} files in ${Date.now() - start}ms`);
+            isInitialized = true;
+            logger.info(`Cache initialisé: ${memoryCache.size} fichiers en ${Date.now() - start}ms`);
+
+        } catch (err) {
+            logger.error(`Error listing items: ${err}`);
+        }
     },
 
     async get(id: string) {
@@ -130,55 +146,6 @@ export const cache = {
     }
 };
 
-export const updateCacheCatalog = async () => {
-    try {
-        const { data: catalog } = await getCatalog();
-        if (!catalog || catalog.length === 0) {
-            await setAsync('catalogCached', JSON.stringify({}));
-            return;
-        }
-
-        const validCatalog = catalog.filter((item) => item && item.uuid);
-
-        if (validCatalog.length === 0) {
-            await setAsync('catalogCached', JSON.stringify({}));
-            logger.info('No file found');
-            return;
-        }
-
-        const catalogObjectUUID = validCatalog.reduce((acc, item) => {
-            acc[item.uuid] = item;
-            return acc;
-        }, {});
-
-        await delAsync('catalogCached');
-        await setAsync('catalogCached', JSON.stringify(catalogObjectUUID));
-
-        logger.info(`Catalog updated with ${validCatalog.length} items`);
-    } catch (error) {
-        logger.error('Error when updating catalog cache:', error);
-    }
-};
-
-export const getCachedCatalog = async (id = null) => {
-    try {
-        const catalogData = await getAsync('catalogCached');
-
-        if (!catalogData) {
-            logger.warning('No catalog data found in cache');
-        }
-
-        const catalog = JSON.parse(catalogData);
-
-        if (id) {
-            return catalog[id];
-        }
-        return catalog;
-    } catch (error) {
-        logger.error('Error when getting catalog from cache:', error);
-        return null;
-    }
-};
 
 export const redisHandler = {
     connectClient,

@@ -2,8 +2,7 @@ import listEndpoints from 'express-list-endpoints';
 import fs from 'fs';
 import fetch from 'node-fetch';
 import app from './app';
-import { deleteCatalogItem, getCatalog } from './catalog';
-import { redisHandler, updateCacheCatalog } from './catalog/redis/connection';
+import { redisHandler } from './catalog/redis/connection';
 import { getLastDump } from './delegated-storage/index';
 import { minioClient } from './delegated-storage/s3/connection';
 import { logger } from './utils/logs/winston';
@@ -48,15 +47,6 @@ const connectToRedisWithRetry = async (maxRetries, delay) => {
     while (attempts < maxRetries) {
         try {
             await redisHandler.connectClient();
-            await updateCacheCatalog();
-            const { data: catalog } = await getCatalog();
-            if (catalog.length) {
-                for (const item of catalog) {
-                    if (item.unique_name && item.unique_name.includes('/tests/')) {
-                        await deleteCatalogItem(item.unique_name);
-                    }
-                }
-            }
             return;
         } catch (err) {
             attempts++;
