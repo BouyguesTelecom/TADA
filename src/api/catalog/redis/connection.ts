@@ -4,7 +4,6 @@ import { getCatalog } from '../index';
 
 // Cache mémoire simple et unifiéf
 let memoryCache: Map<string, any> = new Map();
-let isInitialized = false;
 
 const redisClient = createClient({
     socket: {
@@ -77,51 +76,44 @@ const scanAsync = async (pattern) => {
 
 const generateDump = async () => redisClient.save();
 
-export const cache = {
-    async init() {
-        if (isInitialized) return;
+export const initializeCache = async () => {
+    try {
+        logger.info('Init cache.');
+        const start = Date.now();
 
-        try {
-            logger.info('Init cache.');
-            const start = Date.now();
+        const ids = await redisHandler.keysAsync('*');
+        if (ids && ids.length) {
+            const filesPromises = ids.map(async (id) => {
+                const file = await redisHandler.getAsync(id);
+                if (file && Object.keys(JSON.parse(file)).length) {
+                    return JSON.parse(file);
+                }
+                return null;
+            });
 
-            const ids = await redisHandler.keysAsync('*');
+            const files = (await Promise.all(filesPromises)).filter(file => file !== null);
 
-            if (ids && ids.length) {
-                const filesPromises = ids.map(async (id) => {
-                    const file = await redisHandler.getAsync(id);
-                    if (file && Object.keys(JSON.parse(file)).length) {
-                        return JSON.parse(file);
-                    }
-                    return null;
-                });
+            memoryCache.clear();
 
-                const files = (await Promise.all(filesPromises)).filter(file => file !== null);
-
-                memoryCache.clear();
-
-                files.forEach(file => {
-                    if (file && file.uuid) {
-                        memoryCache.set(file.uuid, { ...file, id: file.uuid });
-                    }
-                });
-            }
-
-            isInitialized = true;
-            logger.info(`Cache initialisé: ${memoryCache.size} fichiers en ${Date.now() - start}ms`);
-
-        } catch (err) {
-            logger.error(`Error listing items: ${err}`);
+            files.forEach(file => {
+                if (file && file.uuid) {
+                    memoryCache.set(file.uuid, { ...file, id: file.uuid });
+                }
+            });
         }
-    },
+        logger.info(`Cache initialisé: ${memoryCache.size} fichiers en ${Date.now() - start}ms`);
 
+    } catch (err) {
+        logger.error(`Error listing items: ${err}`);
+    }
+}
+
+export const cache = {
     async get(id: string) {
-        await this.init();
         return memoryCache.get(id) || null;
     },
 
     async getAll() {
-        await this.init();
         return Array.from(memoryCache.values());
     },
 

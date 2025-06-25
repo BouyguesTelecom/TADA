@@ -2,7 +2,7 @@ import listEndpoints from 'express-list-endpoints';
 import fs from 'fs';
 import fetch from 'node-fetch';
 import app from './app';
-import { redisHandler } from './catalog/redis/connection';
+import { initializeCache, redisHandler } from './catalog/redis/connection';
 import { getLastDump } from './delegated-storage/index';
 import { minioClient } from './delegated-storage/s3/connection';
 import { logger } from './utils/logs/winston';
@@ -89,6 +89,7 @@ const createStandaloneFolderAndCatalog = () => {
             } else {
                 logger.info('dump.rdb already exists : skipping getting latest dump from backup 🔆');
             }
+            await initializeCache()
         }
 
         if (standalone) {
