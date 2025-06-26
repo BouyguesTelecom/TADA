@@ -67,7 +67,7 @@ data:
                     deny all;
                 }
 
-                {{- if .Values.nginx.cdn.enabled }}, 
+                {{- if .Values.nginx.cdn.enabled }} 
                 add_header expires {{ .Values.nginx.cdn.expires }};
                 add_header Cache-Control "public, max-age={{ .Values.nginx.cdn.maxAge }}";
                 add_header Pragma "public";
