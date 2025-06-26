@@ -37,7 +37,7 @@ export const purgeData = async (data) => {
     }
 };
 
-export const sendResponse = async ({ res, status, data = [], errors = null, purge = 'false' }) => {
+export const sendResponse = async ({ res, status, data = [], errors = [], purge = 'false' }) => {
     if (purge !== 'false' && process.env.DELEGATED_STORAGE_METHOD !== 'STANDALONE') {
         await purgeData(purge === 'catalog' ? 'catalog' : data);
     }
