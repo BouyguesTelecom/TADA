@@ -97,7 +97,7 @@ export const initializeCache = async () => {
 
             files.forEach(file => {
                 if (file && file.uuid) {
-                    memoryCache.set(file.uuid, { ...file, id: file.uuid });
+                    memoryCache.set(file.uuid, file);
                 }
             });
         }
@@ -118,16 +118,12 @@ export const cache = {
     },
 
     async set(file: any) {
-        const key = file.uuid;
-        const data = { ...file, id: key };
 
-        // Redis (persistance)
-        await setAsync(key, JSON.stringify(file));
+        await setAsync(file.uuid, JSON.stringify(file));
 
-        // Mémoire (performance)
-        memoryCache.set(key, data);
+        memoryCache.set(file.uuid, file);
 
-        logger.debug(`Cache updated: ${key}`);
+        logger.debug(`Cache updated: ${file.uuid}`);
     },
 
     async delete(id: string) {
