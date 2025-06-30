@@ -62,9 +62,13 @@ export const checkMissingParam = ({ requiredParams, params }: MissingParamsProps
 };
 
 export const generateUniqueName = (file, body, namespace, toWebp) => {
+    const replaceSpecialChars = (str) => {
+        return str.replace(/é/g, 'e').replace(/[^a-zA-Z0-9/@\-%_]+/g, '_');
+    };
+
     return (
         file &&
-        `/${namespace}/${body.destination ? `${ body.destination.replace(/[^a-zA-Z0-9/@\-%_]+/g, '_') }/` : ''}${toWebp && ['image/jpeg', 'image/png'].includes(file.mimetype) ? file.filename.split('.')[0] + '.webp' : file.filename}`
+        `/${namespace}/${body.destination ? `${replaceSpecialChars(body.destination)}/` : ''}${toWebp && ['image/jpeg', 'image/png'].includes(file.mimetype) ? file.filename.split('.')[0] + '.webp' : file.filename}`
     );
 };
 
