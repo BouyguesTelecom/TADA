@@ -11,7 +11,7 @@ spec:
     {{- if .Values.ingress.api.tls }}
     tls:
         -   hosts:
-                - {{ .Values.env }}.api.{{ .Values.domain }}
+                - {{ .Values.env }}.tada-api.{{ .Values.domain }}
             secretName: tada-{{ .Release.Name }}-api-tls-certificate
     {{- end }}
     rules:
