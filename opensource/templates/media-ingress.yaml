@@ -15,7 +15,7 @@ spec:
             secretName: tada-{{ .Release.Name }}-api-tls-certificate
     {{- end }}
     rules:
-        - host: '{{.Values.env}}.api.{{.Values.domain}}'
+        - host: '{{.Values.env}}.tada-api.{{.Values.domain}}'
           http:
               paths:
                   - path: /
