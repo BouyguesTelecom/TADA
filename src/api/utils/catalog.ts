@@ -60,7 +60,7 @@ export const formatItemForCatalog = async (
         unique_name: uniqueName,
         filename: toWebp && ['image/jpeg', 'image/png'].includes(mimetype) ? resourceName.split('.')[0] + '.webp' : resourceName,
         original_filename: resourceName,
-        base_host: process.env.NGINX_INGRESS,
+        base_host: process.env.PUBLIC_URL,
         base_url: `${app.locals.PREFIXED_ASSETS_URL}`,
         external_id: null,
         expired: false,
