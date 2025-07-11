@@ -56,7 +56,7 @@ export const formatItemForCatalog = async (
         uuid: newUUID,
         version: 1,
         namespace,
-        public_url: `${process.env.NGINX_INGRESS}${app.locals.PREFIXED_ASSETS_URL}/${mimetype === 'application/pdf' || mimetype === 'image/svg+xml' ? 'original' : 'full'}${uniqueName}`,
+        public_url: `${process.env.PUBLIC_URL}${app.locals.PREFIXED_ASSETS_URL}/${mimetype === 'application/pdf' || mimetype === 'image/svg+xml' ? 'original' : 'full'}${uniqueName}`,
         unique_name: uniqueName,
         filename: toWebp && ['image/jpeg', 'image/png'].includes(mimetype) ? resourceName.split('.')[0] + '.webp' : resourceName,
         original_filename: resourceName,

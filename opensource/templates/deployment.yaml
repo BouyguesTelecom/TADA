@@ -49,6 +49,8 @@ spec:
                             value: "{{ include "nginxService" . }}"
                         -   name: NGINX_INGRESS
                             value: '{{.Values.protocol}}://{{.Values.env}}.{{.Values.domain}}'
+                        -   name: PUBLIC_URL
+                            value: '{{.Values.mediaApi.publicUrl}}'
                         -   name: IMAGE_SERVICE
                             value: "{{ include "mediaService" . }}"
                         -   name: API_PREFIX
