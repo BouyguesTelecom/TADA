@@ -11,7 +11,7 @@ export const returnDefaultImage = (res, uniqueName) => {
     const rootPath = process.env.NODE_ENV !== 'production' ? path.resolve(__dirname, '../images') : '/tmp/images';
 
     return res.sendFile(uniqueName, { root: rootPath });
-}
+};
 
 
 const removeUnusedData = (svgFilePath) => {
@@ -31,7 +31,7 @@ const removeUnusedData = (svgFilePath) => {
     const cleanedSvgData3 = cleanedSvgData2.replace(metadataRegex, '');
 
     // Delete unused attributes
-    const elementsToRemove = ['title', 'desc', 'defs'];
+    const elementsToRemove = [ 'title', 'desc', 'defs' ];
     const elementRegex = new RegExp(`<(${elementsToRemove.join('|')})>[\\s\\S]*?<\/\\1>`, 'g');
     const cleanedSvgData4 = cleanedSvgData3.replace(elementRegex, '');
 
@@ -52,8 +52,8 @@ const removeMetadataPdf = async (imagePath) => {
 
         logger.info('Metadata removed successfully');
         return await pdfDoc.save();
-    } catch (errorMessage: any) {
-        logger.error(`Failed to remove metadata: ${errorMessage}`);
+    } catch ( errorMessage: any ) {
+        logger.error(`Failed to remove metadata: ${ errorMessage }`);
         return false;
     }
 };
@@ -73,8 +73,8 @@ const removeMetadataImage = async (imagePath) => {
         const { format } = await image.metadata();
 
         return await image[format](config[format]).rotate().toBuffer();
-    } catch (errorMessage) {
-        logger.error(`Failed to remove metadata ${errorMessage}`);
+    } catch ( errorMessage ) {
+        logger.error(`Failed to remove metadata ${ errorMessage }`);
         return false;
     }
 };
@@ -89,13 +89,19 @@ const convertToWebp = async (imagePath) => {
             webp: { quality: 100, force: false },
             png: { force: false }
         };
+
         const image = sharp(imagePath).withMetadata();
         const { format } = await image.metadata();
+
         const webpPath = '/tmp/' + 'webp-' + imagePath.split('/tmp/')[1].split('.')[0] + '.webp';
-        await image[format](config[format]).rotate().toFormat('webp').toFile(webpPath);
+
+        format !== 'webp' ?
+            await image[format](config[format]).rotate().toFormat('webp').toFile(webpPath) :
+            await image[format](config[format]).rotate().toFile(webpPath);
+
         return webpPath;
-    } catch (errorMessage) {
-        logger.error(`Failed to remove metadata ${errorMessage}`);
+    } catch ( errorMessage ) {
+        logger.error(`Failed to remove metadata ${ errorMessage }`);
         return '';
     }
 };
@@ -116,16 +122,22 @@ export const convertToWebpBuffer = async (buffer: Buffer, params = null, type = 
         if (params) {
             const { width, height } = params;
             if (width || height) {
-                return await image[format](config[format])
-                    .resize(width !== 0 ? width : null, height !== 0 ? height : null)
-                    .toFormat('webp')
-                    .toBuffer();
+                return type !== 'image/webp' ?
+                    await image[format](config[format]).resize(width !== 0 ? width : null, height !== 0 ?
+                        height :
+                        null).toFormat('webp').toBuffer() :
+                    await image[format](config[format]).resize(width !== 0 ? width : null, height !== 0 ?
+                        height :
+                        null).toBuffer();
             }
         }
+        return type !== 'image/webp' ?
+            await image[format](config[format]).rotate().toFormat('webp').toBuffer() :
+            await image[format](config[format]).rotate().toBuffer();
 
-        return await image[format](config[format]).rotate().toFormat('webp').toBuffer();
-    } catch (errorMessage) {
-        logger.error(`Failed to remove metadata ${errorMessage}`);
+
+    } catch ( errorMessage ) {
+        logger.error(`Failed to remove metadata ${ errorMessage }`);
         return null;
     }
 };
@@ -145,14 +157,14 @@ const sharpWithMetadata = async (imagePath) => {
         const { format } = await image.metadata();
 
         return await image[format](config[format]).rotate().toFormat(format).toBuffer();
-    } catch (errorMessage) {
-        logger.error(`Failed to remove metadata ${errorMessage}`);
+    } catch ( errorMessage ) {
+        logger.error(`Failed to remove metadata ${ errorMessage }`);
         return '';
     }
 };
 
 export const stripMetadata = async (imagePath: string, finalPath: string, mimetype: string) => {
-    switch (mimetype) {
+    switch ( mimetype ) {
         case 'application/pdf':
             const pdfUint8Array = await removeMetadataPdf(imagePath);
             return Buffer.from(pdfUint8Array as Uint8Array);
@@ -170,14 +182,11 @@ export const stripMetadata = async (imagePath: string, finalPath: string, mimety
 };
 
 export const deleteFile = (filePath): Promise<boolean> => {
-    return fs.promises
-        .unlink(filePath)
-        .then(() => true)
-        .catch(() => false);
+    return fs.promises.unlink(filePath).then(() => true).catch(() => false);
 };
 
 export const generateStream = async (file: any, uniqueName: string, toWebpConversion: boolean): Promise<any> => {
-    const toWebp = toWebpConversion && ['image/png', 'image/jpeg'].includes(file.mimetype);
+    const toWebp = toWebpConversion && [ 'image/png', 'image/jpeg' ].includes(file.mimetype);
     if (process.env.USE_STRIPMETADATA === 'true') {
         if (toWebp) {
             const webpPath = await convertToWebp(file.path);
@@ -190,7 +199,9 @@ export const generateStream = async (file: any, uniqueName: string, toWebpConver
         await deleteFile(file.path);
         return streamWithoutMetadata;
     }
-    const streamWithMetadata = ['image/png', 'image/jpeg', 'image/webp'].includes(file.mimetype) ? await sharpWithMetadata(file.path) : fs.promises.readFile(file.path);
+    const streamWithMetadata = [ 'image/png', 'image/jpeg', 'image/webp' ].includes(file.mimetype) ?
+        await sharpWithMetadata(file.path) :
+        fs.promises.readFile(file.path);
     await deleteFile(file.path);
     return streamWithMetadata;
 };

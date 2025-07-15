@@ -74,8 +74,6 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
             return res.status(418).end();
         }
 
-        console.log(file.mimetype, 'file mimetype', res.header, 'Res headers')
-
         if (req.url.includes('/original/') || file.mimetype === "application/pdf" || file.mimetype === "image/svg+xml" ) {
             res.setHeader('Content-Type', file.mimetype);
             res.setHeader('Content-Disposition', `inline; filename="${uniqueName}"`);
@@ -84,7 +82,7 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
         if (req.url.includes('/full/')) {
             try {
                 res.setHeader('x-processing-image', "true")
-                const webpBuffer = await convertToWebpBuffer(bodyBuffer);
+                const webpBuffer = await convertToWebpBuffer(bodyBuffer, null, file.mimetype);
                 res.setHeader('Content-Type', 'image/webp');
                 return res.send(webpBuffer).end();
             } catch (error) {
