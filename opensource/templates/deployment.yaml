@@ -41,6 +41,8 @@ spec:
                                     {{ .Values.mediaApi.originsAllowed | default "localhost,*" }}
                         -   name: REQUEST_TIMEOUT
                             value: "{{ default 310000 .Values.mediaApi.requestTimeout }}"
+                        - name: BASE_TIMEOUT_MS
+                          value: "{{ default 310000 .Values.mediaApi.baseTimeout }}"
                         -   name: METHODS_ALLOWED
                             value: "{{ default "GET,POST" .Values.mediaApi.methodsAllowed }}"
                         -   name: DUMP_FOLDER_PATH

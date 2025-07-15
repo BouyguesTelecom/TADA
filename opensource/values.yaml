@@ -94,6 +94,7 @@ mediaApi:
     imageVersion: 'api-latest'
     service: 'http://media-service'
     requestTimeout: 320000
+    baseTimeout: 2000
     routes:
         healthcheck:
             get: '/readiness-check'
