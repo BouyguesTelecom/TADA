@@ -91,7 +91,9 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
                 return res.send(webpBuffer).end();
             } catch (error) {
                 logger.error('Error during WebP conversion:', error);
-                return res.status(500).send('Internal Server Error');
+                res.setHeader('Content-Type', file.mimetype);
+                res.setHeader('Content-Disposition', `inline; filename="${uniqueName}"`);
+                return streamForResponse.pipe(res, { end: true });
             }
         }
         if (req.url.includes('/optimise/')) {
