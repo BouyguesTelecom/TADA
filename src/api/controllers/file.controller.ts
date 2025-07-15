@@ -16,7 +16,7 @@ const checkSignature = async (file: FileProps, buffer: Buffer): Promise<{ isVali
             isValidSignature: file.signature === signature,
             originSignature: signature
         };
-    } catch (error) {
+    } catch ( error ) {
         logger.error('Error checking signature:', error);
         return {
             isValidSignature: false,
@@ -32,7 +32,7 @@ export interface Locals {
 
 const streamToBuffer = async (stream) => {
     const chunks = [];
-    for await (const chunk of stream) {
+    for await ( const chunk of stream ) {
         chunks.push(chunk);
     }
     return Buffer.concat(chunks);
@@ -70,22 +70,22 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
         const { isValidSignature, originSignature } = await checkSignature(item, bodyBuffer);
 
         if (!isValidSignature) {
-            logger.error(`Invalid signatures (catalog: ${item.signature}, origin: ${originSignature})`);
+            logger.error(`Invalid signatures (catalog: ${ item.signature }, origin: ${ originSignature })`);
             return res.status(418).end();
         }
 
-        if (req.url.includes('/original/') || file.mimetype === "application/pdf" || file.mimetype === "image/svg+xml" ) {
+        if (req.url.includes('/original/') || file.mimetype === 'application/pdf' || file.mimetype === 'image/svg+xml' || ( req.url.includes('/full/') && file.mimetype === 'image/webp' )) {
             res.setHeader('Content-Type', file.mimetype);
-            res.setHeader('Content-Disposition', `inline; filename="${uniqueName}"`);
+            res.setHeader('Content-Disposition', `inline; filename="${ uniqueName }"`);
             return streamForResponse.pipe(res, { end: true });
         }
         if (req.url.includes('/full/')) {
             try {
-                res.setHeader('x-processing-image', "true")
+                res.setHeader('x-processing-image', 'true');
                 const webpBuffer = await convertToWebpBuffer(bodyBuffer, null, file.mimetype);
                 res.setHeader('Content-Type', 'image/webp');
                 return res.send(webpBuffer).end();
-            } catch (error) {
+            } catch ( error ) {
                 logger.error('Error during WebP conversion:', error);
                 return;
             }
@@ -122,8 +122,8 @@ export const postAsset = async (req: Request, res: Response) => {
             return sendResponse({
                 res,
                 status: 400,
-                data: datum ? [datum] : [],
-                errors: error ? [error] : []
+                data: datum ? [ datum ] : [],
+                errors: error ? [ error ] : []
             });
         }
         if (datum) {
@@ -135,16 +135,16 @@ export const postAsset = async (req: Request, res: Response) => {
                         res,
                         status: 400,
                         data: [],
-                        errors: ['Failed to upload in backup ']
+                        errors: [ 'Failed to upload in backup ' ]
                     });
                 }
-                return sendResponse({ res, status: 200, data: [datum], purge: 'catalog' });
-            } catch (error) {
+                return sendResponse({ res, status: 200, data: [ datum ], purge: 'catalog' });
+            } catch ( error ) {
                 await deleteCatalogItem(datum.uuid);
                 return sendResponse({
                     res,
                     status: 500,
-                    errors: ['Error during backup upload'],
+                    errors: [ 'Error during backup upload' ],
                     purge: 'catalog'
                 });
             }
@@ -153,21 +153,21 @@ export const postAsset = async (req: Request, res: Response) => {
     return sendResponse({
         res,
         status: 400,
-        errors: ['Failed to upload file']
+        errors: [ 'Failed to upload file' ]
     });
 };
 
 export const patchAsset = async (req: Request, res: Response) => {
     const { itemToUpdate, uuid, fileInfo, uniqueName, toWebp, file } = res.locals;
-    const stream = file && (await generateStream(file, uniqueName, toWebp));
-    if ((file && stream) || !file) {
+    const stream = file && ( await generateStream(file, uniqueName, toWebp) );
+    if (( file && stream ) || !file) {
         const signature = stream && calculateSHA256(stream);
         const { datum: catalogData, error } = await updateCatalogItem(uuid, {
             ...itemToUpdate,
             ...fileInfo,
             version: file ? itemToUpdate.version + 1 : itemToUpdate.version,
-            ...(signature && { signature }),
-            ...(file && { size: file.size })
+            ...( signature && { signature } ),
+            ...( file && { size: file.size } )
         });
 
         if (stream) {
@@ -176,14 +176,14 @@ export const patchAsset = async (req: Request, res: Response) => {
                 await deleteCatalogItem(itemToUpdate.uuid);
             }
         }
-        const data = catalogData ? [catalogData] : [];
-        const errors = error ? [error] : [];
+        const data = catalogData ? [ catalogData ] : [];
+        const errors = error ? [ error ] : [];
         return sendResponse({ res, status: 200, data, errors, purge: 'true' });
     }
     return sendResponse({
         res,
         status: 400,
-        errors: ['Failed to upload file in backup']
+        errors: [ 'Failed to upload file in backup' ]
     });
 };
 
@@ -195,7 +195,7 @@ export const deleteAsset = async (req: Request, res: Response) => {
         return sendResponse({
             res,
             status: 500,
-            errors: [`Failed to remove file from catalog `]
+            errors: [ `Failed to remove file from catalog ` ]
         });
     }
 
@@ -205,14 +205,14 @@ export const deleteAsset = async (req: Request, res: Response) => {
         return sendResponse({
             res,
             status: 500,
-            data: [{ message: `File not removed from backup` }]
+            data: [ { message: `File not removed from backup` } ]
         });
     }
 
     return sendResponse({
         res,
         status: 200,
-        data: [datum],
+        data: [ datum ],
         purge: 'true'
     });
 };
