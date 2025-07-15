@@ -76,29 +76,20 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
 
         console.log(file.mimetype, 'file mimetype', res.header, 'Res headers')
 
-        if (req.url.includes('/original/') || file.mimetype === "application/pdf" || file.mimetype === "image/svg+xml" || (req.url.includes('/full/') && file.mimetype === "image/webp" )) {
-            console.log('Je suis dans le cas 1. Original');
+        if (req.url.includes('/original/') || file.mimetype === "application/pdf" || file.mimetype === "image/svg+xml" ) {
             res.setHeader('Content-Type', file.mimetype);
             res.setHeader('Content-Disposition', `inline; filename="${uniqueName}"`);
             return streamForResponse.pipe(res, { end: true });
         }
         if (req.url.includes('/full/')) {
-            console.log('Je suis dans le cas 2. Full !')
             try {
+                res.setHeader('x-processing-image', "true")
                 const webpBuffer = await convertToWebpBuffer(bodyBuffer);
-                if(!webpBuffer){
-                    logger.error(`Error processing convertToWebpBuffer for ${uniqueName}; returning original file.`)
-                    res.setHeader('Content-Type', file.mimetype);
-                    res.setHeader('Content-Disposition', `inline; filename="${uniqueName}"`);
-                    return streamForResponse.pipe(res, { end: true });
-                }
                 res.setHeader('Content-Type', 'image/webp');
                 return res.send(webpBuffer).end();
             } catch (error) {
                 logger.error('Error during WebP conversion:', error);
-                res.setHeader('Content-Type', file.mimetype);
-                res.setHeader('Content-Disposition', `inline; filename="${uniqueName}"`);
-                return streamForResponse.pipe(res, { end: true });
+                return;
             }
         }
         if (req.url.includes('/optimise/')) {

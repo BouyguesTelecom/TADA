@@ -8,18 +8,31 @@ const parsePayloadSize = (size: string): number => {
 };
 
 export const timeoutMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    const baseTimeout = Number(process.env.BASE_TIMEOUT_MS) || 1500;
+    const baseTimeout = Number(process.env.BASE_TIMEOUT_MS) || 3000;
     const maxPayloadSize = parsePayloadSize(process.env.PAYLOAD_MAX_SIZE || '10mb');
-    const timeout = (baseTimeout * (maxPayloadSize / (1024 * 1024))) / 2;
+    const timeoutDuration = (baseTimeout * (maxPayloadSize / (1024 * 1024))) / 2;
 
-    req.setTimeout(timeout, () => {
-        if (!res.headersSent) {
-            return res.status(408).send('Request timeout').end();
+    let timeoutHandler: any;
+
+    const handleTimeout = () => {
+        console.log('Timeout occurred');
+        if (res.getHeader('x-processing-image') === 'true') {
+            console.log('More processing time required, resetting timeout...(big size,...?)');
+            resetTimeout();
+        } else if (!res.headersSent) {
+            res.status(408).send('Request timeout').end();
         }
-    });
+    };
 
-    res.on('timeout', () => {
-        return res.status(408).send('Request timeout').end();
+    const resetTimeout = () => {
+        clearTimeout(timeoutHandler);
+        timeoutHandler = setTimeout(handleTimeout, timeoutDuration);
+    };
+
+    resetTimeout();
+
+    res.on('finish', () => {
+        clearTimeout(timeoutHandler);
     });
 
     next();
