@@ -73,12 +73,17 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
             logger.error(`Invalid signatures (catalog: ${item.signature}, origin: ${originSignature})`);
             return res.status(418).end();
         }
+
+        console.log(file.mimetype, 'file mimetype', res.header, 'Res headers')
+
         if (req.url.includes('/original/') || file.mimetype === "application/pdf" || file.mimetype === "image/svg+xml" || (req.url.includes('/full/') && file.mimetype === "image/webp" )) {
+            console.log('Je suis dans le cas 1. Original');
             res.setHeader('Content-Type', file.mimetype);
             res.setHeader('Content-Disposition', `inline; filename="${uniqueName}"`);
             return streamForResponse.pipe(res, { end: true });
         }
         if (req.url.includes('/full/')) {
+            console.log('Je suis dans le cas 2. Full !')
             try {
                 const webpBuffer = await convertToWebpBuffer(bodyBuffer);
                 if(!webpBuffer){
