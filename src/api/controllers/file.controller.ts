@@ -73,7 +73,7 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
             logger.error(`Invalid signatures (catalog: ${item.signature}, origin: ${originSignature})`);
             return res.status(418).end();
         }
-        if (req.url.includes('/original/')) {
+        if (req.url.includes('/original/') || file.mimetype === "application/pdf" || file.mimetype === "image/svg+xml") {
             res.setHeader('Content-Type', file.mimetype);
             res.setHeader('Content-Disposition', `inline; filename="${uniqueName}"`);
             return streamForResponse.pipe(res, { end: true });
