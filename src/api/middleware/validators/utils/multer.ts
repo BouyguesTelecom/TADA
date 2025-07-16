@@ -6,11 +6,10 @@ export const storage = multer.diskStorage({
     filename: (_req, file, callback) => {
         const convertToWebp = ['image/png', 'image/jpeg'].includes(file.mimetype) && !(_req.body.toWebp === 'false');
         let filename = _req.body.filename ? _req.body.filename : file.originalname;
-
         const ext = path.extname(filename);
         const name = path.basename(filename, ext);
 
-        const sanitizedFilename = name.replace(/[^a-zA-Z0-9\-@_%]+/g, '_') + ext;
+        const sanitizedFilename = name.replace(/[^a-zA-Z0-9\-@_]+/g, '_') + ext;
         const finalFilename = convertToWebp ? sanitizedFilename.replace(ext, '.webp') : sanitizedFilename;
         callback(null, finalFilename);
     },
