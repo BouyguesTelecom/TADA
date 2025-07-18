@@ -1,0 +1,28 @@
+{{- if not .Values.local }}
+  {{- if .Values.nginx.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+    name: {{ .Release.Name }}-nginx-hpa
+spec:
+    scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: tada-{{ .Release.Name }}-nginx
+    minReplicas: {{ .Values.nginx.hpa.replicaCountMin }}
+    maxReplicas: {{ .Values.nginx.hpa.replicaCountMax }}
+    metrics:
+        -   type: Resource
+            resource:
+                name: memory
+                target:
+                    type: Utilization
+                    averageUtilization: {{.Values.nginx.hpa.metrics.memory.averageUtilization}}
+        -   type: Resource
+            resource:
+                name: cpu
+                target:
+                    type: Utilization
+                    averageUtilization: {{.Values.nginx.hpa.metrics.cpu.averageUtilization}}
+  {{- end }}
+{{- end }}

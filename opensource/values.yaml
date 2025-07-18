@@ -75,6 +75,14 @@ nginx:
         enabled: true
         maxAge: 900
         expires: '15m'
+    hpa:
+        replicaCountMin: 2
+        replicaCountMax: 6
+        metrics:
+            memory:
+                averageUtilization: 100
+            cpu:
+                averageUtilization: 100
 
 
 nginxPurge:
