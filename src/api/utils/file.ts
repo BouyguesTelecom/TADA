@@ -181,8 +181,30 @@ export const stripMetadata = async (imagePath: string, finalPath: string, mimety
     return false;
 };
 
-export const deleteFile = (filePath): Promise<boolean> => {
-    return fs.promises.unlink(filePath).then(() => true).catch(() => false);
+export const deleteFile = async (filePath): Promise<boolean> => {
+    try {
+        await fs.promises.unlink(filePath);
+        console.log(`File deleted: ${filePath}`);
+
+        let currentDir = path.dirname(filePath);
+
+        while (currentDir !== path.resolve('tmp/files')) {
+            const files = await fs.promises.readdir(currentDir);
+
+            if (files.length === 0) {
+                await fs.promises.rmdir(currentDir);
+                console.log(`Directory deleted: ${currentDir}`);
+                currentDir = path.dirname(currentDir);
+            } else {
+                break;
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error(`Error: ${error}`);
+        return false;
+    }
 };
 
 export const generateStream = async (file: any, uniqueName: string, toWebpConversion: boolean): Promise<any> => {

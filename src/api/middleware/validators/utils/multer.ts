@@ -1,8 +1,15 @@
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
-
+import { randomUUID } from 'node:crypto';
 export const storage = multer.diskStorage({
+    destination: (_req, _file, callback) => {
+        const path = `/tmp/files/${randomUUID()}`;
+        if (!fs.existsSync(`${ path }`)) {
+            fs.mkdirSync(`${ path }`, { recursive: true });
+        }
+        callback(null, `${ path }`);
+    },
     filename: (_req, file, callback) => {
         const convertToWebp = ['image/png', 'image/jpeg'].includes(file.mimetype) && !(_req.body.toWebp === 'false');
         let filename = _req.body.filename ? _req.body.filename : file.originalname;
@@ -12,13 +19,6 @@ export const storage = multer.diskStorage({
         const sanitizedFilename = name.replace(/[^a-zA-Z0-9\-@_]+/g, '_') + ext;
         const finalFilename = convertToWebp ? sanitizedFilename.replace(ext, '.webp') : sanitizedFilename;
         callback(null, finalFilename);
-    },
-    destination: (_req, _file, callback) => {
-        const path = `/tmp`;
-        if (!fs.existsSync(`${path}`)) {
-            fs.mkdirSync(`${path}`, { recursive: true });
-        }
-        callback(null, `${path}`);
     }
 });
 

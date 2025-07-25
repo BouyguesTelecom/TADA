@@ -75,7 +75,7 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
         }
 
         if (req.url.includes('/original/') || file.mimetype === 'application/pdf' || file.mimetype === 'image/svg+xml' || ( req.url.includes('/full/') && file.mimetype === 'image/webp' )) {
-            res.setHeader('Content-Type', file.mimetype);
+            res.setHeader('Content-Type', file.mimetype ?? "image/webp");
             res.setHeader('Content-Disposition', `inline; filename="${ uniqueName }"`);
             return streamForResponse.pipe(res, { end: true });
         }
