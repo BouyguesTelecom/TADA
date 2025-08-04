@@ -40,14 +40,40 @@ export const validatorFileCatalog = async (req: Request, res: Response, next: Ne
     const { datum: itemFound } = await getCatalogItem({ uuid: fileUUID });
     if (itemFound) {
         if (req.method === 'PATCH' && file) {
-            if (file.mimetype !== itemFound.original_mimetype && req.body.toWebp === 'false' && itemFound.mimetype === 'image/webp') {
-                return sendResponse({
-                    res,
-                    status: 400,
-                    errors: [`Mimetypes are not the same`]
-                });
+            const imageMimeTypes = ['image/png', 'image/jpeg', 'image/webp'];
+
+            const isOriginalImageOrPdfSvg = ['application/pdf', 'image/svg+xml'].includes(itemFound.original_mimetype);
+            const isOriginalWithoutConversion = itemFound.mimetype === itemFound.original_mimetype;
+            const isReplacementImage = imageMimeTypes.includes(file.mimetype);
+            const canConvertToWebp = req.body.toWebp !== 'false';
+
+            if (isOriginalImageOrPdfSvg) {
+                if (file.mimetype !== itemFound.original_mimetype || (!canConvertToWebp && itemFound.mimetype === 'image/webp')) {
+                    return sendResponse({
+                        res,
+                        status: 400,
+                        errors: [`Mimetypes are not the same or conversion not allowed`]
+                    });
+                }
+            } else if (isOriginalWithoutConversion) {
+                if (file.mimetype !== itemFound.original_mimetype) {
+                    return sendResponse({
+                        res,
+                        status: 400,
+                        errors: [`Replacement not allowed for files without conversion`]
+                    });
+                }
+            } else {
+                if (!isReplacementImage || !canConvertToWebp) {
+                    return sendResponse({
+                        res,
+                        status: 400,
+                        errors: [`Replacement not allowed for non-image types`]
+                    });
+                }
             }
         }
+
         if (req.method === 'POST') {
             return sendResponse({
                 res,
@@ -96,7 +122,7 @@ export const validatorFileFilter = async (req: Request, res: Response, next: Nex
     return sendResponse({
         res,
         status: 400,
-        errors: [`No file detected`]
+        errors: [ `No file detected` ]
     });
 };
 

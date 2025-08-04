@@ -5,7 +5,7 @@ import { addCatalogItem, deleteCatalogItem, updateCatalogItem } from '../catalog
 import { sendResponse } from '../middleware/validators/utils';
 import { FileProps } from '../props/catalog';
 import { calculateSHA256, formatItemForCatalog, isExpired } from '../utils/catalog';
-import { convertToWebpBuffer, generateStream, returnDefaultImage } from '../utils/file';
+import { convertToWebpBuffer, deleteFile, generateStream, returnDefaultImage } from '../utils/file';
 import { logger } from '../utils/logs/winston';
 import { deleteFileBackup, getBackup, patchFileBackup, postFileBackup } from './delegated-storage.controller';
 
@@ -138,9 +138,11 @@ export const postAsset = async (req: Request, res: Response) => {
                         errors: [ 'Failed to upload in backup ' ]
                     });
                 }
+                await deleteFile(file.path);
                 return sendResponse({ res, status: 200, data: [ datum ], purge: 'catalog' });
             } catch ( error ) {
                 await deleteCatalogItem(datum.uuid);
+                await deleteFile(file.path);
                 return sendResponse({
                     res,
                     status: 500,
@@ -178,8 +180,10 @@ export const patchAsset = async (req: Request, res: Response) => {
         }
         const data = catalogData ? [ catalogData ] : [];
         const errors = error ? [ error ] : [];
+        await deleteFile(file.path);
         return sendResponse({ res, status: 200, data, errors, purge: 'true' });
     }
+    await deleteFile(file.path);
     return sendResponse({
         res,
         status: 400,
