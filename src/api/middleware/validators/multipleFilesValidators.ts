@@ -48,7 +48,6 @@ export const validatorFilesFilter = async (req: Request, res: Response, next: Ne
 export const validatorUUIds = async (req: Request, res: Response, next: NextFunction) => {
     if (req.method === 'PATCH' || req.method === 'DELETE') {
         const { contentType } = res.locals;
-
         if (contentType === 'multipart/form-data') {
             const uuidsFromBody = req.body.uuids;
             if (!uuidsFromBody) {
@@ -60,7 +59,6 @@ export const validatorUUIds = async (req: Request, res: Response, next: NextFunc
             }
             const numberOfFiles = req.files.length;
             const uuids = uuidsFromBody.split(',');
-
             if (numberOfFiles !== uuids.length) {
                 return sendResponse({
                     res,

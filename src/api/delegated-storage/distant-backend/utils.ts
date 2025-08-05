@@ -182,6 +182,7 @@ export const uploads = async ({ filespath, files, version, mimetype }: UploadFil
         const form = new FormData();
 
         files.forEach((file, index) => {
+            console.log(file, 'WAZA 3')
             const filepath = filespath[index];
             if (Buffer.isBuffer(file) || typeof file === 'string') {
                 form.append(`file${index}`, Buffer.from(file), {
@@ -193,10 +194,9 @@ export const uploads = async ({ filespath, files, version, mimetype }: UploadFil
             }
         });
 
-        form.append('base_url', process.env.NGINX_INGRESS || '');
+        form.append('base_url', process.env.PUBLIC_URL || '');
         form.append('unique_names', JSON.stringify(filespath));
         form.append('destinations', JSON.stringify(filespath));
-
         const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('POST', '', form));
 
         if (backupUpload.status === 401) {
@@ -211,8 +211,8 @@ export const uploads = async ({ filespath, files, version, mimetype }: UploadFil
     } catch (errorMessage: any) {
         logger.error(`ERROR: ${errorMessage}`);
         logger.error('Upload error details:', errorMessage);
+        return { status: 500, error: errorMessage?.message || 'Upload failed' };
     }
-    return null;
 };
 
 export const update = async (file, stream, info): Promise<BackupProps> => {
@@ -265,11 +265,11 @@ export const updates = async ({ filespath, files, version, mimetype }: UploadFil
             }
         });
 
-        form.append('base_url', process.env.NGINX_INGRESS || '');
+        form.append('base_url', process.env.TADA_PUBLIC_URL || '');
         form.append('unique_names', JSON.stringify(filespath));
         form.append('destinations', JSON.stringify(filespath));
 
-        const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('PUT', '', form));
+        const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('PATCH', '', form));
 
         if (backupUpload.status === 401) {
             logger.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
@@ -279,12 +279,12 @@ export const updates = async ({ filespath, files, version, mimetype }: UploadFil
         if (backupUpload.status === 201 || backupUpload.status === 200) {
             return { status: 200, stream: backupUpload.body };
         }
-        return { status: backupUpload.status, stream: null };
+        return { status: backupUpload.status, stream: null, error: await backupUpload.json() };
     } catch (errorMessage: any) {
         logger.error(`ERROR: ${errorMessage}`);
         logger.error('Upload error details:', errorMessage);
+        return { status: 500, error: errorMessage?.message || 'Update failed' };
     }
-    return null;
 };
 
 export const deleteFile = async (itemToUpdate): Promise<BackupProps> => {
