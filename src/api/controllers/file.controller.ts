@@ -39,11 +39,13 @@ const streamToBuffer = async (stream) => {
 };
 
 export const getAsset = async (req: Request, res: Response & { locals: Locals }) => {
-    const { uniqueName, file } = res.locals;
+    const { uniqueName, file, queryVersion } = res.locals;
     const fileIsExpired = isExpired(file);
 
     if (!fileIsExpired) {
-        const getBackupFile: Readable | null = await getBackup(uniqueName, file.version.toString(), file.mimetype);
+        const getBackupFile: Readable | null = await getBackup(uniqueName, queryVersion ?
+            queryVersion.toString() :
+            file.version.toString(), file.mimetype);
         if (!getBackupFile) {
             await deleteCatalogItem(file.uuid);
             return res.status(404).end();
@@ -57,9 +59,6 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
         bodyStream.pipe(streamForSignature);
         bodyStream.pipe(streamForResponse);
 
-        // const { data: catalog } = await getCatalog(); //ou utiliser getCatalogItem()
-        // const item = catalog.find((item: FileProps) => item.unique_name === uniqueName);
-
         const item = file;
 
         bodyStream.on('error', (err) => {
@@ -69,13 +68,13 @@ export const getAsset = async (req: Request, res: Response & { locals: Locals })
 
         const { isValidSignature, originSignature } = await checkSignature(item, bodyBuffer);
 
-        if (!isValidSignature) {
+        if (!isValidSignature && !queryVersion) {
             logger.error(`Invalid signatures (catalog: ${ item.signature }, origin: ${ originSignature })`);
             return res.status(418).end();
         }
 
         if (req.url.includes('/original/') || file.mimetype === 'application/pdf' || file.mimetype === 'image/svg+xml' || ( req.url.includes('/full/') && file.mimetype === 'image/webp' )) {
-            res.setHeader('Content-Type', file.mimetype ?? "image/webp");
+            res.setHeader('Content-Type', file.mimetype ?? 'image/webp');
             res.setHeader('Content-Disposition', `inline; filename="${ uniqueName }"`);
             return streamForResponse.pipe(res, { end: true });
         }

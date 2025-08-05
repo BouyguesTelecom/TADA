@@ -174,7 +174,9 @@ export const validatorFileBody = async (req: Request, res: Response, next: NextF
 
 export const validatorGetAsset = async (req: Request, res: Response, next: NextFunction) => {
     const allowedNamespaces = process.env.NAMESPACES?.split(',');
-    const uniqueName = getUniqueName(req.url, req.params.format);
+    const urlWithoutQueryParams = req.url.split('?')[0];
+    const { version } = req.query;
+    const uniqueName = getUniqueName(urlWithoutQueryParams, req.params.format);
     if (uniqueName === '/default.svg' || uniqueName === '/error.svg') {
         return returnDefaultImage(res, uniqueName);
     }
@@ -186,6 +188,6 @@ export const validatorGetAsset = async (req: Request, res: Response, next: NextF
     if (!allowedNamespaces?.includes(namespace) || !file) {
         return res.status(404).end();
     }
-    res.locals = { ...res.locals, uniqueName, file };
+    res.locals = { ...res.locals, uniqueName, file, ...( version && { queryVersion: Number(version) } ) };
     next();
 };
