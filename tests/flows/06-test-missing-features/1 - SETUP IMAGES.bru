@@ -1,14 +1,39 @@
 meta {
-  name: POST FILE
+  name: 1 - SETUP IMAGES
   type: http
-  seq: 3
+  seq: 1
+}
+
+post {
+  url: {{URL_API}}{{URL_API_PREFIX}}/file
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_TOKEN}}
+}
+
+body:multipart-form {
+  namespace: DEV
+  destination: tests
+  filename: setup-test.jpg
+  file: @file(/tmp/images/jpg.jpg)
+}
+
+vars:post-response {
+  SETUP_IMAGE_ID: res.body?.data?.[0]?.uuid
+}
+
+assert {
+  res.status: eq 200
 }
 
 script:pre-request {
   const fs = require('fs');
   const path = require('path');
   
-  const srcDir = path.resolve(__dirname, '../local/images');
+  const srcDir = path.resolve(__dirname, '../../local/images');
   const destDir = '/tmp/images';
   
   const copyFiles = (src, dest) => {
@@ -39,30 +64,4 @@ script:pre-request {
   ensureDirExists(destDir, () => {
     copyFiles(srcDir, destDir);
   });
-}
-
-post {
-  url: {{URL_API}}{{URL_API_PREFIX}}/file
-  body: multipartForm
-  auth: bearer
-}
-
-auth:bearer {
-  token: {{AUTH_TOKEN}}
-}
-
-body:multipart-form {
-  namespace: DEV
-  file: @file(/tmp/images/test.png)
-  destination: tests
-  ~expired: true
-}
-
-vars:post-response {
-  IMAGE_URL: res.body?.data?.[0]?.public_url
-  IMAGE_ID: res.body?.data?.[0]?.uuid
-}
-
-assert {
-  res.status: eq 200
 }

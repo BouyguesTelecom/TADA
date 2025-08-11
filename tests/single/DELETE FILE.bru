@@ -5,13 +5,13 @@ meta {
 }
 
 delete {
-  url: http://staging.api.www.apps.ocp-3.ocp.euw3r53.nbyt.fr/file/dembele.webp
+  url: {{URL_API}}{{URL_API_PREFIX}}/file/{{IMAGE_ID}}
   body: json
   auth: bearer
 }
 
 auth:bearer {
-  token: 8hl7k32xdcc7iqhpa81vnv048fdzjiw-x0mygv3l3kglepybk0b3w8sjm31a2j2q8
+  token: {{AUTH_TOKEN}}
 }
 
 body:json {

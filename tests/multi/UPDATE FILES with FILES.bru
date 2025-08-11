@@ -14,22 +14,9 @@ auth:bearer {
   token: {{AUTH_TOKEN}}
 }
 
-body:json {
-  [{
-    "namespace": "DEV",
-    "uuid": "67bbec35-5daa-4bca-9cf6-bad394866330",
-    "information": "azdzadazdzadza"
-  },
-  {
-    "namespace": "DEV",
-    "uuid": "d97a79c5-d69b-45e5-9682-fa714152c7e9",
-    "information": "azdzadazdzadza"
-  }]
-}
-
 body:multipart-form {
   namespace: DEV
-  uuids: cff4fd09adab9720206bdefa584620d5,zadzedz
-  information: lolilol2dzdazd
+  uuids: {{MULTI_IMAGE_IDS}}
+  information: Updated files with new files
   files: @file(/tmp/images/error.webp|/tmp/images/test.png)
 }

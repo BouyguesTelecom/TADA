@@ -1,0 +1,21 @@
+meta {
+  name: 2 - TEST QUEUE STATUS
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{URL_API}}{{URL_API_PREFIX}}/queue-status
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_TOKEN}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.enCours: isDefined
+  res.body.enAttente: isDefined
+}

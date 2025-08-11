@@ -17,5 +17,5 @@ auth:bearer {
 assert {
   res.status: eq 200
   res.body.data: length 1
-  res.body.errors: isNull 0
+  res.body.errors: length 0
 }

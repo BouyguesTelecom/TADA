@@ -1,11 +1,11 @@
 meta {
-  name: DELETE CATALOG
+  name: 5 - CLEANUP SETUP IMAGE
   type: http
-  seq: 9
+  seq: 5
 }
 
 delete {
-  url: {{URL_API}}{{URL_API_PREFIX}}/catalog
+  url: {{URL_API}}{{URL_API_PREFIX}}/file/{{SETUP_IMAGE_ID}}
   body: json
   auth: bearer
 }
@@ -18,4 +18,8 @@ body:json {
   {
     "namespace": "DEV"
   }
+}
+
+assert {
+  res.status: eq 200
 }

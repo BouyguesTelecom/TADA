@@ -17,5 +17,16 @@ auth:bearer {
 body:multipart-form {
   namespace: DEV
   files: @file(/tmp/images/test.pdf|/tmp/images/test.svg)
+  destination: tests
   ~toWebp: false
+}
+
+vars:post-response {
+  MULTI_IMAGE_IDS: res.body?.data ? res.body.data.map(item => item.uuid).join(',') : ''
+  MULTI_FILE_1_ID: res.body?.data?.[0]?.uuid
+  MULTI_FILE_2_ID: res.body?.data?.[1]?.uuid
+}
+
+assert {
+  res.status: eq 200
 }

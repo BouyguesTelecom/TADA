@@ -15,20 +15,9 @@ auth:bearer {
 }
 
 body:json {
-  [{
-    "namespace": "DEV",
-    "uuid": "lol"
-  },
   {
     "namespace": "DEV",
-    "uuid": "7945d3a81f3d2d879c08dc8c6bddab64",
-    "information": "lolilol4"
-  }]
-}
-
-body:multipart-form {
-  namespace: DEV
-  uuids: 919f6865-051e-4bb8-b080-8cd7e906ffe3
-  files: @file(/tmp/images/default.webp)
-  information: lolilol2
+    "uuids": "{{MULTI_IMAGE_IDS}}",
+    "information": "Updated multiple files via JSON"
+  }
 }
