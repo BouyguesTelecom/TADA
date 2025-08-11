@@ -45,23 +45,29 @@ export const formatItemForCatalog = async (
     resourceName: string,
     namespace: string,
     uniqueName: string,
-    folderPath: string | null,
     mimetype: string,
     toWebp: boolean,
     signature: string,
     size: string
 ) => {
     const newUUID = crypto.createHash('md5').update(uniqueName).digest('hex');
+    const publicUrl = process.env.PUBLIC_URL || 'http://localhost:3001';
+    const baseUrl = app.locals.PREFIXED_ASSETS_URL || '/assets';
+    
+    if (!process.env.PUBLIC_URL) {
+        console.warn(`⚠️  PUBLIC_URL not set, using fallback: ${publicUrl}`);
+    }
+    
     return {
         uuid: newUUID,
         version: 1,
         namespace,
-        public_url: `${process.env.PUBLIC_URL}${app.locals.PREFIXED_ASSETS_URL}/${mimetype === 'application/pdf' || mimetype === 'image/svg+xml' ? 'original' : 'full'}${uniqueName}`,
+        public_url: `${publicUrl}${baseUrl}/${mimetype === 'application/pdf' || mimetype === 'image/svg+xml' ? 'original' : 'full'}${uniqueName}`,
         unique_name: uniqueName,
         filename: toWebp && ['image/jpeg', 'image/png'].includes(mimetype) ? resourceName.split('.')[0] + '.webp' : resourceName,
         original_filename: resourceName,
-        base_host: process.env.PUBLIC_URL,
-        base_url: `${app.locals.PREFIXED_ASSETS_URL}`,
+        base_host: publicUrl,
+        base_url: baseUrl,
         external_id: null,
         expired: false,
         expiration_date: null,

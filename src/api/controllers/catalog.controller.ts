@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import proxy from 'express-http-proxy';
-import { addCatalogItem, createDumpCatalog, deleteAllCatalog, deleteCatalogItem, getCatalogItem, getDumpCatalog, restoreDumpCatalog, updateCatalogItem } from '../catalog';
-import { getAllFiles } from '../catalog/redis/operations';
+import { addCatalogItem, createDumpCatalog, deleteAllCatalog, deleteCatalogItem, getCatalog, getCatalogItem, getDumpCatalog, restoreDumpCatalog, updateCatalogItem } from '../catalog';
 import { validateOneFile } from '../catalog/validators';
 import { sendResponse } from '../middleware/validators/utils';
 import { patchFileBackup } from './delegated-storage.controller';
@@ -17,9 +16,9 @@ export const addFileInCatalog = async (req: Request, res: Response): Promise<any
 };
 
 export const getFiles = async (req: Request, res: Response) => {
-    const { data: catalog, errors } = await getAllFiles();
+    const { data: catalog, errors } = await getCatalog();
 
-    if (errors) {
+    if (errors.length) {
         return res.status(500).json({ errors });
     }
 
@@ -42,12 +41,13 @@ export const updateFileInCatalog = async (req: Request, res: Response) => {
     const itemToUpdate = req.body;
     const { status, datum, error } = await updateCatalogItem(uuid, itemToUpdate);
 
-    const patchBackupFile = await patchFileBackup(datum, null, itemToUpdate);
+    const { error: errorFromBackup } = await patchFileBackup(datum, null, itemToUpdate);
+
     return sendResponse({
         res,
         status,
         data: datum ? [{ ...datum, catalogItemUrl: datum.base_host + '/catalog/' + datum.uuid }] : null,
-        errors: error ? [error] : null,
+        errors: error ? [error] : errorFromBackup ? [errorFromBackup] : null,
         purge: 'true'
     });
 };
@@ -60,7 +60,7 @@ export const updateFilesInCatalog = async (req: Request, res: Response) => {
         if (status === 200) {
             valid.push(datum);
         } else {
-            invalid.push(datum);
+            invalid.push(error);
         }
     }
     return sendResponse({ res, status: 200, data: valid, errors: invalid });
@@ -78,7 +78,7 @@ export const deleteFileFromCatalog = async (req: Request, res: Response) => {
     });
 };
 
-export const deleteCatalog = async (req: Request, res: Response) => {
+export const deleteCatalog = async (res: Response) => {
     const { status, data, errors } = await deleteAllCatalog();
     return sendResponse({ res, status, data, errors });
 };
@@ -105,7 +105,7 @@ export const createDump = async (req: Request, res: Response) => {
     return sendResponse({ res, status, data, errors });
 };
 
-export const restoreDump = async (req: Request, res: Response) => {
+export const restoreDump = async (res: Response) => {
     const { status, data, errors } = await restoreDumpCatalog();
     return sendResponse({ res, status, data, errors });
 };
