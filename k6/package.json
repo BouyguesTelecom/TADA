@@ -1,23 +1,30 @@
 {
-    "name": "k6",
-    "version": "1.0.0",
-    "main": "index.js",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "build": "tsc",
-        "k6": "tsc && k6 run build/index.js --config config.json",
-        "k6-redis": "tsc && k6 run build/redis-call/index.js --config config.json"
-    },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "description": "",
-    "devDependencies": {
-        "@types/node": "^22.9.1",
-        "typescript": "^5.6.3",
-        "@types/k6": "0.54.0"
-    },
-    "dependencies": {
-        "k6": "^0.0.0"
-    }
+  "name": "tada-k6-tests",
+  "version": "1.0.0",
+  "description": "K6 load testing suite for TADA media API",
+  "scripts": {
+    "build": "tsc",
+    "test:smoke": "k6 run src/simple-smoke-test.js --env ENVIRONMENT=local",
+    "test:smoke:k8s": "k6 run src/simple-smoke-test.js --env ENVIRONMENT=kubernetes",
+    "test:load": "k6 run src/simple-load-test.js --env ENVIRONMENT=local",
+    "test:load:k8s": "k6 run src/simple-load-test.js --env ENVIRONMENT=kubernetes",
+    "test:stress": "npm run build && k6 run dist/scenarios/stress-test.js --env ENVIRONMENT=local",
+    "test:stress:k8s": "npm run build && k6 run dist/scenarios/stress-test.js --env ENVIRONMENT=kubernetes",
+    "test:spike": "npm run build && k6 run dist/scenarios/spike-test.js --env ENVIRONMENT=local",
+    "test:catalog": "npm run build && k6 run dist/scenarios/catalog-test.js --env ENVIRONMENT=local",
+    "test:all": "npm run build && npm run test:smoke && npm run test:load && npm run test:stress",
+    "test:quick": "k6 run --vus 1 --duration 30s src/simple-smoke-test.js --env ENVIRONMENT=local",
+    "test:quick:k8s": "k6 run --vus 1 --duration 30s src/simple-smoke-test.js --env ENVIRONMENT=kubernetes",
+    "interactive": "./run-examples.sh",
+    "clean": "rm -rf dist node_modules",
+    "setup": "npm install && npm run build"
+  },
+  "devDependencies": {
+    "@types/k6": "^0.54.0",
+    "@types/node": "^22.9.1",
+    "typescript": "^5.6.3"
+  },
+  "keywords": ["k6", "load-testing", "performance", "tada", "media-api"],
+  "author": "",
+  "license": "ISC"
 }
