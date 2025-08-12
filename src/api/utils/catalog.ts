@@ -28,7 +28,7 @@ export const isExpired = (itemBody: FileProps): boolean => {
     return expired;
 };
 
-function getDestinationPath(finalPath, namespace) {
+const getDestinationPath = (finalPath, namespace) => {
     const destinationWithLeadingSlash = path.dirname(finalPath);
 
     const destination = destinationWithLeadingSlash.startsWith('/') ? destinationWithLeadingSlash.slice(1) : destinationWithLeadingSlash;

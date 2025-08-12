@@ -1,9 +1,8 @@
 import { Request, Response } from 'express';
-import proxy from 'express-http-proxy';
-import { addCatalogItem, createDumpCatalog, deleteAllCatalog, deleteCatalogItem, getCatalog, getCatalogItem, getDumpCatalog, restoreDumpCatalog, updateCatalogItem } from '../catalog';
+import { addCatalogItem, deleteAllCatalog, deleteCatalogItem, getCatalog, getCatalogItem, updateCatalogItem } from '../catalog';
 import { validateOneFile } from '../catalog/validators';
 import { sendResponse } from '../middleware/validators/utils';
-import { patchFileBackup } from './delegated-storage.controller';
+import { patchFileBackup, createDumpBackup, restoreDumpBackup, getDumpBackup } from './delegated-storage.controller';
 
 export const addFileInCatalog = async (req: Request, res: Response): Promise<any> => {
     const item = req.body;
@@ -78,34 +77,34 @@ export const deleteFileFromCatalog = async (req: Request, res: Response) => {
     });
 };
 
-export const deleteCatalog = async (res: Response) => {
+export const deleteCatalog = async (_req: Request, res: Response) => {
     const { status, data, errors } = await deleteAllCatalog();
     return sendResponse({ res, status, data, errors });
 };
 
-export const getDump = async (req: Request, res: Response, next) => {
-    const { filename, format } = req.query;
-    if (process.env.DELEGATED_STORAGE_METHOD === 'DISTANT_BACKEND') {
-        const delegatedStorageHost = process.env.DELEGATED_STORAGE_HOST;
-        const urlToGetBackup = process.env.URL_TO_GET_BACKUP || '/get-dump';
-        const targetHost = `${delegatedStorageHost}`;
-        const targetURLPath = `${urlToGetBackup}/${encodeURIComponent(filename.toString())}`;
-        req.headers['Authorization'] = `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`;
+export const getDump = async (req: Request, res: Response) => {
+    console.log(req, 'REQ ????')
+    const { format } = req?.query;
+    const { filename } = req?.params;
+    const filenameStr = filename ? filename.toString() : null;
+    const formatStr = format ? format.toString() : 'rdb';
 
-        return proxy(targetHost, { proxyReqPathResolver: () => targetURLPath })(req, res, next);
-    }
-
-    const { status, data, errors } = await getDumpCatalog(filename, format);
+    const { status, data, errors } = await getDumpBackup(filenameStr, formatStr);
     return sendResponse({ res, status, data, errors });
 };
 
 export const createDump = async (req: Request, res: Response) => {
     const { filename, format } = req.query;
-    const { status, data, errors } = await createDumpCatalog(filename, format);
+    const filenameStr = filename ? filename.toString() : null;
+    const formatStr = format ? format.toString() : 'rdb';
+    const { status, data, errors } = await createDumpBackup(filenameStr, formatStr);
     return sendResponse({ res, status, data, errors });
 };
 
-export const restoreDump = async (res: Response) => {
-    const { status, data, errors } = await restoreDumpCatalog();
+export const restoreDump = async (req: Request, res: Response) => {
+    const { filename, format } = req.query;
+    const filenameStr = filename ? filename.toString() : null;
+    const formatStr = format ? format.toString() : 'rdb';
+    const { status, data, errors } = await restoreDumpBackup(filenameStr, formatStr);
     return sendResponse({ res, status, data, errors });
 };

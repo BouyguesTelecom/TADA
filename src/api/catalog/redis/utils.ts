@@ -1,15 +1,7 @@
-import proxy from 'express-http-proxy';
-import FormData from 'form-data';
-import * as fs from 'fs';
-import fetch from 'node-fetch';
-import app from '../../app';
-import { createDumpDelegatedStorage } from '../../delegated-storage';
 import { purgeData } from '../../middleware/validators/utils';
 import { FileProps, ICatalogResponse, ICatalogResponseMulti } from '../../props/catalog';
-import { getCurrentDateVersion } from '../../utils/catalog';
 import { logger } from '../../utils/logs/winston';
-import { redisHandler } from './connection';
-import { addMultipleFiles, addOneFile, deleteMultipleFiles, deleteOneFile, getAllFiles, getCatalogRedis, getOneFile, updateMultipleFiles, updateOneFile } from './operations';
+import { addMultipleFiles, addOneFile, deleteOneFile, getAllFiles, getOneFile, updateOneFile } from './operations';
 
 export const addFileInCatalog = async (item: FileProps): Promise<ICatalogResponse> => {
     try {
@@ -68,7 +60,7 @@ export const getFiles = async (): Promise<ICatalogResponseMulti> => {
     try {
         const response = await getAllFiles();
         if (response.data && (!response.errors || response.errors.length === 0)) {
-            return { status: 200, data: response.data, errors: null };
+            return { status: 200, data: response.data, errors: [] };
         }
         return {
             status: 500,
@@ -126,33 +118,6 @@ export const updateFileInCatalog = async (uuid: string, itemToUpdate: FileProps)
     }
 };
 
-export const updateFilesInCatalog = async (items: FileProps[]): Promise<ICatalogResponseMulti> => {
-    try {
-        const response = await updateMultipleFiles(items);
-        if (response.data && (!response.errors || response.errors.length === 0)) {
-            await purgeData('catalog');
-            return {
-                status: 200,
-                data: response.data,
-                errors: []
-            };
-        }
-        logger.error(`⛔️ Errors updating files: ${response.errors}`);
-        return {
-            status: 500,
-            errors: response.errors || ['Unknown error'],
-            data: []
-        };
-    } catch (err: unknown) {
-        logger.error(`Error updating files: ${err}`);
-        return {
-            status: 500,
-            errors: [`Error updating files: ${err}`],
-            data: []
-        };
-    }
-};
-
 export const deleteFileFromCatalog = async (uuid: string): Promise<ICatalogResponse> => {
     try {
         const { datum: file, error } = await getOneFile(uuid, true);
@@ -177,33 +142,6 @@ export const deleteFileFromCatalog = async (uuid: string): Promise<ICatalogRespo
     }
 };
 
-export const deleteFilesInCatalog = async (items: FileProps[]): Promise<ICatalogResponseMulti> => {
-    try {
-        const response = await deleteMultipleFiles(items);
-        if (response.data && (!response.errors || response.errors.length === 0)) {
-            await purgeData('catalog');
-            return {
-                status: 200,
-                data: response.data,
-                errors: []
-            };
-        }
-        logger.error(`⛔️ Errors deleting files: ${response.errors}`);
-        return {
-            status: 500,
-            errors: response.errors || ['Unknown error'],
-            data: []
-        };
-    } catch (err: unknown) {
-        logger.error(`Error deleting files: ${err}`);
-        return {
-            status: 500,
-            errors: [`Error deleting files: ${err}`],
-            data: []
-        };
-    }
-};
-
 export const deleteCatalog = async (): Promise<ICatalogResponseMulti> => {
     const { data: files } = await getAllFiles();
 
@@ -214,104 +152,5 @@ export const deleteCatalog = async (): Promise<ICatalogResponseMulti> => {
         await purgeData('catalog');
     }
 
-    return { status: 200, data: [], errors: null };
-};
-
-export const getDump = async (filename, format): Promise<{ status: number; data: string[]; errors: string[] }> => {
-    const fileFormat = format ?? 'rdb';
-    logger.info(`${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_GET_BACKUP}/${filename}`);
-    return proxy(`${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_GET_BACKUP}/${filename}`);
-};
-
-export const createDump = async (filename, format): Promise<any> => {
-    const fileFormat = format ?? 'rdb';
-    const fileVersion = getCurrentDateVersion();
-
-    if (!fileVersion) {
-        return {
-            status: 400,
-            error: 'Error generating dump.json from Redis client'
-        };
-    }
-
-    const filePath = filename ? `${filename}.${fileFormat}` : `dump_${fileVersion}.${fileFormat}`;
-    return await createDumpDelegatedStorage(filePath, fileFormat);
-};
-
-export const restoreDump = async (): Promise<{ status: number; data: string[]; errors: string[] }> => {
-    const { data: catalog } = await getCatalogRedis();
-    const fileVersion = getCurrentDateVersion();
-    const filePath = `${app.locals.PREFIXED_CATALOG}/${fileVersion}.json`;
-    let jsonBackupSuccess = false;
-    let rdbBackupSuccess = false;
-    let rdbUploadSuccess = false;
-    let errors: string[] = [];
-
-    if (!fileVersion) {
-        return {
-            status: 400,
-            data: ['Error generating dump.json from Redis client'],
-            errors: null
-        };
-    }
-
-    // generate dump.rdb
-    try {
-        await redisHandler.generateDump();
-        rdbBackupSuccess = true;
-    } catch (err) {
-        errors.push('Error generating dump.rdb: ' + (err as Error).message);
-    }
-
-    if (rdbBackupSuccess) {
-        try {
-            const dumpPath = process.env.DUMP_FOLDER_PATH ? `${process.env.DUMP_FOLDER_PATH}/dump.rdb` : '/dumps/dump.rdb';
-            const backupUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_POST_BACKUP}`;
-
-            logger.info('sending dump.rdb to :', backupUrl);
-
-            const formData = new FormData();
-            const filename = `dump_${getCurrentDateVersion()}.rdb`;
-            const stream = await fs.promises.readFile(dumpPath);
-            formData.append('file', stream, {
-                filename: filename
-            });
-
-            const response = await fetch(backupUrl, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
-                },
-                body: formData
-            });
-
-            if (response.ok) {
-                rdbUploadSuccess = true;
-                logger.info('✅ dump.rdb uploaded successfully');
-            } else {
-                const errorText = await response.text();
-                errors.push(`Error when sending dump.rdb: ${response.status} ${response.statusText} - ${errorText}`);
-            }
-        } catch (err) {
-            errors.push('Error when reading or sending dump.rdb: ' + (err as Error).message);
-        }
-    }
-
-    if (jsonBackupSuccess && rdbBackupSuccess && (rdbUploadSuccess || !process.env.URL_TO_POST_BACKUP)) {
-        return {
-            status: 200,
-            data: ['DUMP JSON backup successfully', 'dump.rdb generated with success', rdbUploadSuccess ? 'dump.rdb uploaded successfully' : 'dump.rdb not uploaded (URL not defined)'],
-            errors: errors.length ? errors : null
-        };
-    } else {
-        return {
-            status: 500,
-            data: [
-                jsonBackupSuccess ? 'DUMP JSON backup success' : 'DUMP JSON backup failed',
-                rdbBackupSuccess ? 'dump.rdb generated' : 'dump.rdb failed',
-                rdbUploadSuccess ? 'dump.rdb uploaded' : 'dump.rdb not uploaded'
-            ],
-            errors: errors.length ? errors : ['Error during backup']
-        };
-    }
+    return { status: 200, data: [], errors: [] };
 };

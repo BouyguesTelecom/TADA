@@ -1,6 +1,13 @@
-import { ReadStream } from 'node:fs';
 
 export interface FileProps {
-    filename: string;
-    file: string | ReadStream;
+    filepath: string;
+    version?: string;
+    mimetype?: string;
+    headers?: Record<string, string>;
+}
+
+export interface ResponseBackup {
+    status: number;
+    body?: any;
+    json?: any;
 }

@@ -40,14 +40,6 @@ export class InMemoryQueue {
             this.processNext();
         }
     }
-
-    getCurrentQueue(): number[] {
-        return this.queue.map((job) => job.id);
-    }
-
-    isProcessing(): boolean {
-        return this.processing;
-    }
 }
 
 export const globalQueue = new InMemoryQueue();

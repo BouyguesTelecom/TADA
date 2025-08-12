@@ -1,66 +1,180 @@
-import { Request, Response } from 'express';
-import { getLastDump, deleteFile, deleteFiles, getFile, updateFile, updateFiles, generateStream, generateStreams } from '../delegated-storage/index';
-import fs from 'fs';
 import { BackupProps } from '../props/delegated-storage';
+import { logger } from '../utils/logs/winston';
+import * as distantBackend from '../delegated-storage/distant-backend/utils';
+import * as s3 from '../delegated-storage/s3/utils';
+import * as standaloneUtils from '../catalog/standalone';
+import * as standalone from '../delegated-storage/standalone';
 
-const filePath = (filePath) => {
-    return filePath.includes('.json') && filePath.includes('catalog/') ?
-        `${ process.env.DUMP_FOLDER_PATH }/${ filePath }` :
-        `/${ filePath }`;
-};
-
-export const getBackupDump = async (req: Request, res: Response) => {
-    return await getLastDump(req, res);
-};
-
+const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
 
 export const getBackup = async (filepath, version = '', mimetype = '') => {
-    const params = { filepath, version, mimetype };
-    const { status, stream }: BackupProps = await getFile(params);
-    return status === 200 ? stream : null;
+    logger.info(`GET file from backup storage using ${backupStorageMethod} method...`);
+    const result: BackupProps = await (async (): Promise<BackupProps> => {
+        switch (backupStorageMethod) {
+            case 'DISTANT_BACKEND':
+                return await distantBackend.getFile({ filepath, version, mimetype });
+            case 'S3':
+                return await s3.getFile({ filename: filepath, version, mimetype });
+            case 'STANDALONE':
+                return await standalone.getFile({ filepath });
+            default:
+                return await distantBackend.getFile({ filepath, version, mimetype });
+        }
+    })();
+    return result.status === 200 ? result.stream : null;
 };
 
 export const postFileBackup = async (stream, file, datum) => {
-    return await generateStream(stream, file, datum);
+    logger.info(`Uploading file to backup storage using ${backupStorageMethod} method...`);
+    return await (async () => {
+        switch (backupStorageMethod) {
+            case 'DISTANT_BACKEND':
+                return await distantBackend.upload(stream, file, datum);
+            case 'S3':
+                return await s3.upload(stream, datum);
+            case 'STANDALONE':
+                return await standalone.upload(stream, file, datum);
+            default:
+                return await distantBackend.upload(stream, file, datum);
+        }
+    })();
 };
 
-export const postFilesBackup = async (req: Request, res: Response) => {
-    const params = {
-        filespath: req.body.map((file) => file.filespath),
-        version: req.query.version ? `${ req.query.version }` : null,
-        mimetype: req.query.mimetype ? `${ req.query.mimetype }` : null
-    };
-    const { status }: BackupProps = await generateStreams({
-        ...params,
-        files: req.body.map((file) => file.file)
-    });
-
-    return res.status(status).end();
+export const patchFileBackup = async (file, stream, info): Promise<BackupProps> => {
+    logger.info(`Updating file from backup storage using ${backupStorageMethod} method...`);
+    return await (async (): Promise<BackupProps> => {
+        switch (backupStorageMethod) {
+            case 'DISTANT_BACKEND':
+                return await distantBackend.update(file, stream, info);
+            case 'S3':
+                return await s3.update(file, stream, info);
+            case 'STANDALONE':
+                return await standalone.update(stream, info);
+            default:
+                return await distantBackend.update(file, stream, info);
+        }
+    })();
 };
 
-export const patchFileBackup = async (file, stream, info) => {
-    return await updateFile(file, stream, info);
+export const deleteFileBackup = async (itemToUpdate): Promise<BackupProps> => {
+    logger.info(`Delete
+    file from backup storage using
+    ${backupStorageMethod}
+    method
+    .
+    .
+    .`);
+    return await (async (): Promise<BackupProps> => {
+        switch (backupStorageMethod) {
+            case 'DISTANT_BACKEND':
+                return await distantBackend.deleteFile(itemToUpdate);
+            case 'S3':
+                return await s3.deleteFile(itemToUpdate);
+            case 'STANDALONE':
+                return await standalone.deleteFile(itemToUpdate);
+            default:
+                return await distantBackend.deleteFile(itemToUpdate);
+        }
+    })();
 };
 
-export const patchFilesBackup = async (req: Request, res: Response) => {
-    const params = {
-        filespath: req.body.filespath,
-        version: req.query.version ? `${ req.query.version }` : null,
-        mimetype: req.query.mimetype ? `${ req.query.mimetype }` : null
-    };
+export const createDumpBackup = async (filePath, fileFormat) => {
+    try {
+        logger.info(`CREATE DUMP from backup storage using ${backupStorageMethod} method...`);
+        const result = await (async () => {
+            switch (backupStorageMethod) {
+                case 'DISTANT_BACKEND':
+                    return await distantBackend.createDump(filePath, fileFormat);
+                case 'S3':
+                    return await s3.createDump(filePath, fileFormat);
+                case 'STANDALONE':
+                    return await standaloneUtils.createDump(filePath, 'json');
+                default:
+                    return await distantBackend.createDump(filePath, fileFormat);
+            }
+        })();
 
-    const { status } = await updateFiles({
-        ...params,
-        files: req.body.files
-    });
+        if (result && typeof result === 'object') {
+            return {
+                status: result.status || 200,
+                data: result.data || [result],
+                errors: result.errors || []
+            };
+        }
 
-    return res.status(status).end();
+        return {
+            status: 200,
+            data: [result],
+            errors: []
+        };
+    } catch (error) {
+        return {
+            status: 500,
+            data: [],
+            errors: [error.message]
+        };
+    }
 };
 
-export const deleteFileBackup = async (itemToUpdate) => {
-    return await deleteFile(itemToUpdate);
+export const restoreDumpBackup = async (filename, format) => {
+    try {
+        logger.info(`RESTORE DUMP from backup storage using ${backupStorageMethod} method...`);
+        const result = await (async () => {
+            switch (backupStorageMethod) {
+                case 'DISTANT_BACKEND':
+                    return await distantBackend.restoreDump(filename, format);
+                case 'S3':
+                    return await s3.restoreDump(filename);
+                case 'STANDALONE':
+                    return await standaloneUtils.restoreDump(filename, 'json');
+                default:
+                    return await distantBackend.restoreDump(filename, format);
+            }
+        })();
+
+        if (result && typeof result === 'object') {
+            return {
+                status: result.status || 200,
+                data: result.data || [result],
+                errors: result.errors || []
+            };
+        }
+
+        return {
+            status: 200,
+            data: [result],
+            errors: []
+        };
+    } catch (error) {
+        return {
+            status: 500,
+            data: [],
+            errors: [error.message]
+        };
+    }
 };
 
-export const deleteFilesBackup = async (data) => {
-    return await deleteFiles(data);
+export const getDumpBackup = async (filename = '', format = 'rdb') => {
+    try {
+        logger.info(`GET DUMP from backup storage using ${backupStorageMethod} method...`);
+        const result = await (async () => {
+            switch (backupStorageMethod) {
+                case 'DISTANT_BACKEND':
+                    return await distantBackend.getDump(filename, format);
+                case 'S3':
+                    return await s3.getDump(filename, format);
+                case 'STANDALONE':
+                    return await standaloneUtils.getDump(filename, format);
+                default:
+                    return await distantBackend.getDump(filename, format);
+            }
+        })();
+
+        if (result && typeof result === 'object') {
+            return { status: result.status || 200, data: result.data || [result], errors: result.errors || [] };
+        }
+        return { status: 200, data: [result], errors: [] };
+    } catch (error) {
+        return { status: 500, data: [], errors: [error.message] };
+    }
 };

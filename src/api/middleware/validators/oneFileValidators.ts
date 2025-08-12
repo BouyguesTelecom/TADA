@@ -68,7 +68,7 @@ export const validatorFileCatalog = async (req: Request, res: Response, next: Ne
                     return sendResponse({
                         res,
                         status: 400,
-                        errors: [`Replacement not allowed for non-image types`]
+                        errors: [`Mimetypes are not the same or conversion not allowed`]
                     });
                 }
             }

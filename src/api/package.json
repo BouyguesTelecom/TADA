@@ -19,16 +19,14 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "4.21.2",
-    "express-http-proxy": "^2.1.1",
     "express-list-endpoints": "^7.1.1",
     "express-rate-limit": "^7.1.5",
     "form-data": "^4.0.1",
     "joi": "^17.13.3",
     "minio": "^8.0.1",
     "morgan": "^1.10.0",
-    "multer": "^1.4.5-lts.1",
+    "multer": "^2.0.2",
     "node-fetch": "^2.7.0",
-    "nodemon": "^3.1.10",
     "pdf-lib": "^1.17.1",
     "redis": "^4.6.7",
     "sharp": "^0.33.5",
@@ -39,14 +37,15 @@
     "winston": "^3.15.0"
   },
   "devDependencies": {
+    "@types/multer": "^2.0.0",
     "@types/cors": "^2.8.10",
     "@types/express": "^4.17.4",
     "@types/morgan": "^1.9.9",
-    "@types/multer": "^1.4.12",
     "@types/node": "^20.17.9",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.6",
     "dotenv-cli": "^8.0.0",
+    "nodemon": "^3.1.10",
     "ts-node": "^10.6.0"
   }
 }

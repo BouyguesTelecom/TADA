@@ -7,7 +7,7 @@ const parsePayloadSize = (size: string): number => {
     return parseInt(match[1], 10) * units[match[2]];
 };
 
-export const timeoutMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const timeoutMiddleware = (_req: Request, res: Response, next: NextFunction) => {
     const baseTimeout = Number(process.env.BASE_TIMEOUT_MS) || 3000;
     const maxPayloadSize = parsePayloadSize(process.env.PAYLOAD_MAX_SIZE || '10mb');
     const timeoutDuration = (baseTimeout * (maxPayloadSize / (1024 * 1024))) / 2;

@@ -3,6 +3,14 @@ env: 'media-service'
 domain: 'media'
 NAMESPACES_ALLOWED: 'DEV'
 
+createDumpCronJob:
+    imageName: 'curlimages/curl'
+    imageVersion: 'latest'
+    resources:
+        requests:
+            cpu: 60m
+            memory: 64Mi
+
 ingress:
     nginx:
         className: nginx
@@ -13,11 +21,11 @@ ingress:
             nginx.ingress.kubernetes.io/proxy-body-size: 100m
 redis:
     initScript:
-        imageName:
+        imageName: cfmanteiga/alpine-bash-curl-jq:latest
         dumpFileNameOnInit: latest
         dumpFileNameOnRestart: latest
-        restoreOnInit: true
-        restoreOnRestart: true
+        restoreOnInit:
+        restoreOnRestart:
         urlToGetBackup: '/get-dump'
         requests:
                 cpu: 200m
@@ -25,7 +33,7 @@ redis:
         limits:
             cpu: 800m
             memory: 512Mi
-    imageName: bitnami/redis:7.0.15-debian-12-r20
+    imageName: redis/redis-stack-server
     dumpFolderPath: '/dumps'
     storage:
         storageClassName: hostpath
@@ -103,6 +111,7 @@ mediaApi:
     service: 'http://media-service'
     requestTimeout: 320000
     baseTimeout: 2000
+    publicUrl: 'http://media-service.tada-api.media'
     routes:
         healthcheck:
             get: '/readiness-check'
@@ -111,7 +120,7 @@ mediaApi:
         catalog:
             get: '/catalog'
         post_backup:
-            post: '/upload-backup-glouton'
+            post: '/save-dump'
     payloadMaxSize: '10mb'
     rateLimit:
         windowMs: 30000

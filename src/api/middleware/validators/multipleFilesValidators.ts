@@ -72,7 +72,7 @@ export const validatorUUIds = async (req: Request, res: Response, next: NextFunc
         if (contentType === 'application/json') {
             if (Array.isArray(req.body)) {
                 const { validFiles, invalidFiles } = await req.body.reduce(
-                    async (acc, file, index) => {
+                    async (acc, file) => {
                         const { validFiles, invalidFiles } = await acc;
                         const { datum: catalogFile } = await getCatalogItem({ uuid: file.uuid });
                         if (catalogFile) {
@@ -104,7 +104,7 @@ export const validatorUUIds = async (req: Request, res: Response, next: NextFunc
 
 export const validatorFilesSize = async (req: Request, res: Response, next: NextFunction) => {
     const { invalidFiles: invalidFilesFromLocal, validFiles: validFilesFromLocal } = res.locals;
-    if (validFilesFromLocal.length) {
+    if (validFilesFromLocal?.length) {
         const { invalidFiles, validFiles } = await validFilesFromLocal.reduce(
             async (accumulator, file) => {
                 const { invalidFiles, validFiles } = await accumulator;
@@ -143,7 +143,7 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
     const { namespace, validFiles: validFilesFromLocal, invalidFiles: invalidFilesFromLocal } = res.locals;
     const toWebp = req.body.toWebp !== 'false';
 
-    const { validFiles, invalidFiles } = await validFilesFromLocal.reduce(
+    const { validFiles, invalidFiles } = await (validFilesFromLocal || []).reduce(
         async (accumulator, file, index) => {
             const { validFiles, invalidFiles } = await accumulator;
 
@@ -204,7 +204,7 @@ export const validatorCatalog = async (req: Request, res: Response, next: NextFu
     if ((req.method === 'PATCH' && !req.files) || req.method === 'DELETE') {
         return next();
     }
-    const { validFiles, invalidFiles } = await validFilesFromLocal.reduce(
+    const { validFiles, invalidFiles } = await (validFilesFromLocal || []).reduce(
         async (accumulator, file) => {
             const { validFiles, invalidFiles } = await accumulator;
             if (req.method === 'POST') {

@@ -73,7 +73,7 @@ export const generateUniqueName = (file, body, namespace, toWebp) => {
 };
 
 export const fileIsTooLarge = async (file, params, method = 'POST') => {
-    const { uuid, namespace } = params;
+    const { uuid } = params;
     if (file) {
         if (file.size > 10000000) {
             let itemFound = null;

@@ -15,7 +15,7 @@ ingress:
                 nginx.ingress.kubernetes.io/proxy-body-size: 100m
 
 redis:
-    imageName: bitnami/redis:7.0.15-debian-12-r20
+    imageName: redis/redis-stack-server
     dumpFolderPath: '/dumps'
     storage:
         storageClassName: hostpath
@@ -95,7 +95,7 @@ mediaApi:
         catalog:
             get: '/catalog'
         post_backup:
-            post: '/upload-backup-glouton'
+            post: '/save-dump'
     payloadMaxSize: '10mb'
     originsAllowed: "localhost,*"
     methodsAllowed: 'GET,POST'

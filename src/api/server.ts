@@ -3,9 +3,10 @@ import fs from 'fs';
 import fetch from 'node-fetch';
 import app from './app';
 import { initializeCache, redisHandler } from './catalog/redis/connection';
-import { getLastDump } from './delegated-storage/index';
 import { minioClient } from './delegated-storage/s3/connection';
 import { logger } from './utils/logs/winston';
+import { getDump } from './controllers/catalog.controller';
+import { getDumpBackup } from './controllers/delegated-storage.controller';
 
 const port = parseInt(process.env.PORT, 10) || 3001;
 const standalone = process.env.DELEGATED_STORAGE_METHOD === 'STANDALONE' || !process.env.DELEGATED_STORAGE_METHOD;
@@ -22,6 +23,7 @@ const printRoutes = () => {
         });
     });
 };
+
 const checkAccessToBackup = async () => {
     const backupUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.DELEGATED_STORAGE_READINESS_CHECK}`;
     const checkBackup = await fetch(backupUrl);
@@ -71,7 +73,7 @@ const createStandaloneFolderAndCatalog = () => {
     }
 };
 
-(async (req, res) => {
+(async (req, res, next) => {
     try {
         if (!standalone) {
             await checkAccessToBackup();
@@ -81,7 +83,7 @@ const createStandaloneFolderAndCatalog = () => {
             logger.info(`${process.env.DUMP_FOLDER_PATH}/dump.rdb`, dbDump);
             if (!dbDump) {
                 logger.info("dump.rdb doesn't exists : getting latest dump from backup ✅");
-                const dump: any = await getLastDump(req, res);
+                const dump: any = await getDumpBackup();
                 if (dump && dump.errors) {
                     logger.warning('Failed to get last dump from delegated storage : initializing empty dump.rdb');
                 }
@@ -89,7 +91,7 @@ const createStandaloneFolderAndCatalog = () => {
             } else {
                 logger.info('dump.rdb already exists : skipping getting latest dump from backup 🔆');
             }
-            await initializeCache()
+            await initializeCache();
         }
 
         if (standalone) {

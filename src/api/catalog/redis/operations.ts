@@ -42,7 +42,7 @@ export const getOneFile = async (id: string, redis = false) => {
 export const getAllFiles = async () => {
     try {
         const files = await cache.getAll();
-        return { data: files, errors: null };
+        return { data: files, errors: [] };
     } catch (err) {
         logger.error(`Error listing items: ${err}`);
         return { data: null, errors: [err] };
@@ -120,65 +120,12 @@ export const updateOneFile = async (fileId: string, updateData: Partial<FileProp
     }
 };
 
-export const updateMultipleFiles = async (files: FileProps[]) => {
-    try {
-        const successfulUpdateFiles: FileProps[] = [];
-        const failedUpdateFiles: string[] = [];
-
-        for (let file of files) {
-            const response = await updateOneFile(file.uuid, file);
-            if (response.datum && !response.error) {
-                successfulUpdateFiles.push(response.datum);
-            } else {
-                failedUpdateFiles.push(response.error);
-            }
-        }
-
-        return {
-            data: successfulUpdateFiles,
-            errors: failedUpdateFiles.length ? failedUpdateFiles : null
-        };
-    } catch (err) {
-        logger.error(`Error updating items: ${err}`);
-        return {
-            data: null,
-            errors: [err]
-        };
-    }
-};
-
 export const deleteOneFile = async (id: string): Promise<{ datum?: string; error?: string }> => {
     try {
         await cache.delete(id);
         return { datum: `File with id ${id} successfully deleted` };
     } catch (err) {
         return { error: err.message };
-    }
-};
-
-export const deleteMultipleFiles = async (files: FileProps[]) => {
-    try {
-        const successfulDeleteFiles: FileProps[] = [];
-        const failedDeleteFiles: string[] = [];
-
-        for (const file of files) {
-            const { datum, error } = await deleteOneFile(file.uuid);
-            if (datum && !error) {
-                successfulDeleteFiles.push(file);
-            } else {
-                failedDeleteFiles.push(`Failed to delete file ${file.uuid}`);
-            }
-        }
-        return {
-            data: successfulDeleteFiles,
-            errors: failedDeleteFiles.length ? failedDeleteFiles : null
-        };
-    } catch (err) {
-        logger.error(`Error deleting items: ${err}`);
-        return {
-            data: null,
-            errors: [err]
-        };
     }
 };
 

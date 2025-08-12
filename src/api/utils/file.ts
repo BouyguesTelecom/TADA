@@ -13,7 +13,6 @@ export const returnDefaultImage = (res, uniqueName) => {
     return res.sendFile(uniqueName, { root: rootPath });
 };
 
-
 const removeUnusedData = (svgFilePath) => {
     // Read SVG
     const svgData = fs.readFileSync(svgFilePath, 'utf8');
@@ -78,6 +77,7 @@ const removeMetadataImage = async (imagePath) => {
         return false;
     }
 };
+
 const convertToWebp = async (imagePath) => {
     try {
         const config = {
@@ -162,7 +162,7 @@ const sharpWithMetadata = async (imagePath) => {
     }
 };
 
-export const stripMetadata = async (imagePath: string, finalPath: string, mimetype: string) => {
+export const stripMetadata = async (imagePath: string, mimetype: string) => {
     switch ( mimetype ) {
         case 'application/pdf':
             const pdfUint8Array = await removeMetadataPdf(imagePath);
@@ -211,12 +211,12 @@ export const generateStream = async (file: any, uniqueName: string, toWebpConver
     if (process.env.USE_STRIPMETADATA === 'true') {
         if (toWebp) {
             const webpPath = await convertToWebp(file.path);
-            const streamWithoutMetadata = await stripMetadata(webpPath, uniqueName, file.mimetype);
+            const streamWithoutMetadata = await stripMetadata(webpPath, file.mimetype);
             await deleteFile(file.path);
             await deleteFile(webpPath);
             return streamWithoutMetadata;
         }
-        const streamWithoutMetadata = await stripMetadata(file.path, uniqueName, file.mimetype);
+        const streamWithoutMetadata = await stripMetadata(file.path,  file.mimetype);
         await deleteFile(file.path);
         return streamWithoutMetadata;
     }

@@ -2,9 +2,6 @@ import winston, { createLogger, format, transports } from 'winston';
 require('dotenv').config();
 const customLevels = {
     levels: {
-        jobInfo: 0,
-        jobWarning: 1,
-        jobError: 2,
         http: 3,
         error: 6,
         warning: 7,
@@ -12,9 +9,6 @@ const customLevels = {
         debug: 10
     },
     colors: {
-        jobInfo: 'white',
-        jobWarning: 'yellow',
-        jobError: 'red',
         http: 'blue',
         error: 'red',
         warning: 'yellow',
@@ -22,9 +16,6 @@ const customLevels = {
         debug: 'grey'
     },
     emojis: {
-        jobInfo: 'ℹ️',
-        jobWarning: '⚠️',
-        jobError: '⛔️',
         http: '🌐',
         error: '⛔️',
         warning: '⚠️',
@@ -43,6 +34,7 @@ const consoleJsonFormat = format.combine(
     })(),
     format.json()
 );
+
 winston.addColors(customLevels.colors);
 
 const consoleFormat = format.combine(
@@ -63,13 +55,3 @@ export const logger = createLogger({
         })
     ]
 });
-
-export const jobInfo = (message: string) => {
-    logger.log('jobInfo', message);
-};
-export const jobWarning = (message: string) => {
-    logger.log('jobWarning', message);
-};
-export const jobError = (message: string) => {
-    logger.log('jobError', message);
-};

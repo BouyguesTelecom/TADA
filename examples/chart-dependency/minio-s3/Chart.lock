@@ -1,6 +1,0 @@
-dependencies:
-- name: tada
-  repository: oci://registry-1.docker.io/bouyguestelecomcharts
-  version: 1.2.58-main
-digest: sha256:c4d926f6b5eabd12874249e3b6036e0a5b5ee089a965ee395a97b71723748b4a
-generated: "2025-01-24T12:21:41.554824+01:00"

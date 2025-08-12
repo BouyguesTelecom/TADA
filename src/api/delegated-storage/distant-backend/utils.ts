@@ -1,38 +1,11 @@
 import FormData from 'form-data';
 import fs from 'fs';
-import fetch, { Headers } from 'node-fetch';
-import { getCatalog, updateCatalogItem } from '../../catalog';
-import { redisHandler } from '../../catalog/redis/connection';
+import fetch from 'node-fetch';
+import { addCatalogItems, getCatalog, updateCatalogItem } from '../../catalog';
+import { initializeCache, redisHandler } from '../../catalog/redis/connection';
 import { BackupProps } from '../../props/delegated-storage';
 import { logger } from '../../utils/logs/winston';
-
-interface FileProps {
-    filepath: string;
-    version?: string;
-    mimetype?: string;
-    headers?: Record<string, string>;
-}
-
-interface FilesProps {
-    filespath: string[];
-    version?: string;
-    mimetype?: string;
-    headers?: Record<string, string>;
-}
-
-interface UploadFileProps extends FileProps {
-    file: Buffer | Blob | string;
-}
-
-interface UploadFilesProps extends FilesProps {
-    files: Buffer[] | Blob[] | string[];
-}
-
-interface ResponseBackup {
-    status: number;
-    body?: any;
-    json?: any;
-}
+import { FileProps, ResponseBackup } from '../types';
 
 export const headersUserAgentForBackup = (contentType: string | null = null) =>
     new Headers({
@@ -67,54 +40,85 @@ const generateFormDataWithFile = (stream, file, info) => {
     return form;
 };
 
-export const getLastDump = async (_req, res) => {
+export const getDump = async (filename = null, format = 'rdb') => {
     try {
-        const response = await fetch(`${process.env.DELEGATED_STORAGE_HOST}/get-dump/latest`, generateOptions('GET', {}));
+        let dumpUrl: string;
 
-        if (response.status !== 200) {
-            throw new Error('Failed to get backup file.');
+        if (filename) {
+            dumpUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_GET_BACKUP}/${encodeURIComponent(filename)}`;
+        } else {
+            const formatQuery = format === 'json' ? '?format=json' : '';
+            dumpUrl = `${process.env.DELEGATED_STORAGE_HOST}/get-dump/latest${formatQuery}`;
         }
 
-        return response;
+        logger.info(`Fetching dump from: ${dumpUrl} (format: ${format})`);
+        const response = await fetch(dumpUrl, generateOptions('GET', 'application/json'));
+
+        if (response.status !== 200) {
+            return {
+                status: response.status,
+                data: [],
+                errors: [`Failed to get dump file: ${response.statusText}`]
+            };
+        }
+
+        const contentType = response.headers.get('content-type');
+        const actualFormat = response.headers.get('x-actual-format');
+        const requestedFormat = response.headers.get('x-requested-format');
+
+        const isJsonResponse =
+            actualFormat === 'JSON' || (contentType?.includes('application/json') && !actualFormat) || (format === 'json' && !actualFormat && !contentType?.includes('octet-stream'));
+
+        logger.info(`Response - Content-Type: ${contentType}, Requested: ${requestedFormat}, Actual: ${actualFormat}, Treating as: ${isJsonResponse ? 'JSON' : 'RDB'}`);
+
+        if (isJsonResponse) {
+            const jsonData = await response.json();
+            return {
+                status: 200,
+                data: [JSON.stringify(jsonData, null, 2)],
+                errors: []
+            };
+        } else {
+            const buffer = await response.buffer();
+            return {
+                status: 200,
+                data: [buffer.toString('base64')],
+                errors: []
+            };
+        }
     } catch (errMessage) {
-        logger.error(`Error getting last dump: ${errMessage}`);
-        return { data: null, errors: errMessage };
+        logger.error(`Error getting dump: ${errMessage}`);
+        return {
+            status: 500,
+            data: [],
+            errors: [errMessage.message || errMessage.toString()]
+        };
     }
 };
 
 export const createDump = async (filePath, fileFormat) => {
-    if (fileFormat === 'json') {
-        try {
-            const catalog = await getCatalog();
-            const backupUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_POST_BACKUP}`;
-            const postBackupFileJson = await fetch(backupUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(catalog)
-            });
-            if (postBackupFileJson.status === 200) {
-                const data = await postBackupFileJson.json();
-                return { status: postBackupFileJson.status, data: 'JSON backup successful', error: null };
-            } else {
-                const errorData = await postBackupFileJson.json();
-                return {
-                    status: postBackupFileJson.status,
-                    error: `Error uploading JSON: ${JSON.stringify(errorData)}`,
-                    data: null
-                };
-            }
-        } catch (err) {
-            return { status: 500, error: 'Error when uploading JSON: ' + (err as Error).message, data: null };
-        }
-    } else {
+    const results = [];
+    const backupUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_POST_BACKUP}`;
+
+    const now = new Date();
+    const timestamp = now
+        .toISOString()
+        .replace(/[-T:.Z]/g, '')
+        .replace(/(\d{8})(\d{6}).*/, '$1_$2');
+
+    const baseName = filePath ? filePath.replace(/\.(rdb|json)$/, '') : `dump_${timestamp}`;
+
+    if (fileFormat === 'rdb' || fileFormat === 'both') {
         try {
             await redisHandler.generateDump();
             const dumpPath = process.env.DUMP_FOLDER_PATH ? `${process.env.DUMP_FOLDER_PATH}/dump.rdb` : '/dumps/dump.rdb';
-            const backupUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_POST_BACKUP}?`;
 
             const formData = new FormData();
-            const stream = await fs.promises.readFile(dumpPath);
-            formData.append('file', stream, { filename: filePath });
+            const fileBuffer = await fs.promises.readFile(dumpPath);
+            formData.append('file', fileBuffer, {
+                filename: `${baseName}.rdb`,
+                contentType: 'application/octet-stream'
+            });
 
             const response = await fetch(backupUrl, {
                 method: 'POST',
@@ -123,19 +127,134 @@ export const createDump = async (filePath, fileFormat) => {
                 },
                 body: formData
             });
+
             if (response.ok) {
-                return { status: 200, data: 'dump.rdb uploaded successfully', error: null };
+                results.push(`RDB backup: ${baseName}.rdb uploaded successfully`);
             } else {
                 const errorText = await response.text();
-                return {
-                    status: response.status,
-                    error: `Error sending dump.rdb: ${response.statusText} - ${errorText}`,
-                    data: null
-                };
+                results.push(`RDB backup failed: ${response.statusText} - ${errorText}`);
             }
         } catch (err) {
-            return { status: 500, error: 'Error generating dump.rdb: ' + (err as Error).message, data: null };
+            results.push(`RDB backup failed: ${(err as Error).message}`);
         }
+    }
+
+    if (fileFormat === 'json' || fileFormat === 'rdb' || fileFormat === 'both') {
+        try {
+            const catalog = await getCatalog();
+
+            if (catalog.data && Array.isArray(catalog.data)) {
+                const formData = new FormData();
+                const catalogJson = JSON.stringify(catalog.data, null, 2);
+                const catalogBuffer = Buffer.from(catalogJson, 'utf-8');
+                formData.append('file', catalogBuffer, {
+                    filename: `${baseName}.json`,
+                    contentType: 'application/json'
+                });
+
+                const postBackupFileJson = await fetch(backupUrl, {
+                    method: 'POST',
+                    headers: {
+                        ...(process.env.DELEGATED_STORAGE_TOKEN && {
+                            Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
+                        })
+                    },
+                    body: formData
+                });
+
+                if (postBackupFileJson.status === 200) {
+                    results.push(`JSON backup: ${baseName}.json uploaded successfully`);
+                } else {
+                    const errorText = await postBackupFileJson.text();
+                    results.push(`JSON backup failed: ${errorText}`);
+                }
+            } else {
+                results.push('JSON backup skipped: No catalog data available');
+            }
+        } catch (err) {
+            results.push(`JSON backup failed: ${(err as Error).message}`);
+        }
+    }
+
+    const hasErrors = results.some((r) => r.includes('failed'));
+    return {
+        status: hasErrors ? 207 : 200,
+        data: [`Dual backup completed: ${results.join(', ')}`],
+        errors: hasErrors ? ['Some backups failed'] : []
+    };
+};
+
+export const restoreDump = async (filename = null, format = 'rdb') => {
+    try {
+        let jsonRestoreSuccess = false;
+
+        try {
+            let jsonFilename = filename;
+            if (filename && !filename.endsWith('.json') && !filename.endsWith('.rdb')) {
+                jsonFilename = filename + '.json';
+            }
+            const jsonDumpResult = await getDump(jsonFilename, 'json');
+
+            if (jsonDumpResult.status === 200) {
+                const catalogData = JSON.parse(jsonDumpResult.data[0]);
+
+                if (Array.isArray(catalogData)) {
+                    const clearResult = await redisHandler.flushAllKeys();
+                    if (!clearResult.success) {
+                        throw new Error(`Failed to clear Redis keys: ${clearResult.error}`);
+                    }
+
+                    if (catalogData.length > 0) {
+                        await addCatalogItems(catalogData);
+                    }
+
+                    await initializeCache();
+
+                    return {
+                        status: 200,
+                        data: [`Successfully restored ${catalogData.length} items from JSON backup without container restart`],
+                        errors: []
+                    };
+                }
+            }
+        } catch (jsonError) {
+            logger.info(`JSON restore failed, will try RDB: ${jsonError.message}`);
+        }
+
+        if (!jsonRestoreSuccess) {
+            let rdbFilename = filename;
+            if (filename && !filename.endsWith('.json') && !filename.endsWith('.rdb')) {
+                rdbFilename = filename + '.rdb';
+            }
+            const rdbDumpResult = await getDump(rdbFilename, 'rdb');
+
+            if (rdbDumpResult.status !== 200) {
+                return {
+                    status: 404,
+                    data: [],
+                    errors: [`Neither JSON nor RDB backup found for: ${filename || 'latest'}`]
+                };
+            }
+
+            const dumpData = Buffer.from(rdbDumpResult.data[0], 'base64');
+            const fs = await import('fs').then((m) => m.promises);
+            const dumpPath = process.env.DUMP_FOLDER_PATH ? `${process.env.DUMP_FOLDER_PATH}/dump.rdb` : '/dumps/dump.rdb';
+
+            await redisHandler.flushAllKeys();
+            await fs.writeFile(dumpPath, dumpData);
+
+            return {
+                status: 200,
+                data: [`RDB backup restored to ${dumpPath}. Data will be available after Redis restart.`],
+                errors: ['Note: JSON backup not available, using RDB. Consider restarting Redis service for immediate effect.']
+            };
+        }
+    } catch (error) {
+        return {
+            status: 500,
+            data: [],
+            errors: [`Error restoring dump: ${error.message}`]
+        };
     }
 };
 
@@ -177,44 +296,6 @@ export const upload = async (stream, file, datum): Promise<BackupProps> => {
     return null;
 };
 
-export const uploads = async ({ filespath, files, version, mimetype }: UploadFilesProps): Promise<BackupProps> => {
-    try {
-        const form = new FormData();
-
-        files.forEach((file, index) => {
-            console.log(file, 'WAZA 3')
-            const filepath = filespath[index];
-            if (Buffer.isBuffer(file) || typeof file === 'string') {
-                form.append(`file${index}`, Buffer.from(file), {
-                    filename: filepath.split('/').pop(),
-                    contentType: mimetype || 'application/octet-stream'
-                });
-            } else {
-                form.append(`file${index}`, file);
-            }
-        });
-
-        form.append('base_url', process.env.PUBLIC_URL || '');
-        form.append('unique_names', JSON.stringify(filespath));
-        form.append('destinations', JSON.stringify(filespath));
-        const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('POST', '', form));
-
-        if (backupUpload.status === 401) {
-            logger.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
-            return { status: 401, error: 'Authentication failed' };
-        }
-
-        if (backupUpload.status === 201 || backupUpload.status === 200) {
-            return { status: 200, stream: backupUpload.body };
-        }
-        return { status: backupUpload.status, stream: null };
-    } catch (errorMessage: any) {
-        logger.error(`ERROR: ${errorMessage}`);
-        logger.error('Upload error details:', errorMessage);
-        return { status: 500, error: errorMessage?.message || 'Upload failed' };
-    }
-};
-
 export const update = async (file, stream, info): Promise<BackupProps> => {
     try {
         const form = stream && generateFormDataWithFile(stream, file, info);
@@ -249,67 +330,9 @@ export const update = async (file, stream, info): Promise<BackupProps> => {
     return null;
 };
 
-export const updates = async ({ filespath, files, version, mimetype }: UploadFilesProps): Promise<BackupProps> => {
-    try {
-        const form = new FormData();
-
-        files.forEach((file, index) => {
-            const filepath = filespath[index];
-            if (Buffer.isBuffer(file) || typeof file === 'string') {
-                form.append(`file${index}`, Buffer.from(file), {
-                    filename: filepath.split('/').pop(),
-                    contentType: mimetype || 'application/octet-stream'
-                });
-            } else {
-                form.append(`file${index}`, file);
-            }
-        });
-
-        form.append('base_url', process.env.TADA_PUBLIC_URL || '');
-        form.append('unique_names', JSON.stringify(filespath));
-        form.append('destinations', JSON.stringify(filespath));
-
-        const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('PATCH', '', form));
-
-        if (backupUpload.status === 401) {
-            logger.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
-            return { status: 401, error: 'Authentication failed' };
-        }
-
-        if (backupUpload.status === 201 || backupUpload.status === 200) {
-            return { status: 200, stream: backupUpload.body };
-        }
-        return { status: backupUpload.status, stream: null, error: await backupUpload.json() };
-    } catch (errorMessage: any) {
-        logger.error(`ERROR: ${errorMessage}`);
-        logger.error('Upload error details:', errorMessage);
-        return { status: 500, error: errorMessage?.message || 'Update failed' };
-    }
-};
-
 export const deleteFile = async (itemToUpdate): Promise<BackupProps> => {
     try {
         const backupUpload: ResponseBackup = await fetch(generateUrl(), generateOptions('DELETE', 'application/json', JSON.stringify({ ...itemToUpdate })));
-
-        if (backupUpload.status === 401) {
-            logger.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);
-            return { status: 401, error: 'Authentication failed' };
-        }
-
-        if (backupUpload.status === 201 || backupUpload.status === 200) {
-            return { status: 200 };
-        }
-        return { status: backupUpload.status };
-    } catch (errorMessage: any) {
-        logger.error(`ERROR: ${errorMessage}`);
-        logger.error('Delete error details:', errorMessage);
-    }
-    return null;
-};
-
-export const deleteFiles = async (files: any): Promise<BackupProps> => {
-    try {
-        const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('DELETE', 'application/json', JSON.stringify(files)));
 
         if (backupUpload.status === 401) {
             logger.error('Authentication failed. Token:', process.env.DELEGATED_STORAGE_TOKEN);

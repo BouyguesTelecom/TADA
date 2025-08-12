@@ -16,105 +16,35 @@ export const getFile = async ({ filepath }): Promise<BackupProps> => {
         return null;
     }
 };
+
 export const upload = async (stream, file, datum): Promise<BackupProps> => {
     try {
         await createFolder(removeLastPartPath(datum.unique_name));
-        await writeFileInPV(datum.unique_name, file);
+        await writeFileInPV(datum.unique_name, stream);
         return { status: 200 };
     } catch (error) {
+        logger.error('Standalone upload error:', error);
         return { status: 400 };
     }
 };
-export const uploads = async ({ filespath, files }): Promise<BackupProps> => {
-    try {
-        const success = [];
-        const errors = [];
 
-        for (let i = 0; i < filespath.length; i++) {
-            const filepath = filespath[i];
-            const file = files[i];
-
-            try {
-                await createFolder(removeLastPartPath(filepath));
-                await writeFileInPV(filepath, file);
-                success.push(filepath);
-            } catch (error) {
-                errors.push(filepath);
-            }
-        }
-
-        return {
-            status: 200,
-            message: `Files successfully uploaded: ${success.join(', ')}, errors: ${errors.join(', ')}`
-        };
-    } catch (error) {
-        return {
-            status: 400,
-            message: `An error occurred: ${error.message}`
-        };
-    }
-};
-
-export const update = async (file, info): Promise<BackupProps> => {
+export const update = async (stream, info): Promise<BackupProps> => {
     try {
         const filepath = info.unique_name;
         await createFolder(removeLastPartPath(filepath));
-        await writeFileInPV(filepath, file);
+        await writeFileInPV(filepath, stream);
         return { status: 200 };
     } catch (error) {
+        logger.error('Standalone update error:', error);
         return { status: 400 };
     }
 };
 
-export const updates = async ({ filespath, files }): Promise<BackupProps> => {
+export const deleteFile = async (catalogItem): Promise<BackupProps> => {
     try {
-        const success = [];
-        const errors = [];
-
-        for (let i = 0; i < filespath.length; i++) {
-            const filepath = filespath[i];
-            const file = files[i];
-
-            const deletedFile = await deleteFileFS(`/tmp/standalone${filepath}`);
-            if (deletedFile) {
-                success.push(filepath);
-                await createFolder(removeLastPartPath(filepath));
-                await writeFileInPV(filepath, file);
-            } else {
-                errors.push(filepath);
-            }
-        }
-
-        return {
-            status: 200,
-            message: `Removed files: ${errors.length > 0 ? errors.join(', ') : 'none'}, success: ${success.join(', ')}`
-        };
-    } catch (error) {
-        return {
-            status: 400,
-            message: `An error occurred: ${error.message}`
-        };
-    }
-};
-
-export const deleteFile = async ({ filepath }): Promise<BackupProps> => {
-    try {
+        const filepath = catalogItem.unique_name || catalogItem.filepath || catalogItem;
         const deletedFile = await deleteFileFS(`/tmp/standalone${filepath}`);
         return { status: deletedFile ? 200 : 400 };
-    } catch (error) {
-        return { status: 400 };
-    }
-};
-
-export const deleteFiles = async ({ filespath }): Promise<BackupProps> => {
-    try {
-        const success = [];
-        const errors = [];
-        for (const filepath of filespath) {
-            const deletedFile = await deleteFileFS(`/tmp/standalone${filepath}`);
-            deletedFile ? success.push(filepath) : errors.push(filepath);
-        }
-        return { status: 200, message: `Removed files: ${errors}, success: ${success}` };
     } catch (error) {
         return { status: 400 };
     }

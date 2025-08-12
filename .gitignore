@@ -7,3 +7,4 @@ tmp
 context.txt
 local/redis/dumps/DEV
 *.log
+Chart.lock
