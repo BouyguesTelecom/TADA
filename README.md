@@ -13,7 +13,8 @@
         <li><a href="#global-flow-architecture">Global flow architecture</a></li>  
         <li><a href="#use-cases">Use cases</a></li>  
         <li><a href="#catalog">Catalog</a></li>  
-        <li><a href="#daily-jobs">Daily jobs</a></li>  
+        <li><a href="#daily-jobs">Daily jobs</a></li>
+        <li><a href="#catalog-dump-system">Catalog Dump System</a></li>  
     </ul>
     </li>
     <li>
@@ -89,11 +90,11 @@ structure:
         "uuid": "e080a953-5300-427b-bd39-6e235d8238a2",
         "version": 1,
         "namespace": "DEV",
-        "public_url": "http://localhost:8080/palpatine/assets/media/full/image/DEV/default.webp",
+        "public_url": "http://localhost:8080/prefix/assets/media/full/image/DEV/default.webp",
         "unique_name": "/DEV/default.webp",
         "filename": "default.webp",
         "original_filename": "default.webp",
-        "base_url": "http://localhost:8080/palpatine/assets/media",
+        "base_url": "http://localhost:8080/prefix/assets/media",
         "external_id": null,
         "expired": false,
         "expiration_date": null,
@@ -110,11 +111,11 @@ structure:
         "uuid": "d26a191f-1087-4169-b6cd-3db96f38ece4",
         "version": 1,
         "namespace": "DEV",
-        "public_url": "http://localhost:8080/palpatine/assets/media/full/image/DEV/error.webp",
+        "public_url": "http://localhost:8080/prefix/assets/media/full/image/DEV/error.webp",
         "unique_name": "/DEV/error.webp",
         "filename": "error.webp",
         "original_filename": "error.webp",
-        "base_url": "http://localhost:8080/palpatine/assets/media",
+        "base_url": "http://localhost:8080/prefix/assets/media",
         "external_id": null,
         "expired": false,
         "expiration_date": null,
@@ -136,6 +137,227 @@ structure:
 - a job to synchronize the state of our API in relation to YOUR delegated_storage: if the image is in the catalog, but not in your storage, it deletes the image from the catalog.
 - a catalog publication job on your delegated storage: the status of the catalog once a day is published on your storage which allows you to retrieve the most up-to-date list in the event of a new API instance.
 - a job to check the expiration of the files in the catalog with an expiration date.
+
+### Catalog Dump System
+
+TADA provides a comprehensive dump system for backing up and restoring catalog data. This system supports both **JSON** and **RDB** formats for maximum flexibility and compatibility.
+
+#### Key Features
+
+- **📤 Dual Format Creation**: Automatically generates both JSON and RDB dumps
+- **📥 Smart Restoration**: Prioritizes JSON format with RDB fallback
+- **🔄 No Container Restart**: JSON restoration works without Redis restarts
+- **🌐 Distant Backend Support**: Full integration with external storage services
+- **⚡ Atomic Operations**: All-or-nothing approach for data consistency
+
+#### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/catalog/create-dump` | Creates dual-format dump (JSON + RDB) |
+| `GET` | `/catalog/get-dump/:filename` | Retrieves specific dump file |
+| `GET` | `/catalog/get-dump/latest?format=json` | Gets latest JSON dump |
+| `POST` | `/catalog/restore-dump` | Restores catalog from dump |
+
+#### Usage Examples
+
+##### Creating a Dump
+
+```bash
+# Create both JSON and RDB dumps simultaneously
+curl -X POST http://localhost:3001/catalog/create-dump \
+  -H "Content-Type: application/json"
+
+# Response includes both formats
+{
+  "message": "Dump files created and uploaded successfully",
+  "files": {
+    "json": {
+      "filename": "dump_20250812T143052.json",
+      "size": 2456,
+      "records": 15
+    },
+    "rdb": {
+      "filename": "dump_20250812T143052.rdb", 
+      "size": 1104
+    }
+  },
+  "timestamp": "20250812T143052"
+}
+```
+
+##### Retrieving a Dump
+
+```bash
+# Get latest JSON dump (recommended for restore)
+curl "http://localhost:3001/catalog/get-dump/latest?format=json" \
+  --output catalog-backup.json
+
+# Get specific RDB dump
+curl "http://localhost:3001/catalog/get-dump/dump_20250812T143052.rdb" \
+  --output redis-backup.rdb
+
+# Get latest available (any format)
+curl "http://localhost:3001/catalog/get-dump/latest"
+```
+
+##### Restoring from Dump
+
+```bash
+# Restore from latest JSON dump (automatic cleanup + reload)
+curl -X POST http://localhost:3001/catalog/restore-dump \
+  -H "Content-Type: application/json"
+
+# Restore from specific file
+curl -X POST "http://localhost:3001/catalog/restore-dump?filename=dump_20250812T143052.json" \
+  -H "Content-Type: application/json"
+
+# Response
+{
+  "message": "Successfully restored catalog from JSON dump",
+  "details": {
+    "filename": "dump_20250812T143052.json",
+    "itemsRestored": 15,
+    "format": "JSON",
+    "source": "distant_backend"
+  }
+}
+```
+
+#### File Format
+
+Dumps follow a timestamp-based naming convention:
+
+```
+dump_YYYYMMDDTHHMMSS.json  # JSON format (human-readable)
+dump_YYYYMMDDTHHMMSS.rdb   # RDB format (Redis binary)
+
+# Examples:
+dump_20250812T143052.json
+dump_20250812T143052.rdb
+```
+
+#### Configuration for Distant Backend
+
+When using `DELEGATED_STORAGE_METHOD=DISTANT_BACKEND`, configure these environment variables:
+
+```bash
+# Required environment variables
+DELEGATED_STORAGE_METHOD=DISTANT_BACKEND
+DELEGATED_STORAGE_HOST=http://your-backend-service
+DELEGATED_STORAGE_TOKEN=your-access-token
+
+# Optional
+DUMP_FOLDER_PATH=/dumps  # Local RDB storage path
+```
+
+#### Restoration Process
+
+The restore operation follows these steps:
+
+1. **🧹 Clear Cache**: Flushes all existing Redis keys
+2. **📥 Fetch Dump**: Retrieves JSON dump from storage
+3. **✅ Validate**: Ensures data integrity and format
+4. **📝 Load Data**: Restores catalog items to Redis
+5. **🔄 Reinitialize**: Refreshes cache and connections
+
+#### Storage Methods
+
+##### Local Storage
+```bash
+# Default local storage in /dumps folder
+DELEGATED_STORAGE_METHOD=""
+DUMP_FOLDER_PATH="/dumps"
+```
+
+##### S3 Compatible
+```bash
+# S3 or MinIO storage
+DELEGATED_STORAGE_METHOD="S3"
+S3_ENDPOINT="minio"
+S3_BUCKET_NAME="media"
+```
+
+##### Distant Backend
+```bash
+# External service integration
+DELEGATED_STORAGE_METHOD="DISTANT_BACKEND"  
+DELEGATED_STORAGE_HOST="http://palpatine-media"
+DELEGATED_STORAGE_TOKEN="your-token"
+```
+
+#### Workflow Architecture
+
+```mermaid
+graph TD
+    subgraph "TADA Core"
+        REDIS[Redis Catalog]
+        API[TADA API]
+    end
+    
+    subgraph "Storage Layer"
+        LOCAL[Local /dumps]
+        S3[S3/MinIO]
+        BACKEND[Distant Backend]
+    end
+    
+    subgraph "Dump Formats"
+        JSON[JSON Dumps]
+        RDB[RDB Dumps]  
+    end
+    
+    REDIS -->|CREATE-DUMP| API
+    API -->|Dual Format| JSON
+    API -->|Dual Format| RDB
+    
+    JSON --> LOCAL
+    JSON --> S3
+    JSON --> BACKEND
+    
+    RDB --> LOCAL
+    RDB --> S3  
+    RDB --> BACKEND
+    
+    BACKEND -->|RESTORE| API
+    API -->|JSON Priority| REDIS
+    
+    LOCAL -.->|Fallback| API
+    S3 -.->|Fallback| API
+```
+
+#### Best Practices
+
+##### For Production
+
+- **✅ Use JSON format** for restoration (more reliable than RDB)
+- **✅ Automated backups** via cron or scheduled tasks  
+- **✅ Test restoration** regularly in non-production environments
+- **✅ Monitor storage usage** and implement cleanup policies
+- **✅ Validate dumps** before critical restore operations
+
+##### For Development
+
+```bash
+# Quick backup before major changes
+curl -X POST http://localhost:3001/catalog/create-dump
+
+# Quick restore after testing
+curl -X POST http://localhost:3001/catalog/restore-dump
+```
+
+##### Error Handling
+
+The system provides detailed error messages and suggestions:
+
+```json
+{
+  "error": "JSON dump file not found",
+  "details": "No JSON dump file found for latest in distant backend",
+  "suggestion": "Try requesting the other format or create a new dump with both formats"
+}
+```
+
+This dump system ensures your catalog data is always safe, portable, and recoverable across different TADA deployments and storage backends.
 
 ## How to use TADA ? 🎉
 
@@ -196,7 +418,7 @@ transform-and-deliver-assets:
 | s3.storage.storageClassName                 | Storage class name for S3/MinIO            | 'hostpath'                |
 | s3.storage.resources.requests.storage       | Requested storage space for S3/MinIO       | '500Mi'                   |
 | mediaApi.service                            | URL for the media service                  | 'http://media-service'    |
-| mediaApi.apiPrefix                          | API prefix for the media service           | '/palpatine'              |
+| mediaApi.apiPrefix                          | API prefix for the media service           | '/prefix'              |
 | mediaApi.routes.healthcheck.get             | Media healthcheck endpoint                 | '/readiness-check'        |
 | mediaApi.routes.file.get                    | Endpoint to get files                      | '/assets/media/'          |
 | mediaApi.routes.file.post                   | Endpoint to upload a file                  | '/upload'                 |
