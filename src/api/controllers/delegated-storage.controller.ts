@@ -57,13 +57,7 @@ export const patchFileBackup = async (file, stream, info): Promise<BackupProps> 
 };
 
 export const deleteFileBackup = async (itemToUpdate): Promise<BackupProps> => {
-    logger.info(`Delete
-    file from backup storage using
-    ${backupStorageMethod}
-    method
-    .
-    .
-    .`);
+    logger.info(`Delete file from backup storage using ${backupStorageMethod} method ...`);
     return await (async (): Promise<BackupProps> => {
         switch (backupStorageMethod) {
             case 'DISTANT_BACKEND':
