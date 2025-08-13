@@ -6,6 +6,7 @@ import { initializeCache, redisHandler } from '../../catalog/redis/connection';
 import { BackupProps } from '../../props/delegated-storage';
 import { logger } from '../../utils/logs/winston';
 import { FileProps, ResponseBackup } from '../types';
+import { getCurrentDateVersion } from '../../utils/catalog';
 
 export const headersUserAgentForBackup = (contentType: string | null = null) =>
     new Headers({
@@ -100,11 +101,7 @@ export const createDump = async (filePath, fileFormat) => {
     const results = [];
     const backupUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_POST_BACKUP}`;
 
-    const now = new Date();
-    const timestamp = now
-        .toISOString()
-        .replace(/[-T:.Z]/g, '')
-        .replace(/(\d{8})(\d{6}).*/, '$1_$2');
+    const timestamp = getCurrentDateVersion();
 
     const baseName = filePath ? filePath.replace(/\.(rdb|json)$/, '') : `dump_${timestamp}`;
 
