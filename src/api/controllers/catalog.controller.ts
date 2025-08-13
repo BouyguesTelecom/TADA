@@ -83,7 +83,6 @@ export const deleteCatalog = async (_req: Request, res: Response) => {
 };
 
 export const getDump = async (req: Request, res: Response) => {
-    console.log(req, 'REQ ????')
     const { format } = req?.query;
     const { filename } = req?.params;
     const filenameStr = filename ? filename.toString() : null;

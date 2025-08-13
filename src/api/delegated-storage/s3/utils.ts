@@ -212,7 +212,6 @@ export const restoreDump = async (filename = null) => {
 
 export const getDump = async (filename = null, format = 'rdb') => {
     try {
-        console.log('jarrive dans le get dump S3', filename, format)
         const bucketName = process.env.S3_BUCKET_NAME || 'media';
         let objectName = filename;
 
