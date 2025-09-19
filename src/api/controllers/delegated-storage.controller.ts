@@ -40,6 +40,22 @@ export const postFileBackup = async (stream, file, datum) => {
     })();
 };
 
+export const postFilesBackup = async (files) => {
+    logger.info(`Uploading file to backup storage using ${backupStorageMethod} method...`);
+    return await (async () => {
+        switch (backupStorageMethod) {
+            case 'DISTANT_BACKEND':
+                return await distantBackend.uploads(files);
+            case 'S3':
+                return await s3.uploads(files);
+            case 'STANDALONE':
+                return await standalone.uploads(files);
+            default:
+                return await distantBackend.uploads(files);
+        }
+    })();
+};
+
 export const patchFileBackup = async (file, stream, info): Promise<BackupProps> => {
     logger.info(`Updating file from backup storage using ${backupStorageMethod} method...`);
     return await (async (): Promise<BackupProps> => {
@@ -52,6 +68,22 @@ export const patchFileBackup = async (file, stream, info): Promise<BackupProps> 
                 return await standalone.update(stream, info);
             default:
                 return await distantBackend.update(file, stream, info);
+        }
+    })();
+};
+
+export const patchFilesBackup = async (files) => {
+    logger.info(`Uploading file to backup storage using ${backupStorageMethod} method...`);
+    return await (async () => {
+        switch (backupStorageMethod) {
+            case 'DISTANT_BACKEND':
+                return await distantBackend.updates(files);
+            case 'S3':
+                return await s3.updates(files);
+            case 'STANDALONE':
+                return await standalone.updates(files);
+            default:
+                return await distantBackend.updates(files);
         }
     })();
 };
@@ -72,103 +104,66 @@ export const deleteFileBackup = async (itemToUpdate): Promise<BackupProps> => {
     })();
 };
 
-export const createDumpBackup = async (filePath, fileFormat) => {
-    try {
-        logger.info(`CREATE DUMP from backup storage using ${backupStorageMethod} method...`);
-        const result = await (async () => {
-            switch (backupStorageMethod) {
-                case 'DISTANT_BACKEND':
-                    return await distantBackend.createDump(filePath, fileFormat);
-                case 'S3':
-                    return await s3.createDump(filePath, fileFormat);
-                case 'STANDALONE':
-                    return await standaloneUtils.createDump(filePath, 'json');
-                default:
-                    return await distantBackend.createDump(filePath, fileFormat);
-            }
-        })();
-
-        if (result && typeof result === 'object') {
-            return {
-                status: result.status || 200,
-                data: result.data || [result],
-                errors: result.errors || []
-            };
+export const deleteFilesBackup = async (files) => {
+    logger.info(`Uploading file to backup storage using ${backupStorageMethod} method...`);
+    return await (async () => {
+        switch (backupStorageMethod) {
+            case 'DISTANT_BACKEND':
+                return await distantBackend.deletes(files);
+            case 'S3':
+                return await s3.deletes(files);
+            case 'STANDALONE':
+                return await standalone.deletes(files);
+            default:
+                return await distantBackend.deletes(files);
         }
+    })();
+};
 
-        return {
-            status: 200,
-            data: [result],
-            errors: []
-        };
-    } catch (error) {
-        return {
-            status: 500,
-            data: [],
-            errors: [error.message]
-        };
-    }
+export const createDumpBackup = async (filePath, fileFormat) => {
+    logger.info(`CREATE DUMP from backup storage using ${backupStorageMethod} method...`);
+    return await (async () => {
+        switch (backupStorageMethod) {
+            case 'DISTANT_BACKEND':
+                return await distantBackend.createDump(filePath, fileFormat);
+            case 'S3':
+                return await s3.createDump(filePath, fileFormat);
+            case 'STANDALONE':
+                return await standaloneUtils.createDump(filePath, 'json');
+            default:
+                return await distantBackend.createDump(filePath, fileFormat);
+        }
+    })();
 };
 
 export const restoreDumpBackup = async (filename, format) => {
-    try {
-        logger.info(`RESTORE DUMP from backup storage using ${backupStorageMethod} method...`);
-        const result = await (async () => {
-            switch (backupStorageMethod) {
-                case 'DISTANT_BACKEND':
-                    return await distantBackend.restoreDump(filename, format);
-                case 'S3':
-                    return await s3.restoreDump(filename);
-                case 'STANDALONE':
-                    return await standaloneUtils.restoreDump(filename, 'json');
-                default:
-                    return await distantBackend.restoreDump(filename, format);
-            }
-        })();
-
-        if (result && typeof result === 'object') {
-            return {
-                status: result.status || 200,
-                data: result.data || [result],
-                errors: result.errors || []
-            };
+    logger.info(`RESTORE DUMP from backup storage using ${backupStorageMethod} method...`);
+    return await (async () => {
+        switch (backupStorageMethod) {
+            case 'DISTANT_BACKEND':
+                return await distantBackend.restoreDump(filename, format);
+            case 'S3':
+                return await s3.restoreDump(filename);
+            case 'STANDALONE':
+                return await standaloneUtils.restoreDump(filename, 'json');
+            default:
+                return await distantBackend.restoreDump(filename, format);
         }
-
-        return {
-            status: 200,
-            data: [result],
-            errors: []
-        };
-    } catch (error) {
-        return {
-            status: 500,
-            data: [],
-            errors: [error.message]
-        };
-    }
+    })();
 };
 
-export const getDumpBackup = async (filename = '', format = 'rdb') => {
-    try {
-        logger.info(`GET DUMP from backup storage using ${backupStorageMethod} method...`);
-        const result = await (async () => {
-            switch (backupStorageMethod) {
-                case 'DISTANT_BACKEND':
-                    return await distantBackend.getDump(filename, format);
-                case 'S3':
-                    return await s3.getDump(filename, format);
-                case 'STANDALONE':
-                    return await standaloneUtils.getDump(filename, format);
-                default:
-                    return await distantBackend.getDump(filename, format);
-            }
-        })();
-
-        if (result && typeof result === 'object') {
-            return { status: result.status || 200, data: result.data || [result], errors: result.errors || [] };
+export const getDumpBackup = async (version = '', format = 'json') => {
+    logger.info(`GET DUMP from backup storage using ${backupStorageMethod} method...`);
+    return await (async () => {
+        switch (backupStorageMethod) {
+            case 'DISTANT_BACKEND':
+                return await distantBackend.getDump(version, format);
+            case 'S3':
+                return await s3.getDump(version, format);
+            case 'STANDALONE':
+                return await standaloneUtils.getDump(version, format);
+            default:
+                return await distantBackend.getDump(version, format);
         }
-        return { status: 200, data: [result], errors: [] };
-    } catch (error) {
-        return { status: 500, data: [], errors: [error.message] };
-    }
+    })();
 };
