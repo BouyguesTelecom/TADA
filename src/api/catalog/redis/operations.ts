@@ -4,31 +4,6 @@ import { logger } from '../../utils/logs/winston';
 import { filePathIsUnique, validateMultipleFile, validateOneFile } from '../validators';
 import { cache } from './connection';
 
-const parseDateVersion = (name: string): Date => {
-    const prefix = `${app.locals.PREFIXED_CATALOG}/`;
-    const suffix = '.json';
-
-    if (!name.startsWith(prefix) || !name.endsWith(suffix)) {
-        throw new Error('Filename format is incorrect');
-    }
-
-    const timestamp = name.slice(prefix.length, -suffix.length);
-
-    const regex = /^\d{8}T\d{6}$/;
-    if (!regex.test(timestamp)) {
-        throw new Error('Timestamp format is incorrect');
-    }
-
-    const year = parseInt(timestamp.substring(0, 4));
-    const month = parseInt(timestamp.substring(4, 6)) - 1;
-    const day = parseInt(timestamp.substring(6, 8));
-    const hours = parseInt(timestamp.substring(9, 11));
-    const minutes = parseInt(timestamp.substring(11, 13));
-    const seconds = parseInt(timestamp.substring(13, 15));
-
-    return new Date(year, month, day, hours, minutes, seconds);
-};
-
 export const getOneFile = async (id: string, redis = false) => {
     try {
         const file = await cache.get(id);
@@ -128,13 +103,6 @@ export const deleteOneFile = async (id: string): Promise<{ datum?: string; error
     }
 };
 
-export const getLastVersion = (list) => {
-    return list.reduce((acc, curr) => {
-        const currDate = parseDateVersion(curr);
-        const accDate = parseDateVersion(acc);
-        return currDate > accDate ? curr : acc;
-    });
-};
 
 export const getCatalogRedis = async () => {
     const catalog = await getAllFiles();
