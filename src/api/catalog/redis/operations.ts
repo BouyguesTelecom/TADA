@@ -60,7 +60,7 @@ export const addOneFile = async (file: FileProps) => {
         const errorValidation = validateOneFile(file);
         if (!errorValidation) {
             await cache.set(file);
-            return { datum: { ...file, id: file.uuid }, error: '' };
+            return { datum: file, error: '' };
         }
         return {
             datum: null,
@@ -110,7 +110,6 @@ export const updateOneFile = async (fileId: string, updateData: Partial<FileProp
         if (!existingFile) {
             return { error: `File with id ${fileId} does not exist`, datum: null };
         }
-
         const updatedFile = { ...existingFile, ...updateData };
         await cache.set(updatedFile);
 
