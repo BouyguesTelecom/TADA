@@ -7,10 +7,10 @@ import { processGetAsset, processPostAsset, processPatchAsset, processDeleteAsse
 
 export const getAsset = async (req: Request, res: Response & { locals: FileControllerLocals }) => {
     const { uniqueName, file, queryVersion } = res.locals;
-    
+    const version = Number(queryVersion ?? file.version);
     try {
-        const result = await processGetAsset(uniqueName, file, queryVersion, req.url);
-        
+        const result = await processGetAsset(uniqueName, file, version, req.url);
+
         if (result.status === 200) {
             if (result.error === 'expired') {
                 return returnDefaultImage(res, '/default.svg');
@@ -71,11 +71,11 @@ export const postAsset = async (_req: Request, res: Response) => {
 };
 
 export const patchAsset = async (_req: Request, res: Response) => {
-    const { itemToUpdate, uuid, fileInfo, uniqueName, toWebp, file } = res.locals;
-    
+    const { itemToUpdate, uuid, fileInfo, toWebp, file } = res.locals;
+
     try {
-        const result = await processPatchAsset(itemToUpdate, uuid, fileInfo, uniqueName, toWebp, file);
-        
+        const result = await processPatchAsset(itemToUpdate, uuid, fileInfo, toWebp, file);
+
         return sendResponse({
             res,
             status: result.status,
