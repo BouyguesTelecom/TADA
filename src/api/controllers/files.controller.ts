@@ -50,7 +50,6 @@ export const postAssets = async (_req: Request, res: Response) => {
 
 export const patchAssets = async (req: Request, res: Response) => {
     const { validFiles, invalidFiles } = res.locals;
-    console.log(validFiles, invalidFiles, 'WAZAAA PATCH');
     const files = [];
     for (const file of validFiles) {
         const stream = await generateStream(file, file.toWebp);
@@ -73,10 +72,8 @@ export const patchAssets = async (req: Request, res: Response) => {
 
     const successFiles = files.filter((file) => file.success);
     const errorFiles = files.filter((file) => !file.success);
-    console.log('SUCCESS FILES::::', successFiles);
     try {
         const responseBackup: any = await patchFilesBackup(successFiles);
-        console.log(responseBackup, 'RESPONSE BACKUP ICI ???');
         return sendResponse({
             res,
             status: responseBackup.status,
@@ -102,12 +99,10 @@ export const deleteAssets = async (_req: Request, res: Response) => {
     const { validFiles, invalidFiles } = res.locals;
 
     try {
-        console.log(validFiles, invalidFiles, 'WAZAAA DELETE');
         const { status, data, errors }: any = await deleteFilesBackup(validFiles);
         for (const file of validFiles) {
             await deleteCatalogItem(file.catalogItem.uuid);
         }
-        console.log(status, data, errors, '????');
         return sendResponse({
             res,
             status,
