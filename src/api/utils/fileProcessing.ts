@@ -11,16 +11,10 @@ import { deleteFileBackup, getBackup, patchFileBackup, postFileBackup } from '..
 const checkSignature = async (file: FileProps, buffer: Buffer): Promise<{ isValidSignature: boolean; originSignature: string | null }> => {
     try {
         const signature = calculateSHA256(buffer);
-        return {
-            isValidSignature: file.signature === signature,
-            originSignature: signature
-        };
+        return { isValidSignature: file.signature === signature, originSignature: signature };
     } catch (error) {
         logger.error('Error checking signature:', error);
-        return {
-            isValidSignature: false,
-            originSignature: null
-        };
+        return { isValidSignature: false, originSignature: null };
     }
 };
 
@@ -32,22 +26,12 @@ const streamToBuffer = async (stream) => {
     return Buffer.concat(chunks);
 };
 
-
-export const processGetAsset = async (
-    uniqueName: string, 
-    file: FileProps, 
-    queryVersion: string | undefined,
-    requestUrl: string
-): Promise<GetAssetResult> => {
+export const processGetAsset = async (uniqueName: string, file: FileProps, version: number, requestUrl: string): Promise<GetAssetResult> => {
     const fileIsExpired = isExpired(file);
 
     if (!fileIsExpired) {
-        const getBackupFile: Readable | null = await getBackup(
-            uniqueName, 
-            queryVersion ? queryVersion.toString() : file.version.toString(), 
-            file.mimetype
-        );
-        
+        const getBackupFile: Readable | null = await getBackup(uniqueName, version.toString(), file.mimetype);
+
         if (!getBackupFile) {
             await deleteCatalogItem(file.uuid);
             return { status: 404, error: 'File not found' };
@@ -61,7 +45,7 @@ export const processGetAsset = async (
 
         const { isValidSignature, originSignature } = await checkSignature(file, bodyBuffer);
 
-        if (!isValidSignature && !queryVersion) {
+        if (!isValidSignature && !version) {
             logger.error(`Invalid signatures (catalog: ${file.signature}, origin: ${originSignature})`);
             return { status: 418, error: 'Invalid signature' };
         }
@@ -116,14 +100,8 @@ export const processGetAsset = async (
     return { status: 404, error: 'Not found' };
 };
 
-export const processPostAsset = async (
-    uniqueName: string,
-    fileInfo: any,
-    toWebp: boolean,
-    namespace: string,
-    file: any
-): Promise<PostAssetResult> => {
-    const stream = await generateStream(file, uniqueName, toWebp);
+export const processPostAsset = async (uniqueName: string, fileInfo: any, toWebp: boolean, namespace: string, file: any): Promise<PostAssetResult> => {
+    const stream = await generateStream(file, toWebp);
     if (!stream) {
         return {
             status: 400,
@@ -178,17 +156,10 @@ export const processPostAsset = async (
     }
 };
 
-export const processPatchAsset = async (
-    itemToUpdate: any,
-    uuid: string,
-    fileInfo: any,
-    uniqueName: string,
-    toWebp: boolean,
-    file?: any
-): Promise<PatchAssetResult> => {
-    const stream = file && (await generateStream(file, uniqueName, toWebp));
-    
-    if ((file && !stream)) {
+export const processPatchAsset = async (itemToUpdate: any, uuid: string, fileInfo: any, toWebp: boolean, file?: any): Promise<PatchAssetResult> => {
+    const stream = file && (await generateStream(file, toWebp));
+
+    if (file && !stream) {
         if (file?.path) await deleteFile(file.path);
         return {
             status: 400,
@@ -207,6 +178,7 @@ export const processPatchAsset = async (
 
     if (stream && catalogData) {
         const patchBackupFile = await patchFileBackup(catalogData.uuid, stream, {
+            publicUrl: catalogData.public_url,
             unique_name: catalogData.unique_name,
             version: catalogData.version,
             mimetype: catalogData.mimetype
@@ -218,9 +190,9 @@ export const processPatchAsset = async (
 
     const data = catalogData ? [catalogData] : [];
     const errors = error ? [error] : [];
-    
+
     if (file?.path) await deleteFile(file.path);
-    
+
     return {
         status: 200,
         data,
