@@ -6,35 +6,35 @@ import { getCurrentDateVersion } from '../../utils/catalog';
 export const createDump = async (filename = null, format = 'rdb') => {
     try {
         const timestamp = getCurrentDateVersion();
-        
+
         const bucketName = process.env.S3_BUCKET_NAME || 'media';
         const results = [];
 
         if (format === 'rdb' || format === 'both') {
             try {
                 await redisHandler.generateDump();
-                
-                const fs = await import('fs').then(m => m.promises);
+
+                const fs = await import('fs').then((m) => m.promises);
                 const dumpPath = process.env.DUMP_FOLDER_PATH ? `${process.env.DUMP_FOLDER_PATH}/dump.rdb` : '/dumps/dump.rdb';
                 const rdbContent = await fs.readFile(dumpPath);
                 const rdbObjectName = filename ? `dumps/${filename}.rdb` : `dumps/dump_${timestamp}.rdb`;
-                
+
                 await minioClient.putObject(bucketName, rdbObjectName, rdbContent);
                 results.push(`RDB dump: ${rdbObjectName}`);
             } catch (rdbError) {
                 results.push(`RDB dump failed: ${rdbError.message}`);
             }
         }
-        
+
         if (format === 'json' || format === 'rdb' || format === 'both') {
             try {
                 const { data: catalog } = await getCatalogRedis();
-                
+
                 if (catalog && Array.isArray(catalog)) {
                     const catalogJson = JSON.stringify(catalog, null, 2);
                     const jsonContent = Buffer.from(catalogJson, 'utf-8');
                     const jsonObjectName = filename ? `dumps/${filename}.json` : `dumps/dump_${timestamp}.json`;
-                    
+
                     await minioClient.putObject(bucketName, jsonObjectName, jsonContent);
                     results.push(`JSON dump: ${jsonObjectName}`);
                 } else {
@@ -58,87 +58,6 @@ export const createDump = async (filename = null, format = 'rdb') => {
         };
     }
 };
-
-export const getFile = async ({ filename }: any) => {
-    try {
-        const dataStream = await minioClient.getObject(process.env.S3_BUCKET_NAME, filename);
-        return {
-            status: 200,
-            message: `Get image ${ filename } from S3 bucket`,
-            stream: dataStream
-        };
-    } catch ( error ) {
-        if (error.code === 'NoSuchKey') {
-            return {
-                status: 404,
-                message: `File ${ filename } not found in S3 bucket`
-            };
-        } else {
-            return {
-                status: 500,
-                message: `An error occurred while retrieving file ${ filename }: ${ error.message }`
-            };
-        }
-    }
-};
-
-export const upload = async (stream, datum) => {
-    const { etag } = await minioClient.putObject(process.env.S3_BUCKET_NAME, datum.unique_name, stream);
-    return {
-        status: 200,
-        message: `Successfully uploaded file ${ datum.unique_name } to S3 bucket with etag ${ etag }!`
-    };
-};
-
-export const update = async (file, stream, info) => {
-    const filename = info.unique_name;
-    try {
-        await minioClient.putObject(process.env.S3_BUCKET_NAME, filename, stream);
-        const dataStream = await minioClient.getObject(process.env.S3_BUCKET_NAME, filename);
-        return {
-            status: 200,
-            message: `Update image ${ filename } from S3 bucket`,
-            stream: dataStream
-        };
-    } catch ( error ) {
-        if (error.code === 'NoSuchKey') {
-            return {
-                status: 404,
-                message: `File ${ filename } not found in S3 bucket`
-            };
-        } else {
-            return {
-                status: 500,
-                message: `An error occurred while retrieving file ${ filename }: ${ error.message }`
-            };
-        }
-    }
-};
-
-export const deleteFile = async (catalogItem: any) => {
-    try {
-        const filename = catalogItem.unique_name || catalogItem.filename || catalogItem;
-        await minioClient.removeObject(process.env.S3_BUCKET_NAME, filename);
-        return {
-            status: 200,
-            message: `Delete image ${filename} from S3 bucket`
-        };
-    } catch ( error ) {
-        const filename = catalogItem.unique_name || catalogItem.filename || catalogItem;
-        if (error.code === 'NoSuchKey') {
-            return {
-                status: 404,
-                message: `File ${ filename } not found in S3 bucket`
-            };
-        } else {
-            return {
-                status: 500,
-                message: `An error occurred while deleting file ${ filename }: ${ error.message }`
-            };
-        }
-    }
-};
-
 export const restoreDump = async (filename = null) => {
     try {
         let jsonRestoreSuccess = false;
@@ -188,7 +107,7 @@ export const restoreDump = async (filename = null) => {
             }
 
             const dumpData = Buffer.from(rdbDumpResult.data[0], 'base64');
-            const fs = await import('fs').then(m => m.promises);
+            const fs = await import('fs').then((m) => m.promises);
             const dumpPath = process.env.DUMP_FOLDER_PATH ? `${process.env.DUMP_FOLDER_PATH}/dump.rdb` : '/dumps/dump.rdb';
 
             await redisHandler.flushAllKeys();
@@ -200,7 +119,6 @@ export const restoreDump = async (filename = null) => {
                 errors: ['Note: JSON backup not available, using RDB. Consider restarting Redis service for immediate effect.']
             };
         }
-
     } catch (error) {
         return {
             status: 500,
@@ -294,4 +212,152 @@ export const getDump = async (filename = null, format = 'rdb') => {
             errors: [`Error getting dump from S3: ${error.message}`]
         };
     }
+};
+
+export const getFile = async ({ filename }: any) => {
+    try {
+        const dataStream = await minioClient.getObject(process.env.S3_BUCKET_NAME, filename);
+        return {
+            status: 200,
+            message: `Get image ${filename} from S3 bucket`,
+            stream: dataStream
+        };
+    } catch (error) {
+        if (error.code === 'NoSuchKey') {
+            return {
+                status: 404,
+                message: `File ${filename} not found in S3 bucket`
+            };
+        } else {
+            return {
+                status: 500,
+                message: `An error occurred while retrieving file ${filename}: ${error.message}`
+            };
+        }
+    }
+};
+
+// SINGLE UPLOAD / UPDATE / DELETE
+export const upload = async (stream, datum) => {
+    const { etag } = await minioClient.putObject(process.env.S3_BUCKET_NAME, datum.unique_name, stream);
+    return {
+        status: 200,
+        message: `Successfully uploaded file ${datum.unique_name} to S3 bucket with etag ${etag}!`
+    };
+};
+
+export const update = async (file, stream, info) => {
+    const filename = info.unique_name;
+    try {
+        await minioClient.putObject(process.env.S3_BUCKET_NAME, filename, stream);
+        const dataStream = await minioClient.getObject(process.env.S3_BUCKET_NAME, filename);
+        return {
+            status: 200,
+            message: `Update image ${filename} from S3 bucket`,
+            stream: dataStream
+        };
+    } catch (error) {
+        if (error.code === 'NoSuchKey') {
+            return {
+                status: 404,
+                message: `File ${filename} not found in S3 bucket`
+            };
+        } else {
+            return {
+                status: 500,
+                message: `An error occurred while retrieving file ${filename}: ${error.message}`
+            };
+        }
+    }
+};
+
+export const deleteFile = async (catalogItem: any) => {
+    try {
+        const filename = catalogItem.unique_name || catalogItem.filename || catalogItem;
+        await minioClient.removeObject(process.env.S3_BUCKET_NAME, filename);
+        return {
+            status: 200,
+            message: `Delete
+            image ${filename}from S3 bucket`
+        };
+    } catch (error) {
+        const filename = catalogItem.unique_name || catalogItem.filename || catalogItem;
+        if (error.code === 'NoSuchKey') {
+            return {
+                status: 404,
+                message: `File ${filename} not found in S3 bucket`
+            };
+        } else {
+            return {
+                status: 500,
+                message: `An error occurred while deleting file ${filename}: ${error.message}`
+            };
+        }
+    }
+};
+
+//MULTI UPLOADS / UPDATES / DELETE
+export const uploads = async (files) => {
+    const data = [];
+    const errors = [];
+    for (const file of files) {
+        const { etag } = await minioClient.putObject(process.env.S3_BUCKET_NAME, file.catalogItem.unique_name, file.stream);
+        if (etag) {
+            data.push(`Successfully uploaded file ${file.catalogItem.unique_name} to S3 bucket with etag ${etag}!`);
+        } else {
+            errors.push(`Adding failed for ${file.catalogItem.unique_name} to S3 bucket`);
+        }
+    }
+    return {
+        status: 200,
+        data,
+        errors
+    };
+};
+
+export const updates = async (files) => {
+    const data = [];
+    const errors = [];
+    for (const file of files) {
+        try {
+            await minioClient.putObject(process.env.S3_BUCKET_NAME, file.catalogItem.unique_name, file.stream);
+            const dataStream = await minioClient.getObject(process.env.S3_BUCKET_NAME, file.catalogItem.unique_name);
+            if (dataStream) {
+                data.push(`File ${file.catalogItem.unique_name} patched successfully `);
+            }
+        } catch (error) {
+            if (error.code === 'NoSuchKey') {
+                errors.push(`File ${file.catalogItem.unique_name} not found in S3 bucket`);
+            } else {
+                errors.push(`An error occurred while retrieving file ${file.catalogItem.unique_name}: ${error.message}`);
+            }
+        }
+    }
+    return {
+        status: 200,
+        data,
+        errors
+    };
+};
+
+export const deletes = async (files) => {
+    const data = [];
+    const errors = [];
+    for (const file of files) {
+        try {
+            await minioClient.removeObject(process.env.S3_BUCKET_NAME, file.catalogItem.unique_name);
+            data.push(`File ${file.catalogItem.unique_name} deleted successfully `);
+        } catch (error) {
+            if (error.code === 'NoSuchKey') {
+                errors.push(`File ${file.catalogItem.unique_name} not found in S3 bucket`);
+            } else {
+                errors.push(`An error occurred while retrieving file ${file.catalogItem.unique_name}: ${error.message}`);
+            }
+        }
+    }
+    return {
+        status: 200,
+        data,
+        errors
+    };
 };
