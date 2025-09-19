@@ -108,7 +108,7 @@ export const deleteAssets = async (_req: Request, res: Response) => {
             status,
             purge: 'true',
             data,
-            errors
+            errors: [...errors, ...invalidFiles]
         });
     } catch (error) {
         logger.error('DELETE assets error:', error);
