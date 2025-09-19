@@ -168,6 +168,7 @@ const restoreFromDump = async (dumpPath?: string) => {
 
 export const initializeCache = async () => {
     try {
+        memoryCache.clear();
         logger.info('Init cache.');
         const start = Date.now();
 
