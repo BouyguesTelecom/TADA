@@ -49,3 +49,57 @@ export const deleteFile = async (catalogItem): Promise<BackupProps> => {
         return { status: 400 };
     }
 };
+
+export const uploads = async (files): Promise<any> => {
+    const data = []
+    const errors=  []
+    for (const file of files){
+        try {
+            await createFolder(removeLastPartPath(file.catalogItem.unique_name));
+            const write= await writeFileInPV(file.catalogItem.unique_name, file.stream);
+            if(write){
+                data.push(file)
+            }else{
+                errors.push(file)
+            }
+        } catch (error) {
+            logger.error('Standalone upload error:', error);
+        }
+    }
+    return { status: 200, data, errors };
+};
+
+export const updates = async (files): Promise<any> => {
+    const data = []
+    const errors=  []
+    for (const file of files){
+        try {
+            const filepath = file.catalogItem.unique_name;
+            await createFolder(removeLastPartPath(filepath));
+            const write= await  writeFileInPV(filepath, file.stream);
+            if(write){
+                data.push(file)
+            }else{
+                errors.push(file)
+            }
+        } catch (error) {
+            logger.error('Standalone update error:', error);
+        }
+    }
+    return { status: 200, data, errors };
+};
+
+export const deletes = async (files): Promise<any> => {
+    const data = []
+    const errors=  []
+    for (const file of files){
+        const filepath = file.catalogItem.unique_name;
+        const deletedFile = await deleteFileFS(`/tmp/standalone${filepath}`);
+        if(deletedFile){
+            data.push(file)
+        }else{
+            errors.push(file)
+        }
+    }
+    return { status: 200, data, errors };
+};
