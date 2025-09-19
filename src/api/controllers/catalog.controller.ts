@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { addCatalogItem, deleteAllCatalog, deleteCatalogItem, getCatalog, getCatalogItem, updateCatalogItem } from '../catalog';
 import { validateOneFile } from '../catalog/validators';
 import { sendResponse } from '../middleware/validators/utils';
-import { patchFileBackup, createDumpBackup, restoreDumpBackup, getDumpBackup } from './delegated-storage.controller';
+import { patchFileBackup } from './delegated-storage.controller';
 
 export const addFileInCatalog = async (req: Request, res: Response): Promise<any> => {
     const item = req.body;
@@ -79,31 +79,5 @@ export const deleteFileFromCatalog = async (req: Request, res: Response) => {
 
 export const deleteCatalog = async (_req: Request, res: Response) => {
     const { status, data, errors } = await deleteAllCatalog();
-    return sendResponse({ res, status, data, errors });
-};
-
-export const getDump = async (req: Request, res: Response) => {
-    const { format } = req?.query;
-    const { filename } = req?.params;
-    const filenameStr = filename ? filename.toString() : null;
-    const formatStr = format ? format.toString() : 'rdb';
-
-    const { status, data, errors } = await getDumpBackup(filenameStr, formatStr);
-    return sendResponse({ res, status, data, errors });
-};
-
-export const createDump = async (req: Request, res: Response) => {
-    const { filename, format } = req.query;
-    const filenameStr = filename ? filename.toString() : null;
-    const formatStr = format ? format.toString() : 'rdb';
-    const { status, data, errors } = await createDumpBackup(filenameStr, formatStr);
-    return sendResponse({ res, status, data, errors });
-};
-
-export const restoreDump = async (req: Request, res: Response) => {
-    const { filename, format } = req.query;
-    const filenameStr = filename ? filename.toString() : null;
-    const formatStr = format ? format.toString() : 'rdb';
-    const { status, data, errors } = await restoreDumpBackup(filenameStr, formatStr);
     return sendResponse({ res, status, data, errors });
 };
