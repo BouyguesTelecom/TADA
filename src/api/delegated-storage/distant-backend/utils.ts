@@ -1,9 +1,9 @@
 import FormData from 'form-data';
 import fs from 'fs';
 import fetch from 'node-fetch';
-import { addCatalogItems, getCatalog, updateCatalogItem } from '../../catalog';
+import { addCatalogItems,  getCatalog, updateCatalogItem } from '../../catalog';
 import { initializeCache, redisHandler } from '../../catalog/redis/connection';
-import { BackupProps } from '../../props/delegated-storage';
+import { BackupMultiProps, BackupProps } from '../../props/delegated-storage';
 import { logger } from '../../utils/logs/winston';
 import { FileProps, ResponseBackup } from '../types';
 import { getCurrentDateVersion } from '../../utils/catalog';
@@ -41,49 +41,36 @@ const generateFormDataWithFile = (stream, file, info) => {
     return form;
 };
 
-export const getDump = async (filename = null, format = 'rdb') => {
+export const getDump = async (filename = null, format = 'json') => {
     try {
         let dumpUrl: string;
 
         if (filename) {
             dumpUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_GET_BACKUP}/${encodeURIComponent(filename)}`;
         } else {
-            const formatQuery = format === 'json' ? '?format=json' : '';
+            const formatQuery = `?format=${format}`;
             dumpUrl = `${process.env.DELEGATED_STORAGE_HOST}/get-dump/latest${formatQuery}`;
         }
 
         logger.info(`Fetching dump from: ${dumpUrl} (format: ${format})`);
-        const response = await fetch(dumpUrl, generateOptions('GET', 'application/json'));
+        const contentTypeHeader = format === 'json' ? 'application/json' : null;
+        const response = await fetch(dumpUrl, generateOptions('GET', contentTypeHeader));
 
-        if (response.status !== 200) {
-            return {
-                status: response.status,
-                data: [],
-                errors: [`Failed to get dump file: ${response.statusText}`]
-            };
+        if (response.status === 404) {
+            return { status: 404, data: [], errors: [`❌ Dump requested not found : ${filename}`] };
         }
-
-        const contentType = response.headers.get('content-type');
-        const actualFormat = response.headers.get('x-actual-format');
-        const requestedFormat = response.headers.get('x-requested-format');
-
-        const isJsonResponse =
-            actualFormat === 'JSON' || (contentType?.includes('application/json') && !actualFormat) || (format === 'json' && !actualFormat && !contentType?.includes('octet-stream'));
-
-        logger.info(`Response - Content-Type: ${contentType}, Requested: ${requestedFormat}, Actual: ${actualFormat}, Treating as: ${isJsonResponse ? 'JSON' : 'RDB'}`);
-
-        if (isJsonResponse) {
+        if (format === 'json') {
             const jsonData = await response.json();
             return {
                 status: 200,
-                data: [JSON.stringify(jsonData, null, 2)],
+                data: jsonData,
                 errors: []
             };
         } else {
-            const buffer = await response.buffer();
+            const buffer = await response.arrayBuffer();
             return {
                 status: 200,
-                data: [buffer.toString('base64')],
+                data: buffer,
                 errors: []
             };
         }
@@ -98,154 +85,87 @@ export const getDump = async (filename = null, format = 'rdb') => {
 };
 
 export const createDump = async (filePath, fileFormat) => {
+    const timestamp = getCurrentDateVersion();
+    const baseName = filePath ? filePath.replace(/\.(rdb|json)$/, '') : `dump_${timestamp}`;
     const results = [];
     const backupUrl = `${process.env.DELEGATED_STORAGE_HOST}${process.env.URL_TO_POST_BACKUP}`;
 
-    const timestamp = getCurrentDateVersion();
-
-    const baseName = filePath ? filePath.replace(/\.(rdb|json)$/, '') : `dump_${timestamp}`;
-
-    if (fileFormat === 'rdb' || fileFormat === 'both') {
-        try {
-            await redisHandler.generateDump();
-            const dumpPath = process.env.DUMP_FOLDER_PATH ? `${process.env.DUMP_FOLDER_PATH}/dump.rdb` : '/dumps/dump.rdb';
-
-            const formData = new FormData();
-            const fileBuffer = await fs.promises.readFile(dumpPath);
-            formData.append('file', fileBuffer, {
-                filename: `${baseName}.rdb`,
-                contentType: 'application/octet-stream'
-            });
-
-            const response = await fetch(backupUrl, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
-                },
-                body: formData
-            });
-
-            if (response.ok) {
-                results.push(`RDB backup: ${baseName}.rdb uploaded successfully`);
-            } else {
-                const errorText = await response.text();
-                results.push(`RDB backup failed: ${response.statusText} - ${errorText}`);
-            }
-        } catch (err) {
-            results.push(`RDB backup failed: ${(err as Error).message}`);
+    try {
+        await redisHandler.generateDump();
+        const dumpPath = process.env.DUMP_FOLDER_PATH ? `${process.env.DUMP_FOLDER_PATH}/dump.rdb` : '/dumps/dump.rdb';
+        const catalog = await getCatalog();
+        if (!catalog.data || !Array.isArray(catalog.data)) {
+            throw new Error('No catalog data available');
         }
-    }
+        const formData = new FormData();
 
-    if (fileFormat === 'json' || fileFormat === 'rdb' || fileFormat === 'both') {
-        try {
-            const catalog = await getCatalog();
+        const fileBuffer = await fs.promises.readFile(dumpPath);
+        formData.append('dump', fileBuffer, {
+            filename: `${baseName}.rdb`,
+            contentType: 'application/octet-stream'
+        });
 
-            if (catalog.data && Array.isArray(catalog.data)) {
-                const formData = new FormData();
-                const catalogJson = JSON.stringify(catalog.data, null, 2);
-                const catalogBuffer = Buffer.from(catalogJson, 'utf-8');
-                formData.append('file', catalogBuffer, {
-                    filename: `${baseName}.json`,
-                    contentType: 'application/json'
-                });
+        const catalogJson = JSON.stringify(catalog.data);
+        formData.append('catalog', catalogJson, {
+            filename: `${baseName}.json`,
+            contentType: 'application/json'
+        });
 
-                const postBackupFileJson = await fetch(backupUrl, {
-                    method: 'POST',
-                    headers: {
-                        ...(process.env.DELEGATED_STORAGE_TOKEN && {
-                            Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
-                        })
-                    },
-                    body: formData
-                });
+        const response = await fetch(backupUrl, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
+            },
+            body: formData
+        });
 
-                if (postBackupFileJson.status === 200) {
-                    results.push(`JSON backup: ${baseName}.json uploaded successfully`);
-                } else {
-                    const errorText = await postBackupFileJson.text();
-                    results.push(`JSON backup failed: ${errorText}`);
-                }
-            } else {
-                results.push('JSON backup skipped: No catalog data available');
-            }
-        } catch (err) {
-            results.push(`JSON backup failed: ${(err as Error).message}`);
+        console.log('Dual backup response status:', response.status);
+
+        if (response.ok) {
+            results.push(`RDB backup: ${baseName}.rdb uploaded successfully`);
+            results.push(`JSON backup: ${baseName}.json uploaded successfully`);
+            logger.info(`Dual backup completed successfully for ${baseName}`);
+        } else {
+            const errorText = await response.text();
+            const errorMessage = `Dual backup failed: ${response.statusText} - ${errorText}`;
+            results.push(errorMessage);
+            logger.error(errorMessage);
         }
+    } catch (error) {
+        const errorMessage = `Dual backup failed: ${(error as Error).message}`;
+        results.push(errorMessage);
+        logger.error(errorMessage, error);
     }
 
     const hasErrors = results.some((r) => r.includes('failed'));
+
     return {
-        status: hasErrors ? 207 : 200,
-        data: [`Dual backup completed: ${results.join(', ')}`],
-        errors: hasErrors ? ['Some backups failed'] : []
+        status: hasErrors ? 500 : 200,
+        data: results,
+        errors: hasErrors ? results.filter((r) => r.includes('failed')) : []
     };
 };
 
 export const restoreDump = async (filename = null, format = 'rdb') => {
     try {
-        let jsonRestoreSuccess = false;
-
-        try {
-            let jsonFilename = filename;
-            if (filename && !filename.endsWith('.json') && !filename.endsWith('.rdb')) {
-                jsonFilename = filename + '.json';
-            }
-            const jsonDumpResult = await getDump(jsonFilename, 'json');
-
-            if (jsonDumpResult.status === 200) {
-                const catalogData = JSON.parse(jsonDumpResult.data[0]);
-
-                if (Array.isArray(catalogData)) {
-                    const clearResult = await redisHandler.flushAllKeys();
-                    if (!clearResult.success) {
-                        throw new Error(`Failed to clear Redis keys: ${clearResult.error}`);
-                    }
-
-                    if (catalogData.length > 0) {
-                        await addCatalogItems(catalogData);
-                    }
-
-                    await initializeCache();
-
-                    return {
-                        status: 200,
-                        data: [`Successfully restored ${catalogData.length} items from JSON backup without container restart`],
-                        errors: []
-                    };
-                }
-            }
-        } catch (jsonError) {
-            logger.info(`JSON restore failed, will try RDB: ${jsonError.message}`);
-        }
-
-        if (!jsonRestoreSuccess) {
-            let rdbFilename = filename;
-            if (filename && !filename.endsWith('.json') && !filename.endsWith('.rdb')) {
-                rdbFilename = filename + '.rdb';
-            }
-            const rdbDumpResult = await getDump(rdbFilename, 'rdb');
-
-            if (rdbDumpResult.status !== 200) {
-                return {
-                    status: 404,
-                    data: [],
-                    errors: [`Neither JSON nor RDB backup found for: ${filename || 'latest'}`]
-                };
-            }
-
-            const dumpData = Buffer.from(rdbDumpResult.data[0], 'base64');
-            const fs = await import('fs').then((m) => m.promises);
-            const dumpPath = process.env.DUMP_FOLDER_PATH ? `${process.env.DUMP_FOLDER_PATH}/dump.rdb` : '/dumps/dump.rdb';
-
+        const { status, data, errors } = await getDump(filename, 'json');
+        if (status === 200 && Array.isArray(data)) {
             await redisHandler.flushAllKeys();
-            await fs.writeFile(dumpPath, dumpData);
+            await addCatalogItems(data);
+
+            await initializeCache();
 
             return {
                 status: 200,
-                data: [`RDB backup restored to ${dumpPath}. Data will be available after Redis restart.`],
-                errors: ['Note: JSON backup not available, using RDB. Consider restarting Redis service for immediate effect.']
+                data: [`Successfully restored ${data.length} items from JSON backup without container restart`],
+                errors: []
             };
         }
+        return {
+            status: 404,
+            data: null,
+            errors
+        };
     } catch (error) {
         return {
             status: 500,
@@ -269,7 +189,7 @@ export const getFile = async ({ filepath, version, mimetype }: FileProps): Promi
     }
     return null;
 };
-
+//SINGLE UPLOAD / PATCH / DELETE
 export const upload = async (stream, file, datum): Promise<BackupProps> => {
     try {
         const form = generateFormDataWithFile(stream, file, datum);
@@ -338,6 +258,91 @@ export const deleteFile = async (itemToUpdate): Promise<BackupProps> => {
 
         if (backupUpload.status === 201 || backupUpload.status === 200) {
             return { status: 200 };
+        }
+        return { status: backupUpload.status };
+    } catch (errorMessage: any) {
+        logger.error(`ERROR: ${errorMessage}`);
+        logger.error('Delete error details:', errorMessage);
+    }
+    return null;
+};
+
+// MULTI UPLOADS / PATCH / DELETE
+export const uploads = async (files): Promise<any> => {
+    try {
+        const form = new FormData();
+        const fileInfo = files[0].fileInfo;
+        form.append('unique_names', files.map((file) => file.uniqueName).join(','));
+        form.append('public_urls', files.map((file) => file.catalogItem.public_url).join(','));
+        for (const key in fileInfo) {
+            if (fileInfo.hasOwnProperty(key) && fileInfo[key]) {
+                form.append(key, fileInfo[key]);
+            }
+        }
+        for (const file of files) {
+            form.append('files', file.stream, {
+                filename: file.originalname,
+                contentType: 'application/octet-stream'
+            });
+        }
+        const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('POST', '', form));
+
+        const backupUploadResponse = await backupUpload.json();
+
+        if (Array.isArray(backupUploadResponse)) {
+            for (const [index, file] of backupUploadResponse.entries()) {
+                if (file.version) {
+                    await updateCatalogItem(files[index].catalogItem.uuid, { version: file.version });
+                }
+            }
+        }
+        if (backupUpload.status === 201 || backupUpload.status === 200) {
+            return { status: 200 };
+        }
+        return { status: backupUpload.status };
+    } catch (errorMessage: any) {
+        logger.error(`ERROR: ${errorMessage}`);
+        logger.error('Upload error details:', errorMessage);
+    }
+    return null;
+};
+
+export const updates = async (files): Promise<BackupProps> => {
+    try {
+        const form = new FormData();
+        const fileInfo = files[0].fileInfo;
+        form.append('unique_names', files.map((file) => file.catalogItem.unique_name).join(','));
+        form.append('public_urls', files.map((file) => file.catalogItem.public_url).join(','));
+        for (const key in fileInfo) {
+            if (fileInfo.hasOwnProperty(key) && fileInfo[key]) {
+                form.append(key, fileInfo[key]);
+            }
+        }
+        for (const file of files) {
+            form.append('files', file.stream, {
+                filename: file.catalogItem.filename,
+                contentType: 'application/octet-stream'
+            });
+        }
+        const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('PATCH', '', form));
+        const backupUploadResponse = await backupUpload.json();
+        if (backupUpload.status === 201 || backupUpload.status === 200) {
+            return { status: backupUpload.status };
+        }
+        return { status: backupUpload.status };
+    } catch (errorMessage: any) {
+        logger.error(`ERROR: ${errorMessage}`);
+        logger.error('Upload error details:', errorMessage);
+    }
+    return null;
+};
+
+export const deletes = async (files): Promise<BackupMultiProps> => {
+    try {
+        const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('DELETE', 'application/json', JSON.stringify(files)));
+        const { data, errors } = await backupUpload.json();
+        if (backupUpload.status === 201 || backupUpload.status === 200) {
+            return { status: backupUpload.status, data, errors };
         }
         return { status: backupUpload.status };
     } catch (errorMessage: any) {
