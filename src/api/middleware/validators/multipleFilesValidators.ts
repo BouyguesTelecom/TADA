@@ -74,16 +74,27 @@ export const validatorUUIds = async (req: Request, res: Response, next: NextFunc
                 const { validFiles, invalidFiles } = await req.body.reduce(
                     async (acc, file) => {
                         const { validFiles, invalidFiles } = await acc;
-                        const { datum: catalogFile } = await getCatalogItem({ uuid: file.uuid });
-                        if (catalogFile) {
-                            return {
-                                validFiles: [...validFiles, { ...file, catalogItem: catalogFile }],
-                                invalidFiles
-                            };
-                        }
+                        const uuids = file.uuids.split(',');
+                        const { catalogFiles, catalogFilesNotFound } = await uuids.reduce(
+                            async (acc, uuid) => {
+                                const { catalogFiles, catalogFilesNotFound } = await acc;
+                                const { datum: catalogFile } = await getCatalogItem({ uuid });
+                                if (catalogFile) {
+                                    return {
+                                        catalogFiles: [...catalogFiles, { ...file, catalogItem: catalogFile }],
+                                        catalogFilesNotFound
+                                    };
+                                }
+                                return {
+                                    catalogFiles,
+                                    catalogFilesNotFound: [...catalogFilesNotFound, { uuid, message: `UUID not found in namespace ${file.namespace}` }]
+                                };
+                            },
+                            { catalogFiles: [], catalogFilesNotFound: [] }
+                        );
                         return {
-                            validFiles,
-                            invalidFiles: [...invalidFiles, { ...file, message: 'UUID not found' }]
+                            validFiles : [...validFiles, ...catalogFiles],
+                            invalidFiles: [...invalidFiles, ...catalogFilesNotFound]
                         };
                     },
                     Promise.resolve({ validFiles: [], invalidFiles: [] })
@@ -226,7 +237,7 @@ export const validatorCatalog = async (req: Request, res: Response, next: NextFu
                 const { datum: catalogItem } = await getCatalogItem({ uuid: file.uuid });
                 if (catalogItem) {
                     return {
-                        validFiles: [...validFiles, { ...file, catalogItem }],
+                        validFiles: [...validFiles, { ...file, uniqueName: catalogItem.unique_name, catalogItem }],
                         invalidFiles
                     };
                 }
