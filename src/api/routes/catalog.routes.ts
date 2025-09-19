@@ -5,7 +5,7 @@
  *   description: Catalog management
  */
 
-import { createDump, getFile, getFiles, deleteCatalog, updateFileInCatalog, addFileInCatalog, updateFilesInCatalog, deleteFileFromCatalog, restoreDump, getDump } from '../controllers/catalog.controller';
+import { getFile, getFiles, deleteCatalog, updateFileInCatalog, addFileInCatalog, updateFilesInCatalog, deleteFileFromCatalog } from '../controllers/catalog.controller';
 import { Router } from 'express';
 import { redisConnectionMiddleware } from '../middleware/redisMiddleware';
 import { queueMiddleware } from '../middleware/queues/queuesMiddleware';
@@ -14,31 +14,7 @@ import { validatorFileBody, validatorFileCatalog, validatorParams } from '../mid
 const router = Router();
 
 router.use(redisConnectionMiddleware);
-/**
- * @swagger
- * /catalog/get-dump:
- *   get:
- *     summary: Get dump file
- *     tags: [Catalog]
- *     parameters:
- *       - in: query
- *         name: filename
- *         schema:
- *           type: string
- *         description: Optional dump filename
- *       - in: query
- *         name: format
- *         schema:
- *           type: string
- *           enum: [rdb, json]
- *         description: Dump format (rdb or json, default is rdb)
- *     responses:
- *       200:
- *         description: Dump file retrieved successfully
- *       404:
- *         description: Dump file not found
- */
-router.get(`/catalog/get-dump/:filename`, getDump);
+
 /**
  * @swagger
  * /catalog:
@@ -159,38 +135,5 @@ router.delete(`/catalog`, queueMiddleware(deleteCatalog));
  *       500:
  *         description: Internal server error
  */
-
-
-router.post(`/catalog/create-dump`, queueMiddleware(createDump));
-
-/**
- * @swagger
- * /catalog/restore-dump:
- *   post:
- *     summary: Restore catalog from dump
- *     tags: [Catalog]
- *     parameters:
- *       - in: query
- *         name: filename
- *         schema:
- *           type: string
- *         description: Optional dump filename to restore (if not provided, uses latest)
- *       - in: query
- *         name: format
- *         schema:
- *           type: string
- *           enum: [rdb, json]
- *         description: Dump format (rdb or json, default is rdb)
- *     responses:
- *       200:
- *         description: Dump restored successfully
- *       400:
- *         description: Bad request
- *       404:
- *         description: Dump file not found
- *       500:
- *         description: Internal server error
- */
-router.post(`/catalog/restore-dump`, queueMiddleware(restoreDump));
 
 export { router };
