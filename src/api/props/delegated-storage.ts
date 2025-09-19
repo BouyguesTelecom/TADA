@@ -6,3 +6,9 @@ export interface BackupProps {
     stream?: Readable;
     error?: string;
 }
+
+export interface BackupMultiProps {
+    status: number;
+    data?: string[];
+    errors?: string[];
+}
