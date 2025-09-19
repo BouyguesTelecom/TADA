@@ -1,45 +1,37 @@
 import { Request, Response } from 'express';
 import { sendResponse } from '../middleware/validators/utils';
 import { logger } from '../utils/logs/winston';
-import { processPostAsset, processPatchAsset, processDeleteAsset } from '../utils/fileProcessing';
+import { deleteFilesBackup, patchFilesBackup,  postFilesBackup } from './delegated-storage.controller';
+import {  generateStream } from '../utils/file';
+import { calculateSHA256, formatItemForCatalog } from '../utils/catalog';
+import { addCatalogItem, deleteCatalogItem, getCatalogItem, updateCatalogItem } from '../catalog';
 
 export const postAssets = async (_req: Request, res: Response) => {
     const { validFiles, invalidFiles } = res.locals;
+    const files = [];
+    for (const file of validFiles) {
+        const stream = await generateStream(file, file.toWebp);
+        if (!stream) files.push({ ...file, message: 'Failed to generate stream' });
 
+        const signature = calculateSHA256(stream);
+        const newItem = await formatItemForCatalog(file.fileInfo, file.filename, file.fileInfo.namespace, file.uniqueName, file.mimetype, file.toWebp, signature, file.size);
+        const { status, error, datum } = await addCatalogItem(newItem);
+
+        if (status !== 200 || !datum) files.push({ ...file, message: `Failed to create catalog item: ${error}` });
+
+        files.push({ ...file, catalogItem: newItem, stream, success: true });
+    }
+
+    const successFiles = files.filter((file) => file.success);
+    const errorFiles = files.filter((file) => !file.success);
     try {
-        const processedResults = await Promise.all(
-            validFiles.map((file) => 
-                processPostAsset(
-                    file.uniqueName, 
-                    file.fileInfo, 
-                    file.toWebp, 
-                    res.locals.namespace, 
-                    file
-                )
-            )
-        );
-
-        const successfulResults = processedResults.filter(result => result.status === 200);
-        const failedResults = processedResults.filter(result => result.status !== 200);
-
-        const data = successfulResults.flatMap(result => result.data || []);
-        const processingErrors = failedResults.flatMap(result => result.errors || []);
-        const errors = [...invalidFiles, ...processingErrors];
-
-        if (successfulResults.length === 0) {
-            return sendResponse({ 
-                res, 
-                status: 400, 
-                data: null, 
-                errors 
-            });
-        }
-
+        const responseBackup: any = await postFilesBackup(successFiles);
+        const items = await Promise.all(successFiles.map(async (file) => (await getCatalogItem({ uuid: file.catalogItem.uuid })).datum));
         return sendResponse({
             res,
-            status: 200,
-            data,
-            errors: errors.length > 0 ? errors : [],
+            status: responseBackup.status,
+            data: items,
+            errors: [...errorFiles, ...invalidFiles],
             purge: 'catalog'
         });
     } catch (error) {
@@ -58,37 +50,42 @@ export const postAssets = async (_req: Request, res: Response) => {
 
 export const patchAssets = async (req: Request, res: Response) => {
     const { validFiles, invalidFiles } = res.locals;
+    console.log(validFiles, invalidFiles, 'WAZAAA PATCH');
+    const files = [];
+    for (const file of validFiles) {
+        const stream = await generateStream(file, file.toWebp);
+        if (!stream) files.push({ ...file, message: 'Failed to generate stream' });
 
+        const signature = calculateSHA256(stream);
+        const { status, error, datum } = await updateCatalogItem(file.catalogItem.uuid, {
+            ...file.catalogItem,
+            ...file.fileInfo,
+            version: file ? file.catalogItem.version + 1 : file.catalogItem.version,
+            ...(signature && { signature }),
+            ...(file && { size: file.size })
+        });
+        console.log(status, error, datum, ' PATCH CATALOG ITEM');
+
+        if (status !== 200 || !datum) files.push({ ...file, message: `Failed to create catalog item: ${error}` });
+
+        files.push({ catalogItem: datum, fileInfo: file.fileInfo, stream, success: true });
+    }
+
+    const successFiles = files.filter((file) => file.success);
+    const errorFiles = files.filter((file) => !file.success);
+    console.log('SUCCESS FILES::::', successFiles);
     try {
-        const processedResults = await Promise.all(
-            validFiles.map((file) => 
-                processPatchAsset(
-                    file.catalogItem || file.itemToUpdate,
-                    file.uuid || file.catalogItem?.uuid,
-                    file.fileInfo,
-                    file.catalogItem?.unique_name || file.uniqueName,
-                    file.toWebp,
-                    req.files ? file : undefined
-                )
-            )
-        );
-
-        const successfulResults = processedResults.filter(result => result.status === 200);
-        const failedResults = processedResults.filter(result => result.status !== 200);
-
-        const data = successfulResults.flatMap(result => result.data || []);
-        const processingErrors = failedResults.flatMap(result => result.errors || []);
-        const errors = [...invalidFiles, ...processingErrors];
-
-        return sendResponse({ 
-            res, 
-            status: 200, 
-            data, 
-            errors, 
-            purge: 'true' 
+        const responseBackup: any = await patchFilesBackup(successFiles);
+        console.log(responseBackup, 'RESPONSE BACKUP ICI ???');
+        return sendResponse({
+            res,
+            status: responseBackup.status,
+            data: successFiles.map((file) => file.catalogItem),
+            errors: [...errorFiles, ...invalidFiles],
+            purge: 'catalog'
         });
     } catch (error) {
-        logger.error('PATCH assets error:', error);
+        logger.error('POST assets error:', error);
         const errorMessage = error instanceof Error ? `Process error: ${error.message}` : 'Unexpected error occurred';
 
         return sendResponse({
@@ -96,35 +93,27 @@ export const patchAssets = async (req: Request, res: Response) => {
             status: 500,
             data: null,
             errors: [errorMessage],
-            purge: 'true'
+            purge: 'catalog'
         });
     }
 };
 
 export const deleteAssets = async (_req: Request, res: Response) => {
-    const { validFiles } = res.locals;
+    const { validFiles, invalidFiles } = res.locals;
 
     try {
-        const processedResults = await Promise.all(
-            validFiles.map((file) => 
-                processDeleteAsset(file.catalogItem || file.itemToUpdate || file)
-            )
-        );
-
-        const successfulResults = processedResults.filter(result => result.status === 200);
-        const failedResults = processedResults.filter(result => result.status !== 200);
-
-        const data = successfulResults.flatMap(result => result.data || []);
-        const processingErrors = failedResults.flatMap(result => result.errors || []);
-
-        const responseStatus = failedResults.length > 0 ? 207 : 200;
-
+        console.log(validFiles, invalidFiles, 'WAZAAA DELETE');
+        const { status, data, errors }: any = await deleteFilesBackup(validFiles);
+        for (const file of validFiles) {
+            await deleteCatalogItem(file.catalogItem.uuid);
+        }
+        console.log(status, data, errors, '????');
         return sendResponse({
             res,
-            status: responseStatus,
+            status,
             purge: 'true',
             data,
-            errors: processingErrors
+            errors
         });
     } catch (error) {
         logger.error('DELETE assets error:', error);
