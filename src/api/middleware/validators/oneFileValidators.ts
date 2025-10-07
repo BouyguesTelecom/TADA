@@ -6,10 +6,11 @@ import { getUniqueName } from '../../utils';
 import { deleteFile, returnDefaultImage } from '../../utils/file';
 import { checkMissingParam, checkNamespace, fileIsTooLarge, generateUniqueName, sendResponse } from './utils';
 import { isFileNameInvalid, storage } from './utils/multer';
+import { logger } from '../../utils/logs/winston';
 
 export const validatorNamespace = async (req: Request, res: Response, next: NextFunction) => {
     const namespace = req.body.namespace;
-    const namespaceValid = checkNamespace({ namespace });
+    const namespaceValid = checkNamespace(namespace);
     if (!namespaceValid) {
         return sendResponse({
             res,
@@ -122,7 +123,7 @@ export const validatorFileFilter = async (req: Request, res: Response, next: Nex
     return sendResponse({
         res,
         status: 400,
-        errors: [ `No file detected` ]
+        errors: [`No file detected`]
     });
 };
 
@@ -168,26 +169,81 @@ export const generateFileInfo = (body, method = 'PATCH') => {
 export const validatorFileBody = async (req: Request, res: Response, next: NextFunction) => {
     const fileInfo = generateFileInfo(req.body, req.method);
     res.locals.fileInfo = fileInfo;
-    res.locals.toWebp = req.body.toWebp !== 'false';
+    res.locals.toWebp = process.env.CONVERT_TO_WEBP ? req.body.toWebp !== 'false' : req.body.toWebp !== 'true';
     next();
 };
 
 export const validatorGetAsset = async (req: Request, res: Response, next: NextFunction) => {
-    const allowedNamespaces = process.env.NAMESPACES?.split(',');
     const urlWithoutQueryParams = req.url.split('?')[0];
     const { version } = req.query;
     const uniqueName = getUniqueName(urlWithoutQueryParams, req.params.format);
+
     if (uniqueName === '/default.svg' || uniqueName === '/error.svg') {
         return returnDefaultImage(res, uniqueName);
     }
-    const redisKeyMD5 = crypto.createHash('md5').update(uniqueName).digest('hex');
 
-    const { datum: file } = await getCatalogItem({ uuid: redisKeyMD5 });
-    const namespace = file?.namespace || null;
+    const findCatalogItem = async (searchUniqueName: string) => {
+        const redisKeyMD5 = crypto.createHash('md5').update(searchUniqueName).digest('hex');
+        const { datum: file } = await getCatalogItem({ uuid: redisKeyMD5 });
+        return file;
+    };
 
-    if (!allowedNamespaces?.includes(namespace) || !file) {
-        return res.status(404).end();
+    const buildRedirectUrl = (baseUrl: string, originalFilename: string, currentFilename: string) => {
+        const originalUrl = baseUrl.replace(currentFilename, originalFilename);
+        const queryString = req.url.includes('?') ? '?' + req.url.split('?')[1] : '';
+        return originalUrl + queryString;
+    };
+
+    try {
+        const file = await findCatalogItem(uniqueName);
+        const isOriginalRoute = req.url.includes('/original/');
+        const isImageFile = !['application/pdf', 'image/svg+xml'].includes(file?.mimetype);
+        if (file && (!isOriginalRoute || !isImageFile) && checkNamespace(file.namespace)) {
+            res.locals = {
+                ...res.locals,
+                uniqueName,
+                file,
+                ...(version && { queryVersion: Number(version) })
+            };
+            return next();
+        }
+
+        const webpUniqueName = uniqueName.split('.')[0] + '.webp';
+        const webpFile = await findCatalogItem(webpUniqueName);
+        const signatureAreIdentical = webpFile?.signature === webpFile?.original_signature;
+        if (!webpFile) {
+            logger.info(`❌ No file found for: ${uniqueName} (WebP alternative: ${webpUniqueName})`);
+            return res.status(404).end();
+        }
+
+        if (!checkNamespace(webpFile.namespace)) {
+            logger.info(`❌ Namespace not allowed for: ${webpFile.namespace}`);
+            return res.status(404).end();
+        }
+
+        if (isOriginalRoute && req.url.includes(webpFile.filename) && webpFile.original_filename !== webpFile.filename && !signatureAreIdentical) {
+            const redirectUrl = buildRedirectUrl(urlWithoutQueryParams, webpFile.original_filename, webpFile.filename);
+            logger.info(`🔄 Redirecting to original: ${urlWithoutQueryParams} → ${redirectUrl}`);
+            return res.redirect(302, redirectUrl);
+        }
+
+        if (!isOriginalRoute && req.url.includes(webpFile.original_filename)) {
+            const redirectUrl = buildRedirectUrl(urlWithoutQueryParams, webpFile.filename, webpFile.original_filename);
+            logger.info(`🔄 Redirecting to WebP file: ${urlWithoutQueryParams} → ${redirectUrl}`);
+            return res.redirect(302, redirectUrl);
+        }
+
+        logger.info(`✅ Serving ${isOriginalRoute ? 'original' : 'WebP'} file: ${isOriginalRoute ? uniqueName : webpUniqueName}`);
+        res.locals = {
+            ...res.locals,
+            uniqueName: isOriginalRoute && !signatureAreIdentical ? uniqueName : webpUniqueName,
+            file: webpFile,
+            ...(version && { queryVersion: Number(version) }),
+            original: isOriginalRoute && !signatureAreIdentical ? true : false
+        };
+        return next();
+    } catch (error) {
+        logger.error(`❌ Error in validatorGetAsset: ${error}`);
+        return res.status(500).json({ error: 'Internal server error' });
     }
-    res.locals = { ...res.locals, uniqueName, file, ...( version && { queryVersion: Number(version) } ) };
-    next();
 };
