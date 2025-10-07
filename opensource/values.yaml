@@ -119,7 +119,8 @@ mediaApi:
             get: '/assets/media/'
         catalog:
             get: '/catalog'
-        post_backup:
+        backup:
+            get: '/get-dump'
             post: '/save-dump'
     payloadMaxSize: '10mb'
     rateLimit:

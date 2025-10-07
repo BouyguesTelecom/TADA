@@ -117,8 +117,10 @@ spec:
                             {{- else }}
                             {{- fail "mediaApi.mediaToken must be set in values.yaml or media-secrets secret must exist" }}
                             {{- end }}
+                        -   name: URL_TO_GET_BACKUP
+                            value: "{{ .Values.mediaApi.routes.backup.get }}"
                         -   name: URL_TO_POST_BACKUP
-                            value: "{{ .Values.mediaApi.routes.post_backup.post }}"
+                            value: "{{ .Values.mediaApi.routes.backup.post }}"
                         -   name: NODE_ENV
                             value: 'production'
             volumes:
