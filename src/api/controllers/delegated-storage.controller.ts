@@ -7,35 +7,35 @@ import * as standalone from '../delegated-storage/standalone';
 
 const backupStorageMethod = process.env.DELEGATED_STORAGE_METHOD ?? 'STANDALONE';
 
-export const getBackup = async (filepath, version = '', mimetype = '') => {
+export const getBackup = async (filepath, version = '', mimetype = '', original=false) => {
     logger.info(`GET file from backup storage using ${backupStorageMethod} method...`);
     const result: BackupProps = await (async (): Promise<BackupProps> => {
         switch (backupStorageMethod) {
             case 'DISTANT_BACKEND':
-                return await distantBackend.getFile({ filepath, version, mimetype });
+                return await distantBackend.getFile({ filepath, version, mimetype, original });
             case 'S3':
                 return await s3.getFile({ filename: filepath, version, mimetype });
             case 'STANDALONE':
                 return await standalone.getFile({ filepath });
             default:
-                return await distantBackend.getFile({ filepath, version, mimetype });
+                return await distantBackend.getFile({ filepath, version, mimetype, original });
         }
     })();
     return result.status === 200 ? result.stream : null;
 };
 
-export const postFileBackup = async (stream, file, datum) => {
+export const postFileBackup = async (backupObject) => {
     logger.info(`Uploading file to backup storage using ${backupStorageMethod} method...`);
     return await (async () => {
         switch (backupStorageMethod) {
             case 'DISTANT_BACKEND':
-                return await distantBackend.upload(stream, file, datum);
+                return await distantBackend.upload(backupObject);
             case 'S3':
-                return await s3.upload(stream, datum);
+                return await s3.upload(backupObject);
             case 'STANDALONE':
-                return await standalone.upload(stream, file, datum);
+                return await standalone.upload(backupObject);
             default:
-                return await distantBackend.upload(stream, file, datum);
+                return await distantBackend.upload(backupObject);
         }
     })();
 };
@@ -56,18 +56,18 @@ export const postFilesBackup = async (files) => {
     })();
 };
 
-export const patchFileBackup = async (file, stream, info): Promise<BackupProps> => {
+export const patchFileBackup = async (backupObject): Promise<BackupProps> => {
     logger.info(`Updating file from backup storage using ${backupStorageMethod} method...`);
     return await (async (): Promise<BackupProps> => {
         switch (backupStorageMethod) {
             case 'DISTANT_BACKEND':
-                return await distantBackend.update(file, stream, info);
+                return await distantBackend.update(backupObject);
             case 'S3':
-                return await s3.update(file, stream, info);
+                return await s3.update(backupObject);
             case 'STANDALONE':
-                return await standalone.update(stream, info);
+                return await standalone.update(backupObject);
             default:
-                return await distantBackend.update(file, stream, info);
+                return await distantBackend.update(backupObject);
         }
     })();
 };
@@ -89,7 +89,7 @@ export const patchFilesBackup = async (files) => {
 };
 
 export const deleteFileBackup = async (itemToUpdate): Promise<BackupProps> => {
-    logger.info(`Delete file from backup storage using ${backupStorageMethod} method ...`);
+    logger.info(`Deleting file from backup storage using ${backupStorageMethod} method ...`);
     return await (async (): Promise<BackupProps> => {
         switch (backupStorageMethod) {
             case 'DISTANT_BACKEND':
