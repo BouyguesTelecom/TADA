@@ -155,7 +155,7 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
     const toWebp = req.body.toWebp !== 'false';
 
     const { validFiles, invalidFiles } = await (validFilesFromLocal || []).reduce(
-        async (accumulator, file, index) => {
+        async (accumulator, file) => {
             const { validFiles, invalidFiles } = await accumulator;
 
             if (file.catalogItem && req.method === 'POST') {
@@ -211,7 +211,7 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
 };
 
 export const validatorCatalog = async (req: Request, res: Response, next: NextFunction) => {
-    const { validFiles: validFilesFromLocal, invalidFiles: invalidFilesFromLocal, uuids } = res.locals;
+    const { validFiles: validFilesFromLocal, invalidFiles: invalidFilesFromLocal } = res.locals;
     if ((req.method === 'PATCH' && !req.files) || req.method === 'DELETE') {
         return next();
     }
