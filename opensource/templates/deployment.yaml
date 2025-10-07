@@ -106,7 +106,17 @@ spec:
                             value: "{{ default "media" .Values.s3.bucketName }}"
                         {{- end }}
                         -   name: MEDIA_TOKEN
-                            value: "{{ .Values.mediaApi.mediaToken }}"
+                            {{- $secret := lookup "v1" "Secret" .Release.Namespace "media-secrets" }}
+                            {{- if and $secret $secret.data.mediaToken }}
+                            valueFrom:
+                                secretKeyRef:
+                                    name: media-secrets
+                                    key: mediaToken
+                            {{- else if .Values.mediaApi.mediaToken }}
+                            value: {{ .Values.mediaApi.mediaToken | quote }}
+                            {{- else }}
+                            {{- fail "mediaApi.mediaToken must be set in values.yaml or media-secrets secret must exist" }}
+                            {{- end }}
                         -   name: URL_TO_POST_BACKUP
                             value: "{{ .Values.mediaApi.routes.post_backup.post }}"
                         -   name: NODE_ENV
