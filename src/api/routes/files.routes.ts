@@ -12,10 +12,10 @@ import { postAssets, patchAssets, deleteAssets } from '../controllers/files.cont
 import { validatorNamespace } from '../middleware/validators/oneFileValidators';
 import { authMiddleware } from '../middleware/auth';
 import { redisConnectionMiddleware } from '../middleware/redisMiddleware';
+import { queueMiddleware } from '../middleware/queues/queuesMiddleware';
 
 const router = Router();
 
-router.use(validatorHeaders);
 router.use(redisConnectionMiddleware);
 
 /**
@@ -54,7 +54,7 @@ router.use(redisConnectionMiddleware);
  *       500:
  *         description: Internal server error
  */
-router.post(`/files`, [authMiddleware, validatorFiles, validatorFilesFilter, validatorFilesSize, validatorNamespace, validatorFilesBody], postAssets);
+router.post(`/files`, [ validatorHeaders, authMiddleware, validatorFiles, validatorFilesFilter, validatorFilesSize, validatorNamespace, validatorFilesBody, validatorUUIds, validatorCatalog ], queueMiddleware(postAssets));
 
 /**
  * @swagger
@@ -104,7 +104,7 @@ router.post(`/files`, [authMiddleware, validatorFiles, validatorFilesFilter, val
  *       500:
  *         description: Internal server error
  */
-router.patch(`/files`, [authMiddleware, validatorFiles, validatorUUIds, validatorFilesFilter, validatorFilesSize, validatorCatalog, validatorFilesBody], patchAssets);
+router.patch(`/files`, [ validatorHeaders, authMiddleware, validatorFiles, validatorUUIds, validatorFilesFilter, validatorFilesSize, validatorFilesBody, validatorCatalog ], queueMiddleware(patchAssets));
 
 /**
  * @swagger
@@ -135,6 +135,6 @@ router.patch(`/files`, [authMiddleware, validatorFiles, validatorUUIds, validato
  *       500:
  *         description: Internal server error
  */
-router.delete(`/files`, [authMiddleware, validatorUUIds, validatorCatalog], deleteAssets);
+router.delete(`/files`, [ validatorHeaders, authMiddleware, validatorUUIds, validatorCatalog ], queueMiddleware(deleteAssets));
 
 export { router };

@@ -2,8 +2,17 @@ import fs from 'fs';
 import { PDFDocument } from 'pdf-lib';
 import { logger } from './logs/winston';
 import sharp from 'sharp';
+import path from 'path';
+import { convertToWebp, optimizeWebp } from './imageOptimization';
 
 require('dotenv').config();
+
+export const returnDefaultImage = (res, uniqueName) => {
+    res.setHeader('Content-Type', 'image/svg+xml');
+    const rootPath = process.env.NODE_ENV !== 'production' ? path.resolve(__dirname, '../images') : '/tmp/images';
+
+    return res.sendFile(uniqueName, { root: rootPath });
+};
 
 const removeUnusedData = (svgFilePath) => {
     // Read SVG
@@ -51,98 +60,15 @@ const removeMetadataPdf = async (imagePath) => {
 
 const removeMetadataImage = async (imagePath) => {
     try {
-        const config = {
-            jpeg: {
-                progressive: true,
-                force: false,
-                quality: 100
-            },
-            webp: { quality: 100, force: false },
-            png: { force: false }
-        };
         const image = sharp(imagePath);
-        const { format } = await image.metadata();
-
-        return await image[format](config[format]).rotate().toBuffer();
+        return await image.rotate().toBuffer();
     } catch (errorMessage) {
         logger.error(`Failed to remove metadata ${errorMessage}`);
         return false;
     }
 };
-const convertToWebp = async (imagePath) => {
-    try {
-        const config = {
-            jpeg: {
-                progressive: true,
-                force: false,
-                quality: 100
-            },
-            webp: { quality: 100, force: false },
-            png: { force: false }
-        };
-        const image = sharp(imagePath).withMetadata();
-        const { format } = await image.metadata();
-        const webpPath = '/tmp/' + 'webp-' + imagePath.split('/tmp/')[1].split('.')[0] + '.webp';
-        await image[format](config[format]).rotate().toFormat('webp').toFile(webpPath);
-        return webpPath;
-    } catch (errorMessage) {
-        logger.error(`Failed to remove metadata ${errorMessage}`);
-        return '';
-    }
-};
 
-export const convertToWebpBuffer = async (buffer: Buffer, params = null, type = null) => {
-    try {
-        const config = {
-            jpeg: {
-                progressive: true,
-                force: false,
-                quality: 80
-            },
-            webp: { quality: 100, force: false },
-            png: { force: false }
-        };
-        const image = sharp(buffer).withMetadata();
-        const { format } = await image.metadata();
-        if (params) {
-            const { width, height } = params;
-            if (width || height) {
-                return await image[format](config[format])
-                    .resize(width !== 0 ? width : null, height !== 0 ? height : null)
-                    .toFormat('webp')
-                    .toBuffer();
-            }
-        }
-
-        return await image[format](config[format]).rotate().toFormat('webp').toBuffer();
-    } catch (errorMessage) {
-        logger.error(`Failed to remove metadata ${errorMessage}`);
-        return '';
-    }
-};
-
-const sharpWithMetadata = async (imagePath) => {
-    try {
-        const config = {
-            jpeg: {
-                progressive: true,
-                force: false,
-                quality: 100
-            },
-            webp: { quality: 100, force: false },
-            png: { force: false }
-        };
-        const image = sharp(imagePath).withMetadata();
-        const { format } = await image.metadata();
-
-        return await image[format](config[format]).rotate().toFormat(format).toBuffer();
-    } catch (errorMessage) {
-        logger.error(`Failed to remove metadata ${errorMessage}`);
-        return '';
-    }
-};
-
-export const stripMetadata = async (imagePath: string, finalPath: string, mimetype: string) => {
+export const stripMetadata = async (imagePath: string, mimetype: string) => {
     switch (mimetype) {
         case 'application/pdf':
             const pdfUint8Array = await removeMetadataPdf(imagePath);
@@ -160,28 +86,58 @@ export const stripMetadata = async (imagePath: string, finalPath: string, mimety
     return false;
 };
 
-export const deleteFile = (filePath): Promise<boolean> => {
-    return fs.promises
-        .unlink(filePath)
-        .then(() => true)
-        .catch(() => false);
+export const deleteFile = async (filePath): Promise<boolean> => {
+    try {
+        await fs.promises.unlink(filePath);
+        logger.info(`File deleted: ${filePath}`);
+
+        let currentDir = path.dirname(filePath);
+
+        while (currentDir !== path.resolve('tmp/files')) {
+            const files = await fs.promises.readdir(currentDir);
+
+            if (files.length === 0) {
+                await fs.promises.rmdir(currentDir);
+                logger.info(`Directory deleted: ${currentDir}`);
+                currentDir = path.dirname(currentDir);
+            } else {
+                break;
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error(`Error: ${error}`);
+        return false;
+    }
 };
 
-export const generateStream = async (file: any, uniqueName: string, toWebpConversion: boolean): Promise<any> => {
+export const generateStream = async (file: any, toWebpConversion: boolean, original = false): Promise<any> => {
     const toWebp = toWebpConversion && ['image/png', 'image/jpeg'].includes(file.mimetype);
-    if (process.env.USE_STRIPMETADATA === 'true') {
-        if (toWebp) {
-            const webpPath = await convertToWebp(file.path);
-            const streamWithoutMetadata = await stripMetadata(webpPath, uniqueName, file.mimetype);
-            await deleteFile(file.path);
-            await deleteFile(webpPath);
-            return streamWithoutMetadata;
+    if (original) {
+        if (process.env.USE_STRIPMETADATA === 'true') {
+            const streamWithoutMetadata = await stripMetadata(file.path, file.mimetype);
+            return { stream: streamWithoutMetadata, file };
         }
-        const streamWithoutMetadata = await stripMetadata(file.path, uniqueName, file.mimetype);
-        await deleteFile(file.path);
-        return streamWithoutMetadata;
+        const streamWithMetadata = fs.readFileSync(file.path);
+        return { stream: streamWithMetadata, file };
     }
-    const streamWithMetadata = ['image/png', 'image/jpeg', 'image/webp'].includes(file.mimetype) ? await sharpWithMetadata(file.path) : fs.promises.readFile(file.path);
-    await deleteFile(file.path);
-    return streamWithMetadata;
+
+    if (toWebp) {
+        const newFile = await convertToWebp(file, process.env.USE_STRIPMETADATA === 'true');
+        const stream = fs.readFileSync(newFile.path);
+        return { stream: stream, file: newFile };
+    }
+    if(process.env.COMPRESS_WEBP && toWebp){
+        const newFile = await optimizeWebp(file, process.env.USE_STRIPMETADATA === 'true')
+        const compressedStream = fs.readFileSync(newFile.path)
+        return { stream: compressedStream, file: newFile };
+    }
+
+    if (process.env.USE_STRIPMETADATA === 'true') {
+        const streamWithoutMetadata = await stripMetadata(file.path, file.mimetype);
+        return { stream: streamWithoutMetadata, file };
+    }
+    const streamWithMetadata = fs.readFileSync(file.path);
+    return { stream: streamWithMetadata, file };
 };

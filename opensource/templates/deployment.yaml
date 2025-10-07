@@ -39,6 +39,10 @@ spec:
                         -   name: ORIGINS_ALLOWED
                             value: |
                                     {{ .Values.mediaApi.originsAllowed | default "localhost,*" }}
+                        -   name: REQUEST_TIMEOUT
+                            value: "{{ default 310000 .Values.mediaApi.requestTimeout }}"
+                        - name: BASE_TIMEOUT_MS
+                          value: "{{ default 310000 .Values.mediaApi.baseTimeout }}"
                         -   name: METHODS_ALLOWED
                             value: "{{ default "GET,POST" .Values.mediaApi.methodsAllowed }}"
                         -   name: DUMP_FOLDER_PATH
@@ -46,15 +50,19 @@ spec:
                         -   name: NGINX_SERVICE
                             value: "{{ include "nginxService" . }}"
                         -   name: NGINX_INGRESS
-                            value: '{{.Values.protocol}}://{{.Values.env}}{{.Values.domain}}'
+                            value: '{{.Values.protocol}}://{{.Values.env}}.{{.Values.domain}}'
+                        -   name: PUBLIC_URL
+                            value: '{{.Values.mediaApi.publicUrl}}'
                         -   name: IMAGE_SERVICE
                             value: "{{ include "mediaService" . }}"
                         -   name: API_PREFIX
                             value: "{{ default "" .Values.mediaApi.apiPrefix }}"
                         -   name: USE_STRIPMETADATA
                             value: "{{ default "" .Values.mediaApi.useStripMetadata }}"
-                        -   name: DELEGATED_STORAGE_PATH
-                            value: "{{ default "" .Values.delegatedStorage.path }}"
+                        -   name: DELEGATED_STORAGE_SINGLE_PATH
+                            value: "{{ default "" .Values.delegatedStorage.path.single }}"
+                        -   name: DELEGATED_STORAGE_MULTI_PATH
+                            value: "{{ default "" .Values.delegatedStorage.path.multi }}"
                         -   name: DELEGATED_STORAGE_RATE_LIMIT
                             value: "{{ default "5" .Values.delegatedStorage.rateLimit }}"
                         -   name: DELEGATED_STORAGE_RATE_LIMIT_WINDOW
@@ -93,6 +101,10 @@ spec:
                         {{- end }}
                         -   name: MEDIA_TOKEN
                             value: "{{ .Values.mediaApi.mediaToken }}"
+                        -   name: URL_TO_POST_BACKUP
+                            value: "{{ .Values.mediaApi.routes.post_backup.post }}"
+                        - name: NODE_ENV
+                          value: 'production'
             volumes:
                 -   name: redis-storage
                     persistentVolumeClaim:

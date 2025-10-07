@@ -5,10 +5,11 @@
  *   description: Catalog management
  */
 
-import { createDump, getFile, getFiles, deleteCatalog, updateFileInCatalog, addFileInCatalog } from '../controllers/catalog.controller';
+import { getFile, getFiles, deleteCatalog, updateFileInCatalog, addFileInCatalog, updateFilesInCatalog, deleteFileFromCatalog } from '../controllers/catalog.controller';
 import { Router } from 'express';
-import { deleteCatalogItem } from '../catalog';
 import { redisConnectionMiddleware } from '../middleware/redisMiddleware';
+import { queueMiddleware } from '../middleware/queues/queuesMiddleware';
+import { validatorFileBody, validatorFileCatalog, validatorParams } from '../middleware/validators/oneFileValidators';
 
 const router = Router();
 
@@ -55,7 +56,7 @@ router.get(`/catalog/:id`, getFile);
  *       201:
  *         description: File added
  */
-router.post(`/catalog`, addFileInCatalog);
+router.post(`/catalog`, queueMiddleware(addFileInCatalog));
 
 /**
  * @swagger
@@ -74,7 +75,8 @@ router.post(`/catalog`, addFileInCatalog);
  *       200:
  *         description: File updated
  */
-router.patch(`/catalog/:id`, updateFileInCatalog);
+router.patch(`/catalog`, queueMiddleware(updateFilesInCatalog));
+router.patch(`/catalog/:uuid`, [ validatorParams, validatorFileBody, validatorFileCatalog ], queueMiddleware(updateFileInCatalog));
 
 /**
  * @swagger
@@ -93,7 +95,7 @@ router.patch(`/catalog/:id`, updateFileInCatalog);
  *       200:
  *         description: File deleted
  */
-router.delete(`/catalog/:id`, deleteCatalogItem);
+router.delete(`/catalog/:uuid`, queueMiddleware(deleteFileFromCatalog));
 
 /**
  * @swagger
@@ -105,7 +107,7 @@ router.delete(`/catalog/:id`, deleteCatalogItem);
  *       200:
  *         description: All files deleted
  */
-router.delete(`/catalog`, deleteCatalog);
+router.delete(`/catalog`, queueMiddleware(deleteCatalog));
 
 /**
  * @swagger
@@ -113,10 +115,25 @@ router.delete(`/catalog`, deleteCatalog);
  *   post:
  *     summary: Create a dump of the catalog
  *     tags: [Catalog]
+ *     parameters:
+ *       - in: query
+ *         name: filename
+ *         schema:
+ *           type: string
+ *         description: Optional dump filename
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [rdb, json]
+ *         description: Dump format (rdb or json, default is rdb)
  *     responses:
- *       201:
- *         description: Dump created
+ *       200:
+ *         description: Dump created successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
  */
-router.post(`/catalog/create-dump`, createDump);
 
 export { router };

@@ -51,6 +51,13 @@ data:
                 limit_except GET {
                     deny all;
                 }
+
+                {{- if .Values.nginx.cdn.enabled }}
+                add_header expires {{ .Values.nginx.cdn.expires }};
+                add_header Cache-Control "public, max-age={{ .Values.nginx.cdn.maxAge }}";
+                add_header Pragma "public";
+                {{- end }}
+
                 add_header X-Cache-Status $upstream_cache_status;
                 proxy_pass http://tada-{{ .Release.Name }}-nginx-purge-service;
               }
@@ -59,9 +66,16 @@ data:
                 limit_except GET {
                     deny all;
                 }
+
+                {{- if .Values.nginx.cdn.enabled }} 
+                add_header expires {{ .Values.nginx.cdn.expires }};
+                add_header Cache-Control "public, max-age={{ .Values.nginx.cdn.maxAge }}";
+                add_header Pragma "public";
+                {{- end }}
+
                 add_header X-Cache-Status $upstream_cache_status;
                 proxy_pass http://tada-{{ .Release.Name }}-nginx-purge-service;
-              }
+                }
                 location ~ /purge(/.*) {
                    limit_except GET {
                        deny all;

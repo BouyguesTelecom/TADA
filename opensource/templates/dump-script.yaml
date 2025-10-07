@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: dump-configmap
+data:
+    redis-init.sh: |
+        #!/bin/bash
+        DUMP_FILE_PATH="${DUMP_FOLDER_PATH}/dump.rdb"
+
+        HOST="${DELEGATED_STORAGE_HOST}"
+        BACKUP_PATH="${URL_TO_GET_BACKUP}"
+        TOKEN="${DELEGATED_STORAGE_TOKEN}"
+
+        download_dump() {
+        local dump_file_name="$1"
+        curl -L --fail --silent -o "${DUMP_FILE_PATH}" -H "Authorization: Bearer $TOKEN" "$HOST$BACKUP_PATH/$dump_file_name"
+            return $?
+        }
+
+        if [ -f "${DUMP_FILE_PATH}" ]; then
+            echo "Dump found. Proceeding with restart."
+
+            if [ "${RESTORE_ON_RESTART}" = "true" ]; then
+                echo "Restoration on restart is enabled"
+                download_dump "${DUMP_FILE_NAME_ON_RESTART}"
+
+                if [ $? -ne 0 ]; then
+                    echo "Error downloading ${DUMP_FILE_NAME_ON_RESTART}" >&2
+                    exit 1
+                fi
+
+                echo "Distant dump successfully replaced local."
+            else
+              echo "RESTORE_ON_RESTART is set to false. Keeping current dump.rdb."
+            fi
+        else
+            echo "No dump found. Proceeding with full initialization."
+            echo "Starting with an empty dump.rdb."
+            rm -f "${DUMP_FILE_PATH}"
+
+            if [ "${RESTORE_ON_INIT}" = "true" ]; then
+                echo "Restoration on init is enabled"
+                download_dump "${DUMP_FILE_NAME_ON_INIT}"
+
+                if [ $? -ne 0 ]; then
+                    echo "Error downloading ${DUMP_FILE_NAME_ON_INIT}" >&2
+                    exit 1
+                fi
+                echo "Distant dump successfully loaded during init."
+            fi
+        fi

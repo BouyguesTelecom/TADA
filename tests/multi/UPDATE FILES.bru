@@ -7,24 +7,17 @@ meta {
 patch {
   url: {{URL_API}}{{URL_API_PREFIX}}/files
   body: json
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_TOKEN}}
 }
 
 body:json {
   [{
     "namespace": "DEV",
-    "uuid": "lol"
-  },
-  {
-    "namespace": "DEV",
-    "uuid": "7bb7f399-3798-4b23-a20c-01b161ea5ec1",
-    "information": "lolilol"
+    "uuids": "{{MULTI_IMAGE_IDS}}",
+    "information": "Updated multiple files via JSON"
   }]
-}
-
-body:multipart-form {
-  namespace: DEV
-  uuids: 919f6865-051e-4bb8-b080-8cd7e906ffe3
-  files: @file(/tmp/images/default.webp)
-  information: lolilol2
 }

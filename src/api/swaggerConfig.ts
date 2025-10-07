@@ -2,6 +2,8 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import { Express } from 'express';
 
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 const options = {
     definition: {
         openapi: '3.0.0',
@@ -12,15 +14,26 @@ const options = {
         },
         servers: [
             {
-                url: 'http://localhost:3001'
+                url: (process.env.API_BASE_URL || 'http://localhost:3001') + (process.env.API_PREFIX || ''),
+                description: isDevelopment ? 'Development server' : 'Production server'
             }
         ]
     },
-    apis: ['./routes/*.ts']
+    apis: isDevelopment 
+        ? ['./src/api/routes/*.ts', './routes/*.ts'] 
+        : ['./dist/api/routes/*.js', './routes/*.js']
 };
 
 const specs = swaggerJsdoc(options);
 
 export const setupSwagger = (app: Express) => {
-    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+    const API_PREFIX = process.env.API_PREFIX || '';
+    const swaggerPath = `${API_PREFIX}/api-docs`;
+    
+    app.use(swaggerPath, swaggerUi.serve, swaggerUi.setup(specs));
+    
+    // Also serve without prefix for compatibility
+    if (API_PREFIX) {
+        app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+    }
 };

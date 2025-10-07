@@ -9,5 +9,5 @@
         "jsx": "react"
     },
     "lib": ["es2022"],
-    "include": ["server.ts", "app.ts", "controllers", "routes", "middleware", "utils"]
+    "include": ["server.ts", "app.ts", "controllers", "routes", "middleware", "utils", "images"]
 }

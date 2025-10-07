@@ -1,11 +1,21 @@
 meta {
-  name: GET CREATE DUMP
+  name: CREATE DUMP
   type: http
   seq: 1
 }
 
-get {
+post {
   url: {{URL_API}}{{URL_API_PREFIX}}/catalog/create-dump
-  body: none
-  auth: none
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "namespace": "DEV"
+  }
 }

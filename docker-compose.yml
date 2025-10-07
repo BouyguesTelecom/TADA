@@ -1,6 +1,6 @@
 x-environment-variables:
   &default-environment
-    API_PREFIX: "/palpatine"
+    API_PREFIX: ""
     DELEGATED_STORAGE_RATE_LIMIT: 5
     DELEGATED_STORAGE_RATE_LIMIT_WINDOW: 30000
     NGINX_SERVICE: http://host.docker.internal:8080
@@ -10,23 +10,25 @@ x-environment-variables:
     VERSION: 0.0.1
     NAMESPACES: CMS,FORMS,DEV
     VALID_MIMETYPES: image/png,image/jpeg,application/pdf,image/jpg,image/webp,image/svg+xml
+    REQUEST_TIMEOUT: 300000
+
 
     DEV_ENV: true
-  
-  # GLOUTON API:
-  # DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
-  # DELEGATED_STORAGE_READINESS_CHECK: /readiness-check
-  # DELEGATED_STORAGE_GET_PATH: 
-  # DELEGATED_STORAGE_POST_PATH: 
-  # DELEGATED_STORAGE_PUT_PATH: 
-  # DELEGATED_STORAGE_DELETE_PATH: 
-  # DELEGATED_STORAGE_TOKEN: NinjaDesIles
-  
-  # S3 BACKUP :
-    DELEGATED_STORAGE_READINESS_CHECK: /minio/health/live
-    DELEGATED_STORAGE_HOST: http://localhost:9000
 
-    DELEGATED_STORAGE_METHOD: S3
+    # DELEGATED_STORAGE API:
+    DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
+    DELEGATED_STORAGE_READINESS_CHECK: /readiness-check
+    DELEGATED_STORAGE_GET_PATH:
+    DELEGATED_STORAGE_POST_PATH:
+    DELEGATED_STORAGE_PUT_PATH:
+    DELEGATED_STORAGE_DELETE_PATH:
+    DELEGATED_STORAGE_TOKEN: NinjaDesIles
+
+    # S3 BACKUP :
+    # DELEGATED_STORAGE_READINESS_CHECK: /minio/health/live
+    # DELEGATED_STORAGE_HOST: http://localhost:9000
+
+    DELEGATED_STORAGE_METHOD: DISTANT_BACKEND
 
     S3_ENDPOINT: localhost
     S3_PORT: 9000
@@ -51,7 +53,7 @@ x-environment-variables:
 
 services:
     redis:
-        image: bitnami/redis:7.0.15-debian-12-r20
+        image: redis/redis-stack-server
         container_name: redis_server
         command: redis-server --protected-mode no --dir /dumps
         ports:
@@ -96,9 +98,9 @@ services:
             NGINX_SERVICE: http://nginx:8080
             IMAGE_SERVICE: http://images-provider:3001
             NGINX_INGRESS: http://localhost:8080
-            DELEGATED_STORAGE_HOST: http://minio:9000
+            DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
             REDIS_SERVICE: redis
-            S3_ENDPOINT: minio
+            MEDIA_TOKEN: token
         healthcheck:
             test: ["CMD-SHELL", "wget --spider --quiet http://images-provider:3001$$API_PREFIX/readiness-check || exit 1"]
             interval: 10s
@@ -106,6 +108,7 @@ services:
             retries: 5
     nginx-purge:
         image: emcniece/nginx-cache-purge:1.13-alpine
+        platform: linux/amd64
         ports:
             - 8081:8081
         volumes:
@@ -125,7 +128,9 @@ services:
         depends_on:
             - images-provider
     job:
-        image: bouyguestelecom/tada:job-latest
+        build:
+            context: src/api/
+            dockerfile: Dockerfile
         ports:
             - 3006:3006
         networks:

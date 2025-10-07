@@ -1,7 +1,15 @@
 protocol: 'http'
 env: 'media-service'
-domain: '.media'
+domain: 'media'
 NAMESPACES_ALLOWED: 'DEV'
+
+createDumpCronJob:
+    imageName: 'curlimages/curl'
+    imageVersion: 'latest'
+    resources:
+        requests:
+            cpu: 60m
+            memory: 64Mi
 
 ingress:
     nginx:
@@ -12,7 +20,20 @@ ingress:
         annotations:
             nginx.ingress.kubernetes.io/proxy-body-size: 100m
 redis:
-    imageName: bitnami/redis:7.0.15-debian-12-r20
+    initScript:
+        imageName: cfmanteiga/alpine-bash-curl-jq:latest
+        dumpFileNameOnInit: latest
+        dumpFileNameOnRestart: latest
+        restoreOnInit:
+        restoreOnRestart:
+        urlToGetBackup: '/get-dump'
+        requests:
+                cpu: 200m
+                memory: 128Mi
+        limits:
+            cpu: 800m
+            memory: 512Mi
+    imageName: redis/redis-stack-server
     dumpFolderPath: '/dumps'
     storage:
         storageClassName: hostpath
@@ -34,7 +55,9 @@ delegatedStorage:
         readinessCheck: '/minio/health/live'
     accessToken: 'NinjaDesIles'
     storageMethod: 'S3'
-    path: ''
+    path:
+        single: /file
+        multi: /files
 
 s3:
     port: '9000'
@@ -56,6 +79,19 @@ nginx:
         limits:
             cpu: 800m
             memory: 512Mi
+    cdn:
+        enabled: true
+        maxAge: 900
+        expires: '15m'
+    hpa:
+        replicaCountMin: 2
+        replicaCountMax: 6
+        metrics:
+            memory:
+                averageUtilization: 100
+            cpu:
+                averageUtilization: 100
+
 
 nginxPurge:
     imageName: emcniece/nginx-cache-purge:1.13-alpine
@@ -67,20 +103,15 @@ nginxPurge:
             cpu: 800m
             memory: 512Mi
 
-backupAndCleanJob:
-    imageName: 'bouyguestelecom/tada'
-    imageVersion: 'job-latest'
-    resources:
-        requests:
-            cpu: 50m
-            memory: 64Mi
-
 mediaApi:
     mediaToken: 'token'
     useStripMetadata: true
     imageName: 'bouyguestelecom/tada'
     imageVersion: 'api-latest'
     service: 'http://media-service'
+    requestTimeout: 320000
+    baseTimeout: 2000
+    publicUrl: 'http://media-service.tada-api.media'
     routes:
         healthcheck:
             get: '/readiness-check'
@@ -88,6 +119,8 @@ mediaApi:
             get: '/assets/media/'
         catalog:
             get: '/catalog'
+        post_backup:
+            post: '/save-dump'
     payloadMaxSize: '10mb'
     rateLimit:
         windowMs: 30000

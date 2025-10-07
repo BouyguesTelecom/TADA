@@ -1,0 +1,104 @@
+local: true
+protocol: 'http'
+env: 'media-service'
+domain: 'media'
+NAMESPACES_ALLOWED: 'DEV'
+
+ingress:
+    ingress:
+        nginx:
+            className: nginx
+            annotations:
+        api:
+            className: nginx
+            annotations:
+                nginx.ingress.kubernetes.io/proxy-body-size: 100m
+
+redis:
+    imageName: redis/redis-stack-server
+    dumpFolderPath: '/dumps'
+    storage:
+        storageClassName: hostpath
+        requestedStorage: 1Gi
+    resources:
+        requests:
+            cpu: 200m
+            memory: 128Mi
+        limits:
+            cpu: 800m
+            memory: 512Mi
+
+delegatedStorage:
+    rateLimitWindow: 30000
+    rateLimit: 5
+    connect: true
+    host: 'http://minio:9000'
+    routes:
+        readinessCheck: '/minio/health/live'
+    accessToken: 'NinjaDesIles'
+    storageMethod: 'S3'
+    path:
+        single: /file
+        multi: /files
+
+s3:
+    port: '9000'
+    accessKey: 'minioadmin'
+    secretKey: 'minioadmin'
+    bucketName: 'media'
+    storage:
+        storageClassName: hostpath
+        resources:
+            requests:
+                storage: 500Mi
+
+nginx:
+    imageName: bitnami/nginx:latest
+    serviceName: nginx-service
+    resources:
+        requests:
+            cpu: 200m
+            memory: 128Mi
+        limits:
+            cpu: 800m
+            memory: 512Mi
+
+nginxPurge:
+    imageName: emcniece/nginx-cache-purge:1.13-alpine
+    resources:
+        requests:
+            cpu: 200m
+            memory: 128Mi
+        limits:
+            cpu: 800m
+            memory: 512Mi
+
+backupAndCleanJob:
+    imageName: 'localhost:5001/jobs-api'
+    imageVersion: 'latest'
+    resources:
+        requests:
+            cpu: 50m
+            memory: 64Mi
+
+mediaApi:
+    mediaToken: 'token'
+    useStripMetadata: true
+    imageName: 'localhost:5001/media-api'
+    imageVersion: 'latest'
+    service: 'http://media-service'
+    routes:
+        healthcheck:
+            get: '/readiness-check'
+        file:
+            get: '/assets/media/'
+        catalog:
+            get: '/catalog'
+        post_backup:
+            post: '/save-dump'
+    payloadMaxSize: '10mb'
+    originsAllowed: "localhost,*"
+    methodsAllowed: 'GET,POST'
+    hpa:
+        replicaCountMin: 1
+        replicaCountMax: 1

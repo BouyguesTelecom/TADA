@@ -1,25 +1,22 @@
 {
-    "name": "k6",
-    "version": "1.0.0",
-    "main": "index.js",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "build": "tsc",
-        "k6": "tsc && dotenv k6 run build/index.js"
-    },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "description": "",
-    "devDependencies": {
-        "@types/k6": "^0.54.0",
-        "@types/node": "^22.9.1",
-        "dotenv-cli": "^8.0.0",
-        "typescript": "^5.6.3"
-    },
-    "dependencies": {
-        "dotenv": "^16.4.7",
-        "k6": "^0.0.0",
-        "node-fetch": "^3.3.2"
-    }
+  "name": "tada-k6-tests",
+  "version": "1.0.0",
+  "description": "K6 load testing suite for TADA media API",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "setup": "npm install && npm run build",
+    "test:diagnosis": "npm run build && k6 run dist/tada-diagnosis.js --env ENVIRONMENT=local",
+    "test:single": "npm run build && k6 run dist/single-test.js --env ENVIRONMENT=local",
+    "test:multi": "npm run build && k6 run dist/multi-test.js --env ENVIRONMENT=local",
+    "test:catalog": "npm run build && k6 run dist/catalog-test.js --env ENVIRONMENT=local"
+  },
+  "devDependencies": {
+    "@types/k6": "^0.54.0",
+    "@types/node": "^22.9.1",
+    "typescript": "^5.6.3"
+  },
+  "keywords": ["k6", "load-testing", "performance", "tada", "media-api"],
+  "author": "",
+  "license": "ISC"
 }

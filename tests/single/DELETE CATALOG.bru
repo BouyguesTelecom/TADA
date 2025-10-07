@@ -6,6 +6,16 @@ meta {
 
 delete {
   url: {{URL_API}}{{URL_API_PREFIX}}/catalog
-  body: none
-  auth: none
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_TOKEN}}
+}
+
+body:json {
+  {
+    "namespace": "DEV"
+  }
 }

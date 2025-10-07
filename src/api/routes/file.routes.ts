@@ -13,6 +13,8 @@ import { deleteAsset, getAsset, patchAsset, postAsset } from '../controllers/fil
 import { timeoutMiddleware } from '../middleware/timeoutMiddleware';
 import { authMiddleware } from '../middleware/auth';
 import { redisConnectionMiddleware } from '../middleware/redisMiddleware';
+import { rateLimitMiddleware } from '../middleware/rateLimit';
+import { queueMiddleware } from '../middleware/queues/queuesMiddleware';
 
 const router = Router();
 
@@ -34,7 +36,7 @@ router.use(redisConnectionMiddleware);
  *       200:
  *         description: An asset
  */
-router.get(`/assets/media/:format/*`, [timeoutMiddleware, validatorGetAsset], getAsset);
+router.get(`/assets/media/:format/*`, [ timeoutMiddleware, rateLimitMiddleware, validatorGetAsset ], getAsset);
 
 /**
  * @swagger
@@ -67,7 +69,7 @@ router.get(`/assets/media/:format/*`, [timeoutMiddleware, validatorGetAsset], ge
  *       200:
  *         description: The file was successfully posted
  */
-router.post(`/file`, [authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog], postAsset);
+router.post(`/file`, [ authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog ], queueMiddleware(postAsset));
 
 /**
  * @swagger
@@ -107,8 +109,8 @@ router.post(`/file`, [authMiddleware, validatorHeaders, validatorFile, validator
  */
 router.patch(
     `/file/:uuid`,
-    [authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorParams, validatorNamespace, validatorFileSize, validatorFileBody, validatorFileCatalog],
-    patchAsset
+    [ authMiddleware, validatorHeaders, validatorFile, validatorFileFilter, validatorParams, validatorFileSize, validatorFileBody, validatorFileCatalog ],
+    queueMiddleware(patchAsset)
 );
 
 /**
@@ -136,6 +138,6 @@ router.patch(
  *       200:
  *         description: The file was successfully deleted
  */
-router.delete(`/file/:uuid`, [authMiddleware, validatorHeaders, validatorParams, validatorNamespace, validatorFileCatalog], deleteAsset);
+router.delete(`/file/:uuid`, [ authMiddleware, validatorHeaders, validatorParams, validatorFileCatalog ], queueMiddleware(deleteAsset));
 
 export { router };

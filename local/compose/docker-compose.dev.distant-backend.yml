@@ -1,0 +1,99 @@
+x-environment-variables:
+  &default-environment
+    API_PREFIX: ""
+    DELEGATED_STORAGE_RATE_LIMIT: 5
+    DELEGATED_STORAGE_RATE_LIMIT_WINDOW: 30000
+    NGINX_SERVICE: http://host.docker.internal:8080
+    IMAGE_SERVICE: http://localhost:3001
+    NGINX_INGRESS: http://nginx:8080
+
+    VERSION: 0.0.1
+    NAMESPACES: CMS,FORMS,DEV
+    VALID_MIMETYPES: image/png,image/jpeg,application/pdf,image/jpg,image/webp,image/svg+xml
+    REQUEST_TIMEOUT: 300000
+
+    DEV_ENV: true
+
+    DELEGATED_STORAGE_HOST: http://host.docker.internal:3002
+    DELEGATED_STORAGE_READINESS_CHECK: /readiness-check
+    DELEGATED_STORAGE_GET_PATH:
+    DELEGATED_STORAGE_POST_PATH:
+    DELEGATED_STORAGE_PUT_PATH:
+    DELEGATED_STORAGE_DELETE_PATH:
+    DELEGATED_STORAGE_TOKEN: NinjaDesIles
+    DELEGATED_STORAGE_SINGLE_PATH: "/file"
+    DELEGATED_STORAGE_MULTI_PATH: "/files"
+    DUMP_FOLDER_PATH: /dumps
+    REDIS_SERVICE: localhost
+
+    HEALTHCHECK_ROUTE: /readiness-check
+
+    PAYLOAD_MAX_SIZE: "10mb"
+    BASE_TIMEOUT_MS: 1000
+
+    ORIGINS_ALLOWED: localhost,*
+    METHODS_ALLOWED: GET,POST
+
+    USE_STRIPMETADATA: true
+    TMP_FILES_PATH: './images'
+
+
+
+services:
+    redis:
+        image: redis/redis-stack-server
+        container_name: redis_server
+        command: redis-server --protected-mode no --dir /dumps
+        ports:
+            - '6379:6379'
+        volumes:
+            - ../redis/dumps:/dumps
+        networks:
+            - redis_net
+        depends_on:
+            -   redis-init
+    redis-init:
+        image: curlimages/curl:latest
+        command: ["/bin/sh", "/scripts/redis-init.sh"]
+        volumes:
+            - ../redis/dumps:/dumps
+            - ../../scripts:/scripts
+        networks:
+            - redis_net
+        environment:
+            DELEGATED_STORAGE_HOST: ${DELEGATED_STORAGE_HOST}
+            URL_TO_GET_BACKUP: ${URL_TO_GET_BACKUP}
+            DELEGATED_STORAGE_TOKEN: ${DELEGATED_STORAGE_TOKEN}
+            RESTORE_ON_INIT: true
+            DUMP_FILE_NAME_ON_INIT: latest
+            RESTORE_ON_RESTART: true
+            DUMP_FILE_NAME_ON_RESTART: latest
+
+    nginx-purge:
+        image: emcniece/nginx-cache-purge:1.13-alpine
+        ports:
+            - 8081:8081
+        volumes:
+            - ../nginx/nginx-purge.dev.conf:/etc/nginx/nginx.conf
+        networks:
+            - media_network
+    nginx:
+        image: bitnami/nginx:latest
+        ports:
+            - 8080:8080
+        volumes:
+            - ../nginx/nginx.dev.conf:/opt/bitnami/nginx/conf/nginx.conf
+        networks:
+            - media_network
+
+volumes:
+    pv-minio:
+    minio:
+        driver: local
+
+networks:
+    redis_net:
+        driver: bridge
+    media_network:
+        driver: bridge
+

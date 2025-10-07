@@ -7,16 +7,16 @@ meta {
 delete {
   url: {{URL_API}}{{URL_API_PREFIX}}/files
   body: json
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_TOKEN}}
 }
 
 body:json {
   [{
     "namespace": "DEV",
-    "uuid": "lol"
-  },
-  {
-    "namespace": "DEV",
-    "uuid": "d97a79c5-d69b-45e5-9682-fa714152c7e9"
+    "uuids": "{{MULTI_IMAGE_IDS}}"
   }]
 }

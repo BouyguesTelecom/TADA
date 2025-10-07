@@ -1,6 +1,8 @@
 import { createClient } from '@redis/client';
 import { logger } from '../../utils/logs/winston';
 
+let memoryCache: Map<string, any> = new Map();
+
 const redisClient = createClient({
     socket: {
         host: process.env.REDIS_SERVICE || 'localhost',
@@ -10,7 +12,7 @@ const redisClient = createClient({
 });
 
 redisClient.on('error', (err) => {
-    logger.error(`Redis Client Error: ${err.message}`);
+    logger.error(`Redis Client Error: ${err.message} ${JSON.stringify(err)}`);
 });
 
 redisClient.on('connect', () => {
@@ -54,12 +56,80 @@ const keysAsync = async (pattern) => {
 
 const generateDump = async () => redisClient.save();
 
+const flushAllKeys = async () => {
+    try {
+        await redisClient.flushAll();
+        logger.info('All Redis keys cleared successfully');
+        return { success: true };
+    } catch (error) {
+        logger.error(`Error clearing Redis keys: ${error.message}`);
+        return { success: false, error: error.message };
+    }
+};
+
+export const initializeCache = async () => {
+    try {
+        memoryCache.clear();
+        logger.info('Init cache.');
+        const start = Date.now();
+
+        const ids = await redisHandler.keysAsync('*');
+        if (ids && ids.length) {
+            const filesPromises = ids.map(async (id) => {
+                const file = await redisHandler.getAsync(id);
+                if (file && Object.keys(JSON.parse(file)).length) {
+                    return JSON.parse(file);
+                }
+                return null;
+            });
+
+            const files = (await Promise.all(filesPromises)).filter((file) => file !== null);
+
+            memoryCache.clear();
+
+            files.forEach((file) => {
+                if (file && file.uuid) {
+                    memoryCache.set(file.uuid, file);
+                }
+            });
+        }
+        logger.info(`Cache initialisé: ${memoryCache.size} fichiers en ${Date.now() - start}ms`);
+    } catch (err) {
+        logger.error(`Error listing items: ${err}`);
+    }
+};
+
+export const cache = {
+    async get(id: string) {
+        return memoryCache.get(id) || null;
+    },
+
+    async getAll() {
+        return Array.from(memoryCache.values());
+    },
+
+    async set(file: any) {
+        await setAsync(file.uuid, JSON.stringify(file));
+
+        memoryCache.set(file.uuid, file);
+
+        logger.debug(`Cache updated: ${file.uuid}`);
+    },
+
+    async delete(id: string) {
+        await delAsync(id);
+        const deleted = memoryCache.delete(id);
+        logger.debug(`Cache deleted: ${id}`);
+        return deleted;
+    }
+};
+
 export const redisHandler = {
     connectClient,
     disconnectClient,
     getAsync,
-    setAsync,
-    delAsync,
     keysAsync,
-    generateDump
+    generateDump,
+    flushAllKeys,
+    redisClient
 };

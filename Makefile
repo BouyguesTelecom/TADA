@@ -1,8 +1,14 @@
-.PHONY: all ask-context use-context start-registry build-image push-image helm-install clean helm-uninstall volume dashboard start stop install-nginx run-tests
+.PHONY: all ask-context use-context start-registry build-image push-image helm-install helm-install-standalone helm-install-s3 helm-install-distant-backend clean helm-uninstall volume dashboard start start-standalone start-s3 start-distant-backend stop install-nginx run-tests
 
 PROJECT_ROOT := $(shell git rev-parse --show-toplevel)
 
+# Default target - S3 storage
 all: start-registry build-image push-image helm-install run-tests
+
+# Storage-specific deployment targets:
+# - make start-standalone    : Deploy with STANDALONE storage (no external dependencies)
+# - make start-s3           : Deploy with S3 storage (MinIO)
+# - make start-distant-backend : Deploy with DISTANT_BACKEND storage
 
 start-registry:
 	@if [ $$(docker ps -aq -f name=local-registry) != "" ]; then docker stop local-registry && docker rm local-registry; fi
@@ -10,15 +16,24 @@ start-registry:
 
 build-image:
 	@docker build -t localhost:5001/media-api:latest src/api
-	@docker build -t localhost:5001/jobs-api:latest -f src/Dockerfile src
 
 push-image:
 	@docker push localhost:5001/media-api:latest
-	@docker push localhost:5001/jobs-api:latest
 
-helm-install:
-	@echo "Installing or upgrading Helm chart..."
-	@helm upgrade --install media-release opensource/. -f opensource/values.local.yaml
+helm-install: helm-install-s3
+
+helm-install-standalone:
+	@echo "Installing or upgrading Helm chart with STANDALONE storage..."
+	@helm upgrade --install media-release opensource/. -f opensource/values.local-standalone.yaml
+
+helm-install-s3:
+	@echo "Installing or upgrading Helm chart with S3 storage..."
+	@helm upgrade --install media-release opensource/. -f opensource/values.local-s3.yaml
+
+helm-install-distant-backend:
+	@echo "Installing or upgrading Helm chart with DISTANT_BACKEND storage..."
+	@helm upgrade --install media-release opensource/. -f opensource/values.local-distant-backend.yaml
+
 install-nginx:
 	@nginx_existence=$$(kubectl get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx --ignore-not-found) && \
 	if [ -z "$$nginx_existence" ]; then \
@@ -66,13 +81,13 @@ dashboard:
 		helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard && \
 		if ! kubectl get clusterrolebinding dashboard-user > /dev/null 2>&1; then \
 			echo "Création du clusterrolebinding 'dashboard-user'..."; \
-			kubectl apply -f opensource/local-conf/dashboard-clusterrolebinding.yaml; \
+			kubectl apply -f local/helms/local-conf/dashboard-clusterrolebinding.yaml; \
 		else \
 			echo "clusterrolebinding 'dashboard-user' existe déjà."; \
 		fi; \
 		if ! kubectl get serviceaccount dashboard-user -n kubernetes-dashboard > /dev/null 2>&1; then \
 			echo "Création du serviceaccount 'dashboard-user'..."; \
-			kubectl apply -f opensource/local-conf/dashboard-user.yaml; \
+			kubectl apply -f local/helms/local-conf/dashboard-user.yaml; \
 		else \
 			echo "serviceaccount 'dashboard-user' existe déjà."; \
 		fi; \
@@ -92,7 +107,13 @@ dashboard:
 		echo "Kubernetes Dashboard non lancé."; \
 	fi
 
-start: install-nginx start-registry build-image push-image helm-install dashboard run-tests
+start: start-s3
+
+start-standalone: install-nginx start-registry build-image push-image helm-install-standalone dashboard run-tests
+
+start-s3: install-nginx start-registry build-image push-image helm-install-s3 dashboard run-tests
+
+start-distant-backend: install-nginx start-registry build-image push-image helm-install-distant-backend dashboard run-tests
 
 stop: helm-uninstall
 

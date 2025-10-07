@@ -5,7 +5,11 @@ meta {
 }
 
 get {
-  url: {{URL_NGINX}}{{URL_API_PREFIX}}/catalog
+  url: {{URL_API}}{{URL_API_PREFIX}}/catalog
   body: none
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_TOKEN}}
 }

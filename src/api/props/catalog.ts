@@ -10,12 +10,17 @@ export interface FileProps {
     public_url?: string;
     original_filename?: string;
     base_url?: string;
+    base_host?: string;
     information?: string | null;
     destination?: string | null;
     original_mimetype?: string;
     mimetype?: string;
     signature?: string;
-    size?: number | string ;
+    size?: number | string;
+    uploaded_date?: string;
+    updated_date?: string;
+    original_signature?: string;
+    original_version?: number;
 }
 
 export interface ICatalogResponse {

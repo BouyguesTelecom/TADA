@@ -15,7 +15,7 @@ function sanitizeAndConvertToRegex(str) {
         return new RegExp(sanitizedStr.slice(1, -1));
     }
 
-    return sanitizedStr;
+    return sanitizedStr; 
 }
 
 const originsAllowed = process.env.ORIGINS_ALLOWED
@@ -43,7 +43,7 @@ setupSwagger(app);
 
 const API_PREFIX = process.env.API_PREFIX || '';
 
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((_req: Request, _res: Response, next: NextFunction) => {
     const API_PREFIX = process.env.API_PREFIX || '';
     app.locals.PREFIXED_API_URL = `${ process.env.IMAGE_SERVICE }${ API_PREFIX }`;
     app.locals.PREFIXED_ASSETS_URL = `${ API_PREFIX }/assets/media`;

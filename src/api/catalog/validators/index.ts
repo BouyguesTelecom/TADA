@@ -1,7 +1,7 @@
 import * as Joi from 'joi';
+import { getCatalog } from '..';
 import { FileProps } from '../../props/catalog';
 import { logger } from '../../utils/logs/winston';
-import { getCatalog } from '../index';
 
 const fileSchema = Joi.object({
     filename: Joi.string().required(),
@@ -21,7 +21,16 @@ const fileSchema = Joi.object({
     original_mimetype: Joi.string().optional(),
     mimetype: Joi.string().optional(),
     signature: Joi.string().required(),
-    size: Joi.number().allow(null).optional()
+    size: Joi.number().allow(null).optional(),
+    uploaded_date: Joi.date()
+        .default(() => new Date())
+        .optional(),
+    updated_date: Joi.date()
+        .default(() => new Date())
+        .optional(),
+    original_signature: Joi.string().required(),
+    original_version: Joi.number().optional(),
+    original_size: Joi.number().optional(),
 });
 
 interface ValidateSchemaProps {
@@ -31,7 +40,7 @@ interface ValidateSchemaProps {
 
 interface ValidationErrorDetail {
     message: string;
-    path: ( string | number )[];
+    path: (string | number)[];
     type: string;
     context?: {
         key?: string;
@@ -55,18 +64,21 @@ export const validateMultipleFile = (body: unknown): ValidationErrorDetail[] | n
     return error ? error.details : null;
 };
 
-interface CatalogResponse {
-    data: FileProps[] | null;
-    errors: string[] | null;
-}
-
 export const filePathIsUnique = async (file: FileProps): Promise<boolean> => {
-    const response: CatalogResponse = await getCatalog();
-    if (response.data && !response.errors) {
-        const allFilesInNamespace: FileProps[] = response.data.filter((f: FileProps) => f.namespace === file.namespace);
+    try {
+        const { data: allFiles } = await getCatalog();
+
+        if (!allFiles || allFiles.length === 0) {
+            return true;
+        }
+
+        const allFilesInNamespace: FileProps[] = allFiles.filter((f: FileProps) => f.namespace === file.namespace);
+
         const fileExists = allFilesInNamespace.find((f: FileProps) => f.unique_name === file.unique_name);
+
         return !fileExists;
+    } catch (error) {
+        logger.error('Error checking file uniqueness:', error);
+        return false;
     }
-    logger.error(response.errors);
-    return false;
 };

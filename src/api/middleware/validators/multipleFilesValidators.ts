@@ -1,9 +1,10 @@
-import multer from 'multer';
-import { isFileNameInvalid, storage } from './utils/multer';
-import { fileIsTooLarge, generateUniqueName, sendResponse } from './utils';
-import { generateFileInfo } from './oneFileValidators';
+import crypto from 'crypto';
 import { NextFunction, Request, Response } from 'express';
-import { findFileInCatalog } from '../../utils/catalog';
+import multer from 'multer';
+import { getCatalogItem } from '../../catalog';
+import { generateFileInfo } from './oneFileValidators';
+import { fileIsTooLarge, generateUniqueName, sendResponse } from './utils';
+import { isFileNameInvalid, storage } from './utils/multer';
 
 export const validatorFiles = multer({
     storage: storage
@@ -23,15 +24,15 @@ export const validatorFilesFilter = async (req: Request, res: Response, next: Ne
                 const errorFileName = isFileNameInvalid(file);
 
                 if (errorFileName || !mimeTypeIsAllowed) {
-                    const message = mimeTypeIsAllowed ? errorFileName : `File type ${ file.mimetype } unauthorized.`;
+                    const message = mimeTypeIsAllowed ? errorFileName : `File type ${file.mimetype} unauthorized.`;
                     return {
                         ...acc,
-                        invalidFiles: [ ...invalidFiles, { ...file, message, uuid } ]
+                        invalidFiles: [...invalidFiles, { ...file, message, uuid }]
                     };
                 }
 
                 return {
-                    validFiles: [ ...validFiles, { ...file, uuid } ],
+                    validFiles: [...validFiles, { ...file, uuid }],
                     invalidFiles
                 };
             },
@@ -41,52 +42,97 @@ export const validatorFilesFilter = async (req: Request, res: Response, next: Ne
         res.locals = { ...res.locals, validFiles, invalidFiles };
         return next();
     }
-    res.locals = { ...res.locals, validFiles: [], invalidFiles: [] };
     next();
 };
 
-export const validatorUUIds = (req: Request, res: Response, next: NextFunction) => {
-    const { contentType } = res.locals;
-
-    if (contentType === 'multipart/form-data') {
-        const uuidsFromBody = req.body.uuids;
-        if (!uuidsFromBody) {
-            return sendResponse({
-                res,
-                status: 400,
-                errors: [ 'No uuids provided' ]
-            });
+export const validatorUUIds = async (req: Request, res: Response, next: NextFunction) => {
+    if (req.method === 'PATCH' || req.method === 'DELETE') {
+        const { contentType } = res.locals;
+        if (contentType === 'multipart/form-data') {
+            const uuidsFromBody = req.body.uuids;
+            if (!uuidsFromBody) {
+                return sendResponse({
+                    res,
+                    status: 400,
+                    errors: ['No uuids provided']
+                });
+            }
+            const numberOfFiles = req.files.length;
+            const uuids = uuidsFromBody.split(',');
+            if (numberOfFiles !== uuids.length) {
+                return sendResponse({
+                    res,
+                    status: 400,
+                    errors: ['Number of UUIDs and number of files provided different']
+                });
+            }
+            res.locals.uuids = uuidsFromBody;
         }
-        const numberOfFiles = req.files.length;
-        const uuids = uuidsFromBody.split(',');
 
-        if (numberOfFiles !== uuids.length) {
-            return sendResponse({
-                res,
-                status: 400,
-                errors: [ 'Number of UUIDs and number of files provided different' ]
-            });
+        if (contentType === 'application/json') {
+            if (Array.isArray(req.body)) {
+                const { validFiles, invalidFiles } = await req.body.reduce(
+                    async (acc, file) => {
+                        const { validFiles, invalidFiles } = await acc;
+                        if(!file.uuids){
+                            return {
+                                validFiles ,
+                                invalidFiles: [...invalidFiles, {message:'No uuids provided'}]
+                            };
+                        }
+                        const uuids = file.uuids.split(',');
+                        const { catalogFiles, catalogFilesNotFound } = await uuids.reduce(
+                            async (acc, uuid) => {
+                                const { catalogFiles, catalogFilesNotFound } = await acc;
+                                const { datum: catalogFile } = await getCatalogItem({ uuid });
+                                if (catalogFile) {
+                                    return {
+                                        catalogFiles: [...catalogFiles, { ...file, catalogItem: catalogFile }],
+                                        catalogFilesNotFound
+                                    };
+                                }
+                                return {
+                                    catalogFiles,
+                                    catalogFilesNotFound: [...catalogFilesNotFound, { uuid, message: `UUID not found in namespace ${file.namespace}` }]
+                                };
+                            },
+                            { catalogFiles: [], catalogFilesNotFound: [] }
+                        );
+                        return {
+                            validFiles : [...validFiles, ...catalogFiles],
+                            invalidFiles: [...invalidFiles, ...catalogFilesNotFound]
+                        };
+                    },
+                    Promise.resolve({ validFiles: [], invalidFiles: [] })
+                );
+                if (!validFiles.length) {
+                    return sendResponse({ res, status: 400, errors: invalidFiles });
+                }
+                res.locals = { ...res.locals, validFiles, invalidFiles };
+                return next();
+            }
         }
-        res.locals.uuids = uuidsFromBody;
+
+        return next();
     }
 
-    next();
+    return next();
 };
 
 export const validatorFilesSize = async (req: Request, res: Response, next: NextFunction) => {
     const { invalidFiles: invalidFilesFromLocal, validFiles: validFilesFromLocal } = res.locals;
-    if (validFilesFromLocal.length) {
+    if (validFilesFromLocal?.length) {
         const { invalidFiles, validFiles } = await validFilesFromLocal.reduce(
             async (accumulator, file) => {
                 const { invalidFiles, validFiles } = await accumulator;
                 const fileTooLarge = await fileIsTooLarge(file, req.params, req.method);
                 if (fileTooLarge) {
                     return {
-                        invalidFiles: [ ...invalidFiles, fileTooLarge ],
+                        invalidFiles: [...invalidFiles, fileTooLarge],
                         validFiles
                     };
                 }
-                return { invalidFiles, validFiles: [ ...validFiles, file ] };
+                return { invalidFiles, validFiles: [...validFiles, file] };
             },
             Promise.resolve({
                 invalidFiles: invalidFilesFromLocal,
@@ -105,14 +151,16 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
         return sendResponse({
             res,
             status: 400,
-            errors: [ `Body has to be an array` ]
+            errors: [`Body has to be an array`]
         });
     }
-
+    if (req.method === 'DELETE') {
+        return next();
+    }
     const { namespace, validFiles: validFilesFromLocal, invalidFiles: invalidFilesFromLocal } = res.locals;
     const toWebp = req.body.toWebp !== 'false';
 
-    const { validFiles, invalidFiles } = await validFilesFromLocal.reduce(
+    const { validFiles, invalidFiles } = await (validFilesFromLocal || []).reduce(
         async (accumulator, file) => {
             const { validFiles, invalidFiles } = await accumulator;
 
@@ -128,7 +176,8 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
                     ]
                 };
             }
-            const fileInfo: Object = generateFileInfo(Array.isArray(req.body) ? file : req.body, req.method);
+            const fileInfo: Object = generateFileInfo(Array.isArray(req.body) ? req.body.find((item: any) => item.uuid === file.uuid) : req.body, req.method);
+
             if (!fileInfo && !req.files) {
                 return {
                     validFiles,
@@ -146,9 +195,7 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
                     ...validFiles,
                     {
                         ...file,
-                        uniqueName: file.catalogItem ?
-                            file.catalogItem.unique_name :
-                            generateUniqueName(file, req.body, namespace, toWebp),
+                        uniqueName: file.catalogItem ? file.catalogItem.unique_name : generateUniqueName(file, req.body, namespace, toWebp),
                         fileInfo,
                         toWebp
                     }
@@ -161,7 +208,6 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
             invalidFiles: invalidFilesFromLocal
         })
     );
-
     if (!validFiles.length && !req.files) {
         return sendResponse({ res, status: 400, errors: invalidFiles });
     }
@@ -170,36 +216,49 @@ export const validatorFilesBody = async (req: Request, res: Response, next: Next
     next();
 };
 
-
-const _checkFilesInCatalog = async (files: any[], invalidFilesFromNamespace) => {
-    return await files.reduce(
+export const validatorCatalog = async (req: Request, res: Response, next: NextFunction) => {
+    const { validFiles: validFilesFromLocal, invalidFiles: invalidFilesFromLocal } = res.locals;
+    if ((req.method === 'PATCH' && !req.files) || req.method === 'DELETE') {
+        return next();
+    }
+    const { validFiles, invalidFiles } = await (validFilesFromLocal || []).reduce(
         async (accumulator, file) => {
             const { validFiles, invalidFiles } = await accumulator;
-            const itemFound = await findFileInCatalog(file.uuid ?? file.key_value, file.uuid ? 'uuid' : file.key_name);
-            if (!itemFound) {
+            if (req.method === 'POST') {
+                const fileUUID = await crypto.createHash('md5').update(file.uniqueName).digest('hex');
+                const { datum: catalogItem } = await getCatalogItem({ uuid: fileUUID });
+
+                if (!catalogItem) {
+                    return {
+                        validFiles: [...validFiles, file],
+                        invalidFiles
+                    };
+                }
                 return {
                     validFiles,
-                    invalidFiles: [ ...invalidFiles, { ...file, message: 'Not found in catalog' } ]
+                    invalidFiles: [...invalidFiles, { ...file, message: 'UUID already exists' }]
                 };
             }
-            return {
-                validFiles: [ ...validFiles, { ...file, catalogItem: itemFound } ],
-                invalidFiles
-            };
+            if (req.method === 'PATCH') {
+                const { datum: catalogItem } = await getCatalogItem({ uuid: file.uuid });
+                if (catalogItem) {
+                    return {
+                        validFiles: [...validFiles, { ...file, uniqueName: catalogItem.unique_name, catalogItem }],
+                        invalidFiles
+                    };
+                }
+                return {
+                    validFiles,
+                    invalidFiles: [...invalidFiles, { ...file, message: 'UUID does not exist' }]
+                };
+            }
         },
         Promise.resolve({
             validFiles: [],
-            invalidFiles: invalidFilesFromNamespace
+            invalidFiles: invalidFilesFromLocal
         })
     );
-};
-
-export const validatorCatalog = async (req: Request, res: Response, next: NextFunction) => {
-    const { validFiles: validFilesFromLocal, invalidFiles: invalidFilesFromLocal } = res.locals;
-    const { validFiles, invalidFiles } = await _checkFilesInCatalog(validFilesFromLocal?.length ?
-        validFilesFromLocal :
-        req.body, invalidFilesFromLocal || []);
-    if (!validFiles.length) {
+    if (!validFiles?.length) {
         return sendResponse({ res, status: 400, errors: invalidFiles });
     }
     res.locals = { ...res.locals, validFiles, invalidFiles };

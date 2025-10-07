@@ -1,11 +1,11 @@
-export const getUniqueName = (path, strSplitting) => {
-    let unique_name = path.split(strSplitting)[1] || null;
-    if (unique_name) {
-        if (unique_name.includes('?')) {
-            unique_name = unique_name.split('?')[0];
-        }
-        return unique_name;
+export const getUniqueName = (path, format) => {
+    const strSplittingFormat = `/${ format }/`;
+
+    if (format === 'optimise') {
+        const arrayToClean = path.split(strSplittingFormat)[1]?.split('/');
+        arrayToClean.shift();
+        return `/${ arrayToClean.join('/') }`;
     }
 
-    return '';
+    return `/${ path.split(strSplittingFormat)[1] }`;
 };

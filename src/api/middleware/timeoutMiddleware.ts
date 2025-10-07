@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../utils/logs/winston';
 
 const parsePayloadSize = (size: string): number => {
     const units = { b: 1, kb: 1024, mb: 1024 * 1024, gb: 1024 * 1024 * 1024 };
@@ -7,19 +8,32 @@ const parsePayloadSize = (size: string): number => {
     return parseInt(match[1], 10) * units[match[2]];
 };
 
-export const timeoutMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    const baseTimeout = Number(process.env.BASE_TIMEOUT_MS) || 1000;
+export const timeoutMiddleware = (_req: Request, res: Response, next: NextFunction) => {
+    const baseTimeout = Number(process.env.BASE_TIMEOUT_MS) || 3000;
     const maxPayloadSize = parsePayloadSize(process.env.PAYLOAD_MAX_SIZE || '10mb');
-    const timeout = (baseTimeout * (maxPayloadSize / (1024 * 1024))) / 2;
+    const timeoutDuration = (baseTimeout * (maxPayloadSize / (1024 * 1024))) / 2;
 
-    req.setTimeout(timeout, () => {
-        if (!res.headersSent) {
-            res.status(408).send('Request timeout');
+    let timeoutHandler: any;
+
+    const handleTimeout = () => {
+        logger.info('Timeout occurred');
+        if (res.getHeader('x-processing-image') === 'true') {
+            logger.info('More processing time required, resetting timeout...(big size,...?)');
+            resetTimeout();
+        } else if (!res.headersSent) {
+            res.status(408).send('Request timeout').end();
         }
-    });
+    };
 
-    res.on('timeout', () => {
-        res.status(408).send('Request timeout');
+    const resetTimeout = () => {
+        clearTimeout(timeoutHandler);
+        timeoutHandler = setTimeout(handleTimeout, timeoutDuration);
+    };
+
+    resetTimeout();
+
+    res.on('finish', () => {
+        clearTimeout(timeoutHandler);
     });
 
     next();

@@ -1,180 +1,165 @@
 import { Request, Response } from 'express';
-import { calculateSHA256, formatItemForCatalog, isExpired } from '../utils/catalog';
-import { convertToWebpBuffer, generateStream } from '../utils/file';
 import { sendResponse } from '../middleware/validators/utils';
-import { FileProps } from '../props/catalog';
+import { FileControllerLocals } from '../props/file-operations';
+import { deleteFile, generateStream, returnDefaultImage } from '../utils/file';
 import { logger } from '../utils/logs/winston';
-import fetch from 'node-fetch';
-import FormData from 'form-data';
-import { PassThrough } from 'stream';
+import { streamToBuffer, checkSignature } from '../utils/fileProcessing';
+import { calculateSHA256, formatItemForCatalog, isExpired } from '../utils/catalog';
 import { Readable } from 'node:stream';
-import app from '../app';
-import { addCatalogItem, deleteCatalogItem, updateCatalogItem, getCatalog } from '../catalog';
-import { redisHandler } from '../catalog/redis/connection';
+import { deleteFileBackup, getBackup, patchFileBackup, postFileBackup } from './delegated-storage.controller';
+import { addCatalogItem, deleteCatalogItem, updateCatalogItem } from '../catalog';
+import { PassThrough } from 'stream';
+import { getProcessedFilename, isImageMimetype, processImageOnTheFly } from '../utils/imageOptimization';
+import path from 'path';
+import fs from 'fs';
 
-const streamToBuffer = (stream: PassThrough): Promise<Buffer> => {
-    return new Promise((resolve, reject) => {
-        const chunks: Buffer[] = [];
-        stream.on('data', (chunk) => chunks.push(chunk));
-        stream.on('end', () => resolve(Buffer.concat(chunks)));
-        stream.on('error', (err) => reject(err));
-    });
-};
+const _saveOriginal = process.env.SAVE_ORIGINAL_FILE;
 
-const checkSignature = async (file: FileProps, stream: PassThrough): Promise<{isValidSignature: boolean; originSignature: string | null}> => {
-    try {
-        const buffer = await streamToBuffer(stream);
-        const signature = calculateSHA256(buffer);
-        return {
-            isValidSignature: file.signature === signature,
-            originSignature: signature
-        };
-    } catch (error) {
-        logger.error('Error checking signature:', error);
-        return {
-            isValidSignature: false,
-            originSignature: null
-        }
-    }
-};
+export const getAsset = async (req: Request, res: Response & { locals: FileControllerLocals }) => {
+    const { uniqueName, file, original } = res.locals;
+    const { width, height, quality } = req.query;
 
-export interface Locals {
-    uniqueName: string;
-    file: FileProps;
-}
-
-export const getAsset = async (req: Request, res: Response & { locals: Locals }) => {
-    const { uniqueName, file } = res.locals;
+    const needProcessing = Boolean(width || height || quality);
     const fileIsExpired = isExpired(file);
-
-    if (!fileIsExpired) {
-        const getBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${uniqueName}&version=${file.version}&mimetype=${file.mimetype}`);
-
-        if (getBackupFile.status !== 200) {
-            if (getBackupFile.status !== 429) {
-                await deleteCatalogItem(uniqueName);
-            }
-            return res.status(getBackupFile.status).end();
+    try {
+        if (fileIsExpired) {
+            return returnDefaultImage(res, '/default.svg');
         }
-        const bodyBuffer = await getBackupFile.arrayBuffer();
-        const bodyStream = Readable.from(Buffer.from(bodyBuffer));
 
-        const streamForSignature = new PassThrough();
+        const originalFile = req.url.includes('/original/') && original;
+        const version = originalFile ? Number(file.original_version) : Number(file.version);
+        const mimetype = originalFile ? file.original_mimetype : file.mimetype;
+        const uniqueNameForBackup = originalFile ? uniqueName.replace(file.filename, file.original_filename) : uniqueName;
+
+        const getBackupFile: Readable | null = await getBackup(uniqueNameForBackup, version?.toString(), originalFile ? file.original_mimetype : file.mimetype, original);
+
+        if (!getBackupFile) {
+            await deleteCatalogItem(file.uuid);
+            return res.status(404).end();
+        }
+
+        const bodyBuffer = await streamToBuffer(getBackupFile);
+        const bodyStream = Readable.from(bodyBuffer);
+
         const streamForResponse = new PassThrough();
-
-        bodyStream.pipe(streamForSignature);
         bodyStream.pipe(streamForResponse);
-
-        const { data: catalog } = await getCatalog();
-        const item = catalog.find((item: FileProps) => item.unique_name === uniqueName);
-
-        bodyStream.on('error', (err) => {
-            logger.error('Error in originalStream:', err);
-            return res.status(500).end();
-        });
-
-        const { isValidSignature, originSignature } = await checkSignature(item, streamForSignature);
-
+        const { isValidSignature, originSignature } = await checkSignature(file, bodyBuffer, originalFile);
         if (!isValidSignature) {
-            logger.error(`Invalid signatures (catalog: ${item.signature}, origin: ${originSignature})`);
+            logger.error(`Invalid signatures (catalog: ${file.signature}, origin: ${originSignature})`);
             return res.status(418).end();
         }
 
-        if (req.url.includes('/original/')) {
-            res.setHeader('Content-Type', file.mimetype);
-            res.setHeader('Content-Disposition', `inline; filename="${uniqueName}"`);
-            return streamForResponse.pipe(res, { end: true });
-        }
-        if (req.url.includes('/full/')) {
-            try {
-                const webpBuffer = await convertToWebpBuffer(Buffer.from(bodyBuffer));
-                res.setHeader('Content-Type', 'image/webp');
-                return res.send(webpBuffer);
-            } catch (error) {
-                console.error('Error during WebP conversion:', error);
-                return res.status(500).send('Internal Server Error');
-            }
-        }
-        if (req.url.includes('/optimise/')) {
-            const filePathRegex = /\/optimise\/(.*?)\//;
-            const match = req.url.match(filePathRegex);
-            if (match && match[1]) {
-                const extractedPart = match[1];
-                if (extractedPart.includes('x')) {
-                    const width = extractedPart.split('x')[0];
-                    const height = extractedPart.split('x')[1];
-                    const params = { width: Number(width), height: Number(height) };
-                    const webpBuffer = await convertToWebpBuffer(Buffer.from(bodyBuffer), params);
-                    res.setHeader('Content-Type', 'image/webp');
-                    return res.send(webpBuffer);
-                }
-            }
-        }
-    }
+        if (needProcessing && isImageMimetype(mimetype)) {
+            logger.info(`🔄 Processing image on-the-fly: w=${width}, h=${height}, q=${quality}`);
 
-    if (fileIsExpired) {
-        return res.status(404).end();
+            const processedBuffer = await processImageOnTheFly(bodyBuffer, {
+                width: width ? parseInt(width as string) : undefined,
+                height: height ? parseInt(height as string) : undefined,
+                quality: quality ? parseInt(quality as string) : undefined
+            });
+
+            if (processedBuffer) {
+                const processedStream = Readable.from(processedBuffer);
+                const streamForResponse = new PassThrough();
+                processedStream.pipe(streamForResponse);
+
+                res.setHeader('Content-Type', 'image/webp');
+                res.setHeader('Content-Disposition', `inline; filename="${getProcessedFilename(uniqueNameForBackup, width?.toString(), height?.toString(), quality?.toString())}"`);
+
+                return streamForResponse.pipe(res, { end: true });
+            }
+        }
+
+        res.setHeader('Content-Type', mimetype);
+        res.setHeader('Content-Disposition', `inline; filename="${uniqueNameForBackup}"`);
+        return streamForResponse.pipe(res, { end: true });
+    } catch (error) {
+        logger.error('Error in getAsset:', error);
+        return res.status(500).end();
     }
-    return res.status(404).end();
 };
 
-export const postAsset = async (req: Request, res: Response) => {
-    const { uniqueName, fileInfo, toWebp, namespace, file } = res.locals;
-    const stream = await generateStream(file, uniqueName, toWebp);
-    if (stream) {
-        const signature = calculateSHA256(stream);
-        const newItem = await formatItemForCatalog(fileInfo, file.filename, namespace, uniqueName, fileInfo?.destination || '', file.mimetype, toWebp, signature, file.size);
+export const _deleteTmpFolder = (filepath) => {
+    const directory = path.dirname(filepath);
+    if (fs.existsSync(directory)) {
+        fs.rmSync(directory, { recursive: true, force: true });
+        logger.info(`🗑️  Deleted folder: ${directory}`);
+    } else {
+        logger.info(`⚠️  Folder not found: ${directory}`);
+    }
+};
 
-        const { status, error, datum } = await addCatalogItem(newItem);
-        if (status !== 200) {
+export const postAsset = async (_req: Request, res: Response) => {
+    const { uniqueName, fileInfo, toWebp, namespace, file } = res.locals;
+    try {
+        const isImageFile = !['application/pdf', 'image/svg+xml'].includes(file.mimetype);
+        const { stream: originalStream } = _saveOriginal && isImageFile ? await generateStream(file, false, true) : { stream: null };
+        const { stream, file: newFile } = await generateStream(file, toWebp);
+
+        // clean TMP directory (multer file path and webp transformation path)
+        _deleteTmpFolder(file.path);
+
+        if (!stream) return sendResponse({ res, status: 400, errors: ['Failed to generate stream'] });
+
+        const originalSignature = _saveOriginal && isImageFile && calculateSHA256(originalStream);
+        const signature = calculateSHA256(stream);
+
+        const { mimetype, size, originalname } = file;
+
+        const transformedFile = {
+            unique_name: uniqueName,
+            namespace,
+            signature,
+            mimetype: newFile.mimetype,
+            size: newFile.size,
+            filename: newFile.filename
+        };
+
+        const originalFile = _saveOriginal && isImageFile ? { signature: originalSignature, filename: originalname, mimetype, size } : transformedFile;
+
+        const newItem = await formatItemForCatalog(fileInfo, originalFile, transformedFile);
+        const { status, datum } = await addCatalogItem(newItem);
+
+        if (status !== 200 || !datum)
             return sendResponse({
                 res,
                 status: 400,
-                data: datum ? [datum] : null,
-                errors: error ? [error] : null
+                errors: ['Failed to create catalog item']
             });
-        }
 
-        if (datum) {
-            const form = new FormData();
-            form.append('file', stream, { filename: uniqueName, contentType: file.mimetype });
-            try {
-                const postBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${uniqueName}&version=1&mimetype=${file.mimetype}`, {
-                    method: 'POST',
-                    body: form
-                });
-                if (postBackupFile.status !== 200) {
-                    await deleteCatalogItem(uniqueName);
-                    return sendResponse({
-                        res,
-                        status: 400,
-                        data: ['Failed to upload in backup']
-                    });
-                }
-                return sendResponse({ res, status: 200, data: [datum], purge: 'catalog' });
-            } catch (error) {
-                await deleteCatalogItem(uniqueName);
-                return sendResponse({
-                    res,
-                    status: 500,
-                    errors: ['Error during backup upload'],
-                    purge: 'catalog'
-                });
+        if (_saveOriginal && isImageFile) {
+            const backupObject = { stream: originalStream, file, catalogItem: datum, original: true };
+            const postBackupFileOriginal = await postFileBackup(backupObject);
+            if (postBackupFileOriginal.status !== 200) {
+                await deleteCatalogItem(datum.uuid);
+                return sendResponse({ res, status: 400, errors: ['Failed to upload original file in backup'] });
             }
         }
+        const backupObject = { stream, file: newFile, catalogItem: datum };
+        const postBackupFile = await postFileBackup(backupObject);
+        if (postBackupFile.status !== 200) {
+            await deleteCatalogItem(datum.uuid);
+            return sendResponse({ res, status: 400, errors: ['Failed to upload processed file in backup'] });
+        }
+        return sendResponse({ res, status: 200, data: [datum], purge: 'catalog' });
+    } catch (error) {
+        await deleteFile(file.path);
+        return sendResponse({ res, status: 500, errors: ['Error during backup upload'] });
     }
-    return sendResponse({
-        res,
-        status: 400,
-        errors: ['Failed to upload file']
-    });
 };
 
-export const patchAsset = async (req: Request, res: Response) => {
-    const { itemToUpdate, uuid, fileInfo, uniqueName, toWebp, file } = res.locals;
-    const stream = file && (await generateStream(file, uniqueName, toWebp));
+export const patchAsset = async (_req: Request, res: Response) => {
+    const { itemToUpdate, uuid, fileInfo, toWebp, file } = res.locals;
+    try {
+        const { stream } = file && (await generateStream(file, toWebp));
+        if (file && !stream) {
+            if (file?.path) await deleteFile(file.path);
+            return {
+                status: 400,
+                errors: ['Failed to generate stream']
+            };
+        }
 
-    if ((file && stream) || !file) {
         const signature = stream && calculateSHA256(stream);
         const { datum: catalogData, error } = await updateCatalogItem(uuid, {
             ...itemToUpdate,
@@ -184,65 +169,49 @@ export const patchAsset = async (req: Request, res: Response) => {
             ...(file && { size: file.size })
         });
 
-        const form = new FormData();
-        if (stream) {
-            form.append('file', stream, {
-                filename: uniqueName,
-                contentType: file.mimetype
-            });
-
-            const patchBackupFile = await fetch(
-                `${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${itemToUpdate.unique_name}&version=${itemToUpdate.version}&mimetype=${itemToUpdate.mimetype}`,
-                {
-                    method: 'PATCH',
-                    body: form
-                }
-            );
-
+        if (stream && catalogData) {
+            const backupObject = { stream, file, catalogItem: catalogData };
+            const patchBackupFile = await patchFileBackup(backupObject);
             if (patchBackupFile.status !== 200) {
-                await deleteCatalogItem(uniqueName);
+                await deleteCatalogItem(itemToUpdate.uuid);
             }
         }
-        const data = catalogData ? [catalogData] : null;
-        const errors = error ? [error] : null;
+
+        const data = catalogData ? [catalogData] : [];
+        const errors = error ? [error] : [];
+
+        if (file?.path) await deleteFile(file.path);
         return sendResponse({ res, status: 200, data, errors, purge: 'true' });
+    } catch (error) {
+        await deleteFile(file.path);
+        return sendResponse({ res, status: 500, errors: ['Error during backup patch'] });
     }
-    return sendResponse({
-        res,
-        status: 400,
-        errors: ['Failed to upload file in backup']
-    });
 };
 
-export const deleteAsset = async (req: Request, res: Response) => {
+export const deleteAsset = async (_req: Request, res: Response) => {
     const { itemToUpdate } = res.locals;
 
-    const { status, datum } = await deleteCatalogItem(itemToUpdate.unique_name);
+    try {
+        const { status, datum } = await deleteCatalogItem(itemToUpdate.uuid);
 
-    if (status !== 200) {
-        return sendResponse({
-            res,
-            status: 500,
-            errors: [`Failed to remove file from catalog `]
-        });
+        if (status !== 200) {
+            return {
+                status: 500,
+                errors: ['Failed to remove file from catalog']
+            };
+        }
+
+        const deleteBackupFile = await deleteFileBackup(itemToUpdate);
+
+        if (deleteBackupFile.status !== 200) {
+            return {
+                status: 500,
+                data: [{ message: 'File not removed from backup' }]
+            };
+        }
+        return sendResponse({ res, status: 200, data: [datum], purge: 'true' });
+    } catch (error) {
+        logger.error('Error in deleteAsset:', error);
+        return sendResponse({ res, status: 500, errors: ['Internal server error'] });
     }
-
-    const deleteBackupFile = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${itemToUpdate.unique_name}&version=${itemToUpdate.version}&mimetype=${itemToUpdate.mimetype}`, {
-        method: 'DELETE'
-    });
-
-    if (deleteBackupFile.status !== 200) {
-        return sendResponse({
-            res,
-            status: 500,
-            data: [{ message: `File not removed from backup` }]
-        });
-    }
-
-    return sendResponse({
-        res,
-        status: 200,
-        data: [datum],
-        purge: 'true'
-    });
 };

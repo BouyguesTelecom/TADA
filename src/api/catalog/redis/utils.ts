@@ -1,15 +1,13 @@
-import app from '../../app';
-import { logger } from '../../utils/logs/winston';
-import { addMultipleFiles, addOneFile, deleteOneFile, getAllFiles, getCatalog, getOneFile, updateOneFile } from './operations';
-import { FileProps, ICatalogResponse, ICatalogResponseMulti } from '../../props/catalog';
 import { purgeData } from '../../middleware/validators/utils';
-import { getCurrentDateVersion } from '../../utils/catalog';
+import { FileProps, ICatalogResponse, ICatalogResponseMulti } from '../../props/catalog';
+import { logger } from '../../utils/logs/winston';
+import { addMultipleFiles, addOneFile, deleteOneFile, getAllFiles, getOneFile, updateOneFile } from './operations';
 
 export const addFileInCatalog = async (item: FileProps): Promise<ICatalogResponse> => {
     try {
         const response: ICatalogResponse = await addOneFile(item);
-        await purgeData('catalog');
         if (response.datum && (!response.error || response.error.length === 0)) {
+            await purgeData('catalog');
             return {
                 status: 200,
                 datum: response.datum,
@@ -34,26 +32,26 @@ export const addFileInCatalog = async (item: FileProps): Promise<ICatalogRespons
 export const addFilesInCatalog = async (items: FileProps[]): Promise<ICatalogResponseMulti> => {
     try {
         const response = await addMultipleFiles(items);
-        await purgeData('catalog');
         if (response.data && (!response.errors || response.errors.length === 0)) {
+            await purgeData('catalog');
             return {
                 status: 200,
                 data: response.data,
-                errors: null
+                errors: []
             };
         }
         logger.error(`⛔️ Errors adding files: ${response.errors}`);
         return {
             status: 500,
             errors: response.errors || ['Unknown error'],
-            data: null
+            data: []
         };
     } catch (err: unknown) {
         logger.error(`Error adding file: ${err}`);
         return {
             status: 500,
             errors: [`Error adding file: ${err}`],
-            data: null
+            data: []
         };
     }
 };
@@ -62,7 +60,7 @@ export const getFiles = async (): Promise<ICatalogResponseMulti> => {
     try {
         const response = await getAllFiles();
         if (response.data && (!response.errors || response.errors.length === 0)) {
-            return { status: 200, data: response.data, errors: null };
+            return { status: 200, data: response.data, errors: [] };
         }
         return {
             status: 500,
@@ -84,7 +82,7 @@ export const getFile = async (uuid): Promise<ICatalogResponse> => {
         return {
             status: 404,
             datum: null,
-            error: `Unable to find file with id ${uuid} => ${response.error?.join(', ')}`
+            error: `Unable to find file with id ${uuid} => ${response.error}`
         };
     } catch (err: unknown) {
         logger.error(`Error getting file: ${err}`);
@@ -93,23 +91,47 @@ export const getFile = async (uuid): Promise<ICatalogResponse> => {
 };
 
 export const updateFileInCatalog = async (uuid: string, itemToUpdate: FileProps): Promise<ICatalogResponse> => {
-    const updateItem = await updateOneFile(uuid, itemToUpdate);
-
-    await purgeData('catalog');
-    return { status: 200, datum: updateItem.datum, error: null };
+    try {
+        const updatedItemToUpdate = {
+            ...itemToUpdate,
+            updated_date: new Date().toISOString()
+        };
+        logger.info(uuid, updatedItemToUpdate);
+        const updateItem = await updateOneFile(uuid, updatedItemToUpdate);
+        if (updateItem.datum && !updateItem.error) {
+            await purgeData('catalog');
+            return { status: 200, datum: updateItem.datum, error: null };
+        }
+        logger.error(`⛔️ Errors adding files: ${updateItem.error}`);
+        return {
+            status: 500,
+            error: updateItem.error || 'Unknown error',
+            datum: null
+        };
+    } catch (err: unknown) {
+        logger.error(`Error updating file: ${err}`);
+        return {
+            status: 500,
+            error: `Error updating file: ${err}`,
+            datum: null
+        };
+    }
 };
 
-export const deleteFileFromCatalog = async (uniqueName: string): Promise<ICatalogResponse> => {
+export const deleteFileFromCatalog = async (uuid: string): Promise<ICatalogResponse> => {
     try {
-        const catalog = await getCatalog();
-        const itemFound = catalog.data.find((item) => item.unique_name === uniqueName);
-        if (!itemFound) {
-            return { status: 404, datum: null, error: `Item not found: ${uniqueName}` };
-        }
+        const { datum: file, error } = await getOneFile(uuid);
 
-        await deleteOneFile(itemFound.uuid);
+        if (!file || error) {
+            return {
+                status: 404,
+                datum: null,
+                error: `File with UUID ${uuid} not found`
+            };
+        }
+        await deleteOneFile(file.uuid);
         await purgeData('catalog');
-        return { status: 200, datum: { ...itemFound, message: `Successfully deleted ${uniqueName}` }, error: null };
+        return { status: 200, datum: { ...file, message: `Successfully deleted ${uuid}` }, error: null };
     } catch (err: unknown) {
         logger.error(`Error deleting file: ${err}`);
         return {
@@ -121,49 +143,14 @@ export const deleteFileFromCatalog = async (uniqueName: string): Promise<ICatalo
 };
 
 export const deleteCatalog = async (): Promise<ICatalogResponseMulti> => {
-    const response = await getAllFiles();
-    if (response.data) {
-        await purgeData('catalog');
-        for (const item of response.data) {
-            await deleteFileFromCatalog(item.unique_name);
-        }
-    }
-    return { status: 200, data: [], errors: null };
-};
+    const { data: files } = await getAllFiles();
 
-export const createDump = async (): Promise<{ status: number; data: string[]; errors: string[] }> => {
-    const { data: catalog } = await getCatalog();
-    const fileVersion = getCurrentDateVersion();
-    const filePath = `${app.locals.PREFIXED_CATALOG}/${fileVersion}.json`;
-    if (!fileVersion) {
-        return {
-            status: 400,
-            data: ['Error generating dump.json from Redis client'],
-            errors: null
-        };
-    }
-    if (fileVersion) {
-        const postBackupFileJson = await fetch(`${app.locals.PREFIXED_API_URL}/delegated-storage?filepath=${filePath}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(catalog)
-        });
-        if (postBackupFileJson.status !== 200) {
-            return {
-                status: 400,
-                data: null,
-                errors: ['Failed to upload JSON  in backup']
-            };
+    if (files && files.length > 0) {
+        for (const item of files) {
+            await deleteFileFromCatalog(item.uuid);
         }
-        return {
-            status: 200,
-            data: ['DUMP backup successfully'],
-            errors: null
-        };
+        await purgeData('catalog');
     }
-    return {
-        status: 200,
-        data: ['Successfully generated dump.rdb from Redis client'],
-        errors: null
-    };
+
+    return { status: 200, data: [], errors: [] };
 };
