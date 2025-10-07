@@ -75,7 +75,7 @@ export const getFiles = async (): Promise<ICatalogResponseMulti> => {
 
 export const getFile = async (uuid): Promise<ICatalogResponse> => {
     try {
-        const response = await getOneFile(uuid, true);
+        const response = await getOneFile(uuid);
         if (response.datum && (!response.error || response.error.length === 0)) {
             return { status: 200, datum: response.datum, error: null };
         }
@@ -120,7 +120,7 @@ export const updateFileInCatalog = async (uuid: string, itemToUpdate: FileProps)
 
 export const deleteFileFromCatalog = async (uuid: string): Promise<ICatalogResponse> => {
     try {
-        const { datum: file, error } = await getOneFile(uuid, true);
+        const { datum: file, error } = await getOneFile(uuid);
 
         if (!file || error) {
             return {
