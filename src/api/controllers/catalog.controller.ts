@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { addCatalogItem, deleteAllCatalog, deleteCatalogItem, getCatalog, getCatalogItem, updateCatalogItem } from '../catalog';
 import { validateOneFile } from '../catalog/validators';
 import { sendResponse } from '../middleware/validators/utils';
-import { patchFileBackup } from './delegated-storage.controller';
 
 export const addFileInCatalog = async (req: Request, res: Response): Promise<any> => {
     const item = req.body;
@@ -11,7 +10,7 @@ export const addFileInCatalog = async (req: Request, res: Response): Promise<any
         return res.status(400).json(errorsValidation);
     }
     const addedFile = await addCatalogItem(item);
-    return res.status(200).json(addedFile);
+    return res.status(201).json(addedFile);
 };
 
 export const getFiles = async (req: Request, res: Response) => {
@@ -40,13 +39,11 @@ export const updateFileInCatalog = async (req: Request, res: Response) => {
     const itemToUpdate = req.body;
     const { status, datum, error } = await updateCatalogItem(uuid, itemToUpdate);
 
-    const { error: errorFromBackup } = await patchFileBackup(datum, null, itemToUpdate);
-
     return sendResponse({
         res,
         status,
         data: datum ? [{ ...datum, catalogItemUrl: datum.base_host + '/catalog/' + datum.uuid }] : null,
-        errors: error ? [error] : errorFromBackup ? [errorFromBackup] : null,
+        errors: error ? [error]  : null,
         purge: 'true'
     });
 };
