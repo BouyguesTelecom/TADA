@@ -41,8 +41,8 @@ spec:
                                     {{ .Values.mediaApi.originsAllowed | default "localhost,*" }}
                         -   name: REQUEST_TIMEOUT
                             value: "{{ default 310000 .Values.mediaApi.requestTimeout }}"
-                        - name: BASE_TIMEOUT_MS
-                          value: "{{ default 310000 .Values.mediaApi.baseTimeout }}"
+                        -   name: BASE_TIMEOUT_MS
+                            value: "{{ default 310000 .Values.mediaApi.baseTimeout }}"
                         -   name: METHODS_ALLOWED
                             value: "{{ default "GET,POST" .Values.mediaApi.methodsAllowed }}"
                         -   name: DUMP_FOLDER_PATH
@@ -59,6 +59,12 @@ spec:
                             value: "{{ default "" .Values.mediaApi.apiPrefix }}"
                         -   name: USE_STRIPMETADATA
                             value: "{{ default "" .Values.mediaApi.useStripMetadata }}"
+                        -   name: CONVERT_TO_WEBP
+                            value: "{{ default "" .Values.mediaApi.convertToWebp }}"
+                        -   name: SAVE_ORIGINAL_FILE
+                            value: "{{ default "" .Values.mediaApi.saveOriginalFile }}"
+                        -   name: COMPRESS_WEBP
+                            value: "{{ default "" .Values.mediaApi.compressWebp }}"
                         -   name: DELEGATED_STORAGE_SINGLE_PATH
                             value: "{{ default "" .Values.delegatedStorage.path.single }}"
                         -   name: DELEGATED_STORAGE_MULTI_PATH
@@ -103,8 +109,8 @@ spec:
                             value: "{{ .Values.mediaApi.mediaToken }}"
                         -   name: URL_TO_POST_BACKUP
                             value: "{{ .Values.mediaApi.routes.post_backup.post }}"
-                        - name: NODE_ENV
-                          value: 'production'
+                        -   name: NODE_ENV
+                            value: 'production'
             volumes:
                 -   name: redis-storage
                     persistentVolumeClaim:
