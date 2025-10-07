@@ -5,41 +5,54 @@ type Job = {
     fn: () => Promise<void>;
 };
 
-export class InMemoryQueue {
-    private queue: Job[] = [];
-    private processing = false;
-    private jobIdCounter = 0;
+type QueueState = {
+    queue: Job[];
+    processing: boolean;
+    jobIdCounter: number;
+};
 
-    async add(fn: () => Promise<void>): Promise<number> {
-        const job: Job = { id: this.jobIdCounter++, fn };
-        this.queue.push(job);
+const queueState: QueueState = {
+    queue: [],
+    processing: false,
+    jobIdCounter: 0
+};
 
-        if (!this.processing) {
-            this.processNext();
-        }
-
-        return job.id;
+const processNext = async (): Promise<void> => {
+    if (queueState.queue.length === 0) {
+        queueState.processing = false;
+        return;
     }
 
-    private async processNext() {
-        if (this.queue.length === 0) {
-            this.processing = false;
-            return;
-        }
+    queueState.processing = true;
+    const job = queueState.queue.shift();
 
-        this.processing = true;
-        const job = this.queue.shift();
-        if (job) {
-            logger.info(`Processing job ${job.id}...`);
-            try {
-                await job.fn();
-                logger.info(`Job ${job.id} done.`);
-            } catch (e) {
-                logger.error(`Error in job ${job.id} :`, e);
-            }
-            this.processNext();
+    if (job) {
+        logger.info(`Processing job ${job.id}...`);
+        try {
+            await job.fn();
+            logger.info(`Job ${job.id} done.`);
+        } catch (e) {
+            logger.error(`Error in job ${job.id} :`, e);
         }
+        await processNext();
     }
-}
+};
 
-export const globalQueue = new InMemoryQueue();
+const addJob = async (fn: () => Promise<void>): Promise<number> => {
+    const job: Job = {
+        id: queueState.jobIdCounter++,
+        fn
+    };
+
+    queueState.queue.push(job);
+
+    if (!queueState.processing) {
+        processNext();
+    }
+
+    return job.id;
+};
+
+export const globalQueue = {
+    add: addJob
+};
