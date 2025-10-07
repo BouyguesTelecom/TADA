@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 import { getCatalogItem } from '../../../catalog';
 import { logger } from '../../../utils/logs/winston';
-import { MissingParamsProps, NamespaceProps } from './props';
+import { MissingParamsProps } from './props';
 
 export const purgeData = async (data) => {
     const safeFetch = async (url) => {
@@ -44,7 +44,7 @@ export const sendResponse = async ({ res, status, data = [], errors = [], purge 
     return res.status(status).json({ data, errors }).end();
 };
 
-export const checkNamespace = ({ namespace }: NamespaceProps): boolean => {
+export const checkNamespace = (namespace : string): boolean => {
     if (!process.env.NAMESPACES?.split(',').includes(namespace)) {
         return false;
     }
