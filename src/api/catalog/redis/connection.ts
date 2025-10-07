@@ -54,46 +54,7 @@ const keysAsync = async (pattern) => {
     return await redisClient.keys(pattern);
 };
 
-const scanAsync = async (pattern) => {
-    const keys = [];
-    let cursor = 0;
-
-    do {
-        const result = await redisClient.scan(cursor, {
-            MATCH: pattern,
-            COUNT: 100
-        });
-
-        cursor = result.cursor;
-        keys.push(...result.keys);
-    } while (cursor !== 0);
-
-    return keys;
-};
-
 const generateDump = async () => redisClient.save();
-
-const saveDump = async () => {
-    try {
-        await redisClient.save();
-        logger.info('Redis dump saved successfully');
-        return { success: true };
-    } catch (error) {
-        logger.error(`Error saving Redis dump: ${error.message}`);
-        return { success: false, error: error.message };
-    }
-};
-
-const bgsaveDump = async () => {
-    try {
-        await redisClient.bgSave();
-        logger.info('Redis background save initiated');
-        return { success: true };
-    } catch (error) {
-        logger.error(`Error initiating Redis background save: ${error.message}`);
-        return { success: false, error: error.message };
-    }
-};
 
 const flushAllKeys = async () => {
     try {
@@ -102,66 +63,6 @@ const flushAllKeys = async () => {
         return { success: true };
     } catch (error) {
         logger.error(`Error clearing Redis keys: ${error.message}`);
-        return { success: false, error: error.message };
-    }
-};
-
-const restoreFromRdb = async (rdbBuffer: Buffer) => {
-    try {
-        const fs = await import('fs').then((m) => m.promises);
-        const dumpPath = process.env.DUMP_FOLDER_PATH ? `${process.env.DUMP_FOLDER_PATH}/dump.rdb` : '/dumps/dump.rdb';
-
-        const clearResult = await flushAllKeys();
-        if (!clearResult.success) {
-            return { success: false, error: clearResult.error };
-        }
-
-        await fs.writeFile(dumpPath, rdbBuffer);
-
-        logger.info('RDB file saved, will be loaded on next Redis startup');
-
-        return {
-            success: true,
-            message: `RDB file restored to ${dumpPath}. Redis will load it on next startup for full restoration.`,
-            requiresRestart: true
-        };
-    } catch (error) {
-        logger.error(`Error restoring from RDB: ${error.message}`);
-        return { success: false, error: error.message };
-    }
-};
-
-const getDumpInfo = async () => {
-    try {
-        const info = await redisClient.info('persistence');
-        const lines = info.split('\r\n');
-        const dumpInfo = {};
-
-        lines.forEach((line) => {
-            if (line.includes('rdb_')) {
-                const [key, value] = line.split(':');
-                if (key && value !== undefined) {
-                    dumpInfo[key] = value;
-                }
-            }
-        });
-
-        return { success: true, data: dumpInfo };
-    } catch (error) {
-        logger.error(`Error getting dump info: ${error.message}`);
-        return { success: false, error: error.message };
-    }
-};
-
-const restoreFromDump = async (dumpPath?: string) => {
-    try {
-        logger.info(`To restore from dump: ${dumpPath || 'dump.rdb'}, restart Redis service`);
-        return {
-            success: true,
-            message: 'To restore from dump, place dump.rdb file in Redis data directory and restart Redis service'
-        };
-    } catch (error) {
-        logger.error(`Error in restore process: ${error.message}`);
         return { success: false, error: error.message };
     }
 };
@@ -227,16 +128,8 @@ export const redisHandler = {
     connectClient,
     disconnectClient,
     getAsync,
-    setAsync,
-    delAsync,
     keysAsync,
-    scanAsync,
     generateDump,
-    saveDump,
-    bgsaveDump,
-    getDumpInfo,
-    restoreFromDump,
     flushAllKeys,
-    restoreFromRdb,
     redisClient
 };
