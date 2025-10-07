@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - fix/multi-routes-and-delegated-storage
 
 env:
   IMAGE_NAME: bouyguestelecom/tada
