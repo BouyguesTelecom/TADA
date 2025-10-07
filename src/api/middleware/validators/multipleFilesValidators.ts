@@ -74,6 +74,12 @@ export const validatorUUIds = async (req: Request, res: Response, next: NextFunc
                 const { validFiles, invalidFiles } = await req.body.reduce(
                     async (acc, file) => {
                         const { validFiles, invalidFiles } = await acc;
+                        if(!file.uuids){
+                            return {
+                                validFiles ,
+                                invalidFiles: [...invalidFiles, {message:'No uuids provided'}]
+                            };
+                        }
                         const uuids = file.uuids.split(',');
                         const { catalogFiles, catalogFilesNotFound } = await uuids.reduce(
                             async (acc, uuid) => {
