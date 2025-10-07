@@ -9,7 +9,9 @@
         "dev-nodemon-distant-backend": "dotenv -e local/compose/.env.distant-backend -- nodemon --watch \"src/api/**\" --ext \"ts,json\" --ignore \"src/api/**/*.spec.ts\" --exec \"ts-node src/api/server.ts\"",
         "dev-nodemon-s3": "dotenv -e local/compose/.env.s3 -- nodemon --watch \"src/api/**\" --ext \"ts,json\" --ignore \"src/api/**/*.spec.ts\" --exec \"ts-node src/api/server.ts\"",
         "start-distant-backend": "concurrently \"npm run dev-distant-backend-up\" \"npm run dev-nodemon-distant-backend\"",
-        "start-s3": "concurrently \"npm run dev-s3-up\" \"npm run dev-nodemon-s3\""
+        "start-s3": "concurrently \"npm run dev-s3-up\" \"npm run dev-nodemon-s3\"",
+        "encrypt-env": "cd src/api && npm run encrypt-env",
+        "decrypt-env": "cd src/api && npm run decrypt-env"
     },
     "dependencies": {
         "http-proxy-middleware": "^3.0.5",
