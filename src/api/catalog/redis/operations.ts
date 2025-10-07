@@ -1,10 +1,9 @@
-import app from '../../app';
 import { FileProps, ICatalogResponse } from '../../props/catalog';
 import { logger } from '../../utils/logs/winston';
 import { filePathIsUnique, validateMultipleFile, validateOneFile } from '../validators';
 import { cache } from './connection';
 
-export const getOneFile = async (id: string, redis = false) => {
+export const getOneFile = async (id: string) => {
     try {
         const file = await cache.get(id);
         return { datum: file, error: null };
