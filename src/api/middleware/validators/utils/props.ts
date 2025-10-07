@@ -9,8 +9,3 @@ export interface MissingParamsProps extends ResponseProps {
     params: Object;
     errors?: Object[];
 }
-
-export interface NamespaceProps extends ResponseProps {
-    namespace: string;
-    errors?: Object[];
-}
