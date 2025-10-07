@@ -4,6 +4,7 @@ export interface FileProps {
     version?: string;
     mimetype?: string;
     headers?: Record<string, string>;
+    original?: boolean
 }
 
 export interface ResponseBackup {

@@ -1,20 +1,30 @@
 import FormData from 'form-data';
 import fs from 'fs';
 import fetch from 'node-fetch';
-import { addCatalogItems,  getCatalog, updateCatalogItem } from '../../catalog';
+import { addCatalogItems, getCatalog, updateCatalogItem } from '../../catalog';
 import { initializeCache, redisHandler } from '../../catalog/redis/connection';
 import { BackupMultiProps, BackupProps } from '../../props/delegated-storage';
 import { logger } from '../../utils/logs/winston';
 import { FileProps, ResponseBackup } from '../types';
 import { getCurrentDateVersion } from '../../utils/catalog';
 
-export const headersUserAgentForBackup = (contentType: string | null = null) =>
-    new Headers({
+export const headersUserAgentForBackup = (contentType: string | null = null) => {
+    const baseHeaders: any = {
         ...(process.env.DELEGATED_STORAGE_TOKEN && {
             Authorization: `Bearer ${process.env.DELEGATED_STORAGE_TOKEN}`
-        }),
+        })
+    };
+    if (contentType && typeof contentType === 'object') {
+        return new Headers({
+            ...baseHeaders,
+            ...(contentType as Record<string, string>)
+        });
+    }
+    return new Headers({
+        ...baseHeaders,
         ...(contentType && { 'Content-Type': contentType })
     });
+};
 
 const generateOptions: any = (method, contentTypeHeaders, body = null) => {
     return {
@@ -119,8 +129,6 @@ export const createDump = async (filePath, fileFormat) => {
             body: formData
         });
 
-        console.log('Dual backup response status:', response.status);
-
         if (response.ok) {
             results.push(`RDB backup: ${baseName}.rdb uploaded successfully`);
             results.push(`JSON backup: ${baseName}.json uploaded successfully`);
@@ -175,9 +183,12 @@ export const restoreDump = async (filename = null, format = 'rdb') => {
     }
 };
 
-export const getFile = async ({ filepath, version, mimetype }: FileProps): Promise<BackupProps> => {
+export const getFile = async ({ filepath, version, mimetype, original }: FileProps): Promise<BackupProps> => {
     try {
-        const backupGet: ResponseBackup = await fetch(`${generateUrl()}?filepath=${filepath}&version=${version}&mimetype=${mimetype}`, generateOptions('GET', 'application/json'));
+        const backupGet: ResponseBackup = await fetch(
+            `${generateUrl()}?filepath=${filepath}&version=${version}&mimetype=${mimetype}${original ? '&original=true' : ''}`,
+            generateOptions('GET', 'application/json')
+        );
 
         if (backupGet.status === 200) {
             const stream = filepath.includes('.json') ? await backupGet.json() : backupGet.body;
@@ -190,17 +201,19 @@ export const getFile = async ({ filepath, version, mimetype }: FileProps): Promi
     return null;
 };
 //SINGLE UPLOAD / PATCH / DELETE
-export const upload = async (stream, file, datum): Promise<BackupProps> => {
+export const upload = async (backupObject): Promise<BackupProps> => {
+    const { stream, file, catalogItem: datum, original } = backupObject;
     try {
         const form = generateFormDataWithFile(stream, file, datum);
-        const backupUpload: ResponseBackup = await fetch(generateUrl(), generateOptions('POST', '', form));
+
+        const backupUpload: ResponseBackup = await fetch(original ? generateUrl() + '?original=true' : generateUrl(), generateOptions('POST', '', form));
 
         if (backupUpload.status === 401) {
             return { status: 401, error: 'Authentication failed' };
         }
         const backupUploadResponse = await backupUpload.json();
         if (backupUploadResponse.version) {
-            await updateCatalogItem(datum.uuid, { version: backupUploadResponse.version });
+            await updateCatalogItem(datum.uuid, original ? { original_version: backupUploadResponse.version } : { version: backupUploadResponse.version });
         }
         if (backupUpload.status === 201 || backupUpload.status === 200) {
             return { status: 200, stream: backupUpload.body };
@@ -213,9 +226,10 @@ export const upload = async (stream, file, datum): Promise<BackupProps> => {
     return null;
 };
 
-export const update = async (file, stream, info): Promise<BackupProps> => {
+export const update = async (backupObject): Promise<BackupProps> => {
+    const { stream, file, catalogItem: datum } = backupObject;
     try {
-        const form = stream && generateFormDataWithFile(stream, file, info);
+        const form = stream && generateFormDataWithFile(stream, file, datum);
         const backupUpload: ResponseBackup = await fetch(
             generateUrl(),
             stream
@@ -226,7 +240,7 @@ export const update = async (file, stream, info): Promise<BackupProps> => {
                       JSON.stringify({
                           unique_name: file.unique_name,
                           version: file.version,
-                          ...info
+                          ...datum
                       })
                   )
         );
@@ -271,21 +285,22 @@ export const deleteFile = async (itemToUpdate): Promise<BackupProps> => {
 export const uploads = async (files): Promise<any> => {
     try {
         const form = new FormData();
-        const fileInfo = files[0].fileInfo;
-        form.append('unique_names', files.map((file) => file.uniqueName).join(','));
-        form.append('public_urls', files.map((file) => file.catalogItem.public_url).join(','));
-        for (const key in fileInfo) {
-            if (fileInfo.hasOwnProperty(key) && fileInfo[key]) {
-                form.append(key, fileInfo[key]);
-            }
+
+        for (const [index, file] of files.entries()) {
+            form.append(
+                `file_${index}`,
+                JSON.stringify({
+                    file: file.file,
+                    catalogItem: file.catalogItem,
+                    ...(file.original && { original: file.original.toString() })
+                })
+            );
         }
+
         for (const file of files) {
-            form.append('files', file.stream, {
-                filename: file.originalname,
-                contentType: 'application/octet-stream'
-            });
+            form.append('files', file.stream, file.file);
         }
-        const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('POST', '', form));
+        const backupUpload: ResponseBackup = await fetch(generateUrl('MULTI'), generateOptions('POST', form.getHeaders(), form));
 
         const backupUploadResponse = await backupUpload.json();
 

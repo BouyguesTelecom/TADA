@@ -2,6 +2,7 @@ import { minioClient } from './connection';
 import { getCatalogRedis } from '../../catalog/redis/operations';
 import { redisHandler } from '../../catalog/redis/connection';
 import { getCurrentDateVersion } from '../../utils/catalog';
+import { logger } from '../../utils/logs/winston';
 
 export const createDump = async (filename = null, format = 'rdb') => {
     try {
@@ -91,7 +92,7 @@ export const restoreDump = async (filename = null) => {
                 }
             }
         } catch (jsonError) {
-            console.log(`JSON restore failed, will try RDB: ${jsonError.message}`);
+            logger.info(`JSON restore failed, will try RDB: ${jsonError.message}`);
         }
 
         if (!jsonRestoreSuccess) {
@@ -238,15 +239,17 @@ export const getFile = async ({ filename }: any) => {
 };
 
 // SINGLE UPLOAD / UPDATE / DELETE
-export const upload = async (stream, datum) => {
-    const { etag } = await minioClient.putObject(process.env.S3_BUCKET_NAME, datum.unique_name, stream);
+export const upload = async (backupObject) => {
+    const { stream, catalogItem: datum, original } = backupObject;
+    const { etag } = await minioClient.putObject(process.env.S3_BUCKET_NAME, original ? datum.unique_name.replace(datum.filename, datum.original_filename) : datum.unique_name, stream);
     return {
         status: 200,
         message: `Successfully uploaded file ${datum.unique_name} to S3 bucket with etag ${etag}!`
     };
 };
 
-export const update = async (file, stream, info) => {
+export const update = async (backupObject) => {
+    const { stream, file, catalogItem: info } = backupObject;
     const filename = info.unique_name;
     try {
         await minioClient.putObject(process.env.S3_BUCKET_NAME, filename, stream);

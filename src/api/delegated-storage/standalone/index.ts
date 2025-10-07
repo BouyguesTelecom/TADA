@@ -17,7 +17,8 @@ export const getFile = async ({ filepath }): Promise<BackupProps> => {
     }
 };
 
-export const upload = async (stream, file, datum): Promise<BackupProps> => {
+export const upload = async (backupObject): Promise<BackupProps> => {
+    const {stream, catalogItem: datum} = backupObject
     try {
         await createFolder(removeLastPartPath(datum.unique_name));
         await writeFileInPV(datum.unique_name, stream);
@@ -28,7 +29,8 @@ export const upload = async (stream, file, datum): Promise<BackupProps> => {
     }
 };
 
-export const update = async (stream, info): Promise<BackupProps> => {
+export const update = async (backupObject): Promise<BackupProps> => {
+    const {stream, catalogItem: info} = backupObject
     try {
         const filepath = info.unique_name;
         await createFolder(removeLastPartPath(filepath));
