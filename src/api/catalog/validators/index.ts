@@ -27,7 +27,10 @@ const fileSchema = Joi.object({
         .optional(),
     updated_date: Joi.date()
         .default(() => new Date())
-        .optional()
+        .optional(),
+    original_signature: Joi.string().required(),
+    original_version: Joi.number().optional(),
+    original_size: Joi.number().optional(),
 });
 
 interface ValidateSchemaProps {
@@ -60,11 +63,6 @@ export const validateMultipleFile = (body: unknown): ValidationErrorDetail[] | n
     const { error } = validateSchema({ schema: filesArraySchema, body });
     return error ? error.details : null;
 };
-
-interface CatalogResponse {
-    data: FileProps[] | null;
-    errors: string[] | null;
-}
 
 export const filePathIsUnique = async (file: FileProps): Promise<boolean> => {
     try {
