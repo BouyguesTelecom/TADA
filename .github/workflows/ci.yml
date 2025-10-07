@@ -79,11 +79,11 @@ jobs:
           fi
           while git rev-parse "refs/tags/$new_version" >/dev/null 2>&1; do
             patch=$((patch + 1))
-          if [[ "$branch_name" == "main" ]]; then
-            new_version="$major.$minor.$patch"
-          else
-            new_version="$major.$minor.$patch-${branch_name}"
-          fi
+            if [[ "$branch_name" == "main" ]]; then
+              new_version="$major.$minor.$patch"
+            else
+              new_version="$major.$minor.$patch-${branch_name}"
+            fi
           done
           echo "New version: $new_version"
           echo "new_version=$new_version" >> $GITHUB_ENV
