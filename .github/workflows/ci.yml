@@ -65,6 +65,11 @@ jobs:
           major=${version_parts[0]}
           minor=${version_parts[1]}
           patch=${version_parts[2]}
+          
+          # Extraire le nom de la branche AVANT les conditions
+          branch_name=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///' | sed 's/\//-/g')
+          echo "Branch name: $branch_name"
+          
           if [[ "${{ github.event.head_commit.message }}" == *"major"* ]]; then
             major=$((major + 1))
             minor=0
@@ -74,9 +79,16 @@ jobs:
             patch=0
           else
             patch=$((patch + 1))
-            branch_name=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///' | sed 's/\//-/g')
+          fi
+          
+          # Construire new_version APRÈS avoir défini major/minor/patch
+          if [[ "$branch_name" == "main" ]]; then
+            new_version="$major.$minor.$patch"
+          else
             new_version="$major.$minor.$patch-${branch_name}"
           fi
+          
+          # Vérifier si le tag existe déjà et incrémenter si nécessaire
           while git rev-parse "refs/tags/$new_version" >/dev/null 2>&1; do
             patch=$((patch + 1))
             if [[ "$branch_name" == "main" ]]; then
@@ -85,6 +97,7 @@ jobs:
               new_version="$major.$minor.$patch-${branch_name}"
             fi
           done
+          
           echo "New version: $new_version"
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
