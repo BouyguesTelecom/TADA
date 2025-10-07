@@ -42,43 +42,44 @@ const getDestinationPath = (finalPath, namespace) => {
 
 export const formatItemForCatalog = async (
     fileInfo: Object,
-    resourceName: string,
-    namespace: string,
-    uniqueName: string,
-    mimetype: string,
-    toWebp: boolean,
-    signature: string,
-    size: string
+    originalFile?: any,
+    transformedFile?: any
 ) => {
-    const newUUID = crypto.createHash('md5').update(uniqueName).digest('hex');
+    const {unique_name, namespace, mimetype, size, filename, signature } = transformedFile;
+    const {mimetype: original_mimetype, size: original_size, filename: original_filename, signature: original_signature } = originalFile;
+    const newUUID = crypto.createHash('md5').update(unique_name).digest('hex');
     const publicUrl = process.env.PUBLIC_URL || 'http://localhost:3001';
     const baseUrl = app.locals.PREFIXED_ASSETS_URL || '/assets';
     
     if (!process.env.PUBLIC_URL) {
         console.warn(`⚠️  PUBLIC_URL not set, using fallback: ${publicUrl}`);
     }
-    
+    const mimeTypeRequiredOriginalUrl = ['application/pdf', 'image/svg+xml']
+    const accessUrl = `${publicUrl}${baseUrl}/${mimeTypeRequiredOriginalUrl.includes(transformedFile.mimetype) ? 'original' : 'full'}${unique_name}`
     return {
         uuid: newUUID,
         version: 1,
         namespace,
-        public_url: `${publicUrl}${baseUrl}/${mimetype === 'application/pdf' || mimetype === 'image/svg+xml' ? 'original' : 'full'}${uniqueName}`,
-        unique_name: uniqueName,
-        filename: toWebp && ['image/jpeg', 'image/png'].includes(mimetype) ? resourceName.split('.')[0] + '.webp' : resourceName,
-        original_filename: resourceName,
+        public_url: accessUrl,
+        unique_name,
+        filename,
+        original_filename,
         base_host: publicUrl,
         base_url: baseUrl,
         external_id: null,
         expired: false,
         expiration_date: null,
         information: null,
-        original_mimetype: mimetype,
-        mimetype: toWebp && ['image/jpeg', 'image/png'].includes(mimetype) ? 'image/webp' : mimetype,
-        signature: signature,
-        ...(fileInfo && { ...fileInfo }),
-        destination: getDestinationPath(uniqueName, namespace),
+        original_mimetype,
+        mimetype,
+        signature,
+        destination: getDestinationPath(unique_name, namespace),
         size,
+        original_size,
         uploaded_date: new Date().toISOString(),
-        updated_date: new Date().toISOString()
+        updated_date: new Date().toISOString(),
+        original_signature,
+        original_version: 1,
+        ...(fileInfo && { ...fileInfo }),
     };
 };
