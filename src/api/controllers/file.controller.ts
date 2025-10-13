@@ -135,6 +135,7 @@ export const postAsset = async (_req: Request, res: Response) => {
                 await deleteCatalogItem(datum.uuid);
                 return sendResponse({ res, status: 400, errors: ['Failed to upload original file in backup'] });
             }
+            return sendResponse({ res, status: 200, data: [datum], purge: 'catalog' });
         }
         const backupObject = { stream, file: newFile, catalogItem: datum };
         const postBackupFile = await postFileBackup(backupObject);
