@@ -6,7 +6,7 @@ import { logger } from '../utils/logs/winston';
 import { streamToBuffer, checkSignature } from '../utils/fileProcessing';
 import { calculateSHA256, formatItemForCatalog, isExpired } from '../utils/catalog';
 import { Readable } from 'node:stream';
-import { deleteFileBackup, getBackup, patchFileBackup, postFileBackup } from './delegated-storage.controller';
+import { deleteFileBackup, getBackup, patchFileBackup, postFileBackup, postFilesBackup } from './delegated-storage.controller';
 import { addCatalogItem, deleteCatalogItem, updateCatalogItem } from '../catalog';
 import { PassThrough } from 'stream';
 import { getProcessedFilename, isImageMimetype, processImageOnTheFly } from '../utils/imageOptimization';
@@ -128,8 +128,9 @@ export const postAsset = async (_req: Request, res: Response) => {
             });
 
         if (_saveOriginal && isImageFile) {
-            const backupObject = { stream: originalStream, file, catalogItem: datum, original: true };
-            const postBackupFileOriginal = await postFileBackup(backupObject);
+            const backupObjectOriginal = { stream: originalStream, file, catalogItem: datum, original: true };
+            const backupObject = { stream, file: newFile, catalogItem: datum };
+            const postBackupFileOriginal = await postFilesBackup([backupObjectOriginal, backupObject]);
             if (postBackupFileOriginal.status !== 200) {
                 await deleteCatalogItem(datum.uuid);
                 return sendResponse({ res, status: 400, errors: ['Failed to upload original file in backup'] });
