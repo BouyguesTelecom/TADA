@@ -198,7 +198,7 @@ export const validatorGetAsset = async (req: Request, res: Response, next: NextF
         const file = await findCatalogItem(uniqueName);
         const isOriginalRoute = req.url.includes('/original/');
         const isImageFile = !['application/pdf', 'image/svg+xml'].includes(file?.mimetype);
-        if (file && (!isOriginalRoute || !isImageFile) && checkNamespace(file.namespace)) {
+        if (file && (!isOriginalRoute || !isImageFile || !file.original_signature) && checkNamespace(file.namespace)) {
             res.locals = {
                 ...res.locals,
                 uniqueName,
