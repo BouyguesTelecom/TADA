@@ -115,10 +115,6 @@ export const deleteFile = async (filePath): Promise<boolean> => {
 export const generateStream = async (file: any, toWebpConversion: boolean, original = false): Promise<any> => {
     const toWebp = toWebpConversion && ['image/png', 'image/jpeg'].includes(file.mimetype);
     if (original) {
-        if (process.env.USE_STRIPMETADATA === 'true') {
-            const streamWithoutMetadata = await stripMetadata(file.path, file.mimetype);
-            return { stream: streamWithoutMetadata, file };
-        }
         const streamWithMetadata = fs.readFileSync(file.path);
         return { stream: streamWithMetadata, file };
     }
