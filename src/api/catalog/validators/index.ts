@@ -28,7 +28,7 @@ const fileSchema = Joi.object({
     updated_date: Joi.date()
         .default(() => new Date())
         .optional(),
-    original_signature: Joi.string().required(),
+    original_signature: Joi.string().optional(),
     original_version: Joi.number().optional(),
     original_size: Joi.number().optional(),
 });
