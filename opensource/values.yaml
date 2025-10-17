@@ -82,7 +82,7 @@ nginx:
     cdn:
         enabled: true
         maxAge: 900
-        expires: '15m'
+        expires: '1m'
     hpa:
         replicaCountMin: 2
         replicaCountMax: 6
