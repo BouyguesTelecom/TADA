@@ -9,9 +9,7 @@ export const rateLimitMiddleware = setRateLimit({
     keyGenerator: (req) => {
         return `${req.method}-${req.originalUrl}`;
     },
-    handler: (req, res, next) => {
-        return res.status(429).json({
-            error: 'Too many requests, please try again later.'
-        });
+    handler: (_req, res, _next) => {
+        return res.status(429).json({ error: 'Too many requests, please try again later.' });
     }
 });
