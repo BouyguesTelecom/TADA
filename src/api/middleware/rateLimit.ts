@@ -10,9 +10,6 @@ export const rateLimitMiddleware = setRateLimit({
         return `${req.method}-${req.originalUrl}`;
     },
     handler: (req, res, next) => {
-        if (req.headers.useragent === 'gitlab-pipeline-artifactory') {
-            return next();
-        }
         return res.status(429).json({
             error: 'Too many requests, please try again later.'
         });
