@@ -29,7 +29,7 @@ export const getAsset = async (req: Request, res: Response & { locals: FileContr
         const originalFile = req.url.includes('/original/') && original;
         const version = originalFile ? Number(file.original_version) : Number(file.version);
         const mimetype = originalFile ? file.original_mimetype : file.mimetype;
-        const uniqueNameForBackup = originalFile ? uniqueName.replace(file.filename, file.original_filename) : uniqueName;
+        const uniqueNameForBackup = originalFile ? uniqueName.replace(file.filename, file.original_filename.replace(/[^a-zA-Z0-9\-@_]+/g, '_') ) : uniqueName;
 
         const getBackupFile: Readable | null = await getBackup(uniqueNameForBackup, version?.toString(), originalFile ? file.original_mimetype : file.mimetype, original);
 

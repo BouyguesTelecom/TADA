@@ -222,13 +222,13 @@ export const validatorGetAsset = async (req: Request, res: Response, next: NextF
         }
 
         if (isOriginalRoute && req.url.includes(webpFile.filename) && webpFile.original_filename !== webpFile.filename && !signatureAreIdentical) {
-            const redirectUrl = buildRedirectUrl(urlWithoutQueryParams, webpFile.original_filename, webpFile.filename);
+            const redirectUrl = buildRedirectUrl(urlWithoutQueryParams, webpFile.original_filename.replace(/[^a-zA-Z0-9\-@_.]+/g, '_') , webpFile.filename);
             logger.info(`🔄 Redirecting to original: ${urlWithoutQueryParams} → ${redirectUrl}`);
             return res.redirect(302, redirectUrl);
         }
 
         if (!isOriginalRoute && req.url.includes(webpFile.original_filename)) {
-            const redirectUrl = buildRedirectUrl(urlWithoutQueryParams, webpFile.filename, webpFile.original_filename);
+            const redirectUrl = buildRedirectUrl(urlWithoutQueryParams, webpFile.filename, webpFile.original_filename.replace(/[^a-zA-Z0-9\-@_.]+/g, '_') );
             logger.info(`🔄 Redirecting to WebP file: ${urlWithoutQueryParams} → ${redirectUrl}`);
             return res.redirect(302, redirectUrl);
         }
