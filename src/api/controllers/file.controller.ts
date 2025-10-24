@@ -163,27 +163,38 @@ export const patchAsset = async (_req: Request, res: Response) => {
         }
 
         const signature = stream && calculateSHA256(stream);
-        const { datum: catalogData, error } = await updateCatalogItem(uuid, {
-            ...itemToUpdate,
-            ...fileInfo,
-            version: file ? itemToUpdate.version + 1 : itemToUpdate.version,
-            ...(signature && { signature }),
-            ...(file && { size: file.size })
-        });
 
-        if (stream && catalogData) {
-            const backupObject = { stream, file, catalogItem: catalogData };
+        if (stream) {
+            const backupObject = {
+                stream,
+                file,
+                catalogItem: {
+                    ...itemToUpdate,
+                    ...fileInfo,
+                    version: file ? itemToUpdate.version + 1 : itemToUpdate.version,
+                    ...(signature && { signature }),
+                    ...(file && { size: file.size })
+                }
+            };
             const patchBackupFile = await patchFileBackup(backupObject);
-            if (patchBackupFile.status !== 200) {
-                await deleteCatalogItem(itemToUpdate.uuid);
+            if (patchBackupFile.status === 200) {
+                const { datum: catalogData, error } = await updateCatalogItem(uuid, {
+                    ...itemToUpdate,
+                    ...fileInfo,
+                    version: file ? itemToUpdate.version + 1 : itemToUpdate.version,
+                    ...(signature && { signature }),
+                    ...(file && { size: file.size })
+                });
+                const data = catalogData ? [catalogData] : [];
+                const errors = error ? [error] : [];
+
+                if (file?.path) await deleteFile(file.path);
+                return sendResponse({ res, status: 200, data, errors, purge: 'true' });
             }
         }
 
-        const data = catalogData ? [catalogData] : [];
-        const errors = error ? [error] : [];
-
         if (file?.path) await deleteFile(file.path);
-        return sendResponse({ res, status: 200, data, errors, purge: 'true' });
+        return sendResponse({ res, status: 500, data: [], errors: ['No stream'], purge: 'true' });
     } catch (error) {
         await deleteFile(file.path);
         return sendResponse({ res, status: 500, errors: ['Error during backup patch'] });
