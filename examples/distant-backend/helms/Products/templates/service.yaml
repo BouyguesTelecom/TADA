@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: distant-backend-2-service    # Nom DNS du service (utilisé par TADA)
+  labels:
+    app: distant-backend-2           # Label pour identifier ce service
+spec:
+  selector:
+    app: distant-backend-2           # Sélectionne tous les pods avec ce label
+  ports:
+    - protocol: TCP                  # Protocole de communication
+      port: 3002                     # Port d'entrée du service
+      targetPort: 3002               # Port du conteneur dans les pods
