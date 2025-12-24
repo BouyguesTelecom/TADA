@@ -126,7 +126,7 @@ export const postAsset = async (_req: Request, res: Response) => {
                 status: 400,
                 errors: ['Failed to create catalog item']
             });
-
+            console.log("save Orginal",_saveOriginal, isImageFile)
         if (_saveOriginal && isImageFile) {
             const backupObjectOriginal = { stream: originalStream, file, catalogItem: datum, original: true };
             const backupObject = { stream, file: newFile, catalogItem: datum };
@@ -215,6 +215,8 @@ export const deleteAsset = async (_req: Request, res: Response) => {
         }
 
         const deleteBackupFile = await deleteFileBackup(itemToUpdate);
+
+        console.log(deleteBackupFile);
 
         if (deleteBackupFile.status !== 200) {
             return {

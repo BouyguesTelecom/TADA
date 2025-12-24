@@ -1,9 +1,0 @@
-environment: "prod"
-clusterDomain: "apps.ocp-3.ocp.euw3r53.nbyt.fr"
-
-app:
-  token: "Bearer NinjaDesIles"
-  uploadDir: "/app/uploads"
-
-hpa:
-  replicaCountMax: 12

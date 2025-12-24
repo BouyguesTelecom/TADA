@@ -32,10 +32,10 @@ delegatedStorage:
     rateLimitWindow: 30000
     rateLimit: 5
     connect: true
-    host: 'http://distant-backend-service:3000'
+    host: 'http://distant-backend-service:3002'
     routes:
-        readinessCheck: '/health'
-    accessToken: 'your-distant-backend-token'
+        readinessCheck: '/readiness-check'
+    accessToken: 'NinjaDesIles'
     storageMethod: 'DISTANT_BACKEND'
     path:
         single: /file

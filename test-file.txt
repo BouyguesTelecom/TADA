@@ -1,0 +1,2 @@
+This is a test file for DELETE operation with UUID.
+Created: 2025-11-24

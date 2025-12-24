@@ -126,6 +126,7 @@ export const generateStream = async (file: any, toWebpConversion: boolean, origi
     if (toWebp) {
         const newFile = await convertToWebp(file, process.env.USE_STRIPMETADATA === 'true');
         const stream = fs.readFileSync(newFile.path);
+        console.log("chevilleOriginal",stream)
         return { stream: stream, file: newFile };
     }
     if(process.env.COMPRESS_WEBP && toWebp){

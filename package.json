@@ -14,11 +14,13 @@
         "decrypt-env": "cd src/api && npm run decrypt-env"
     },
     "dependencies": {
+        "dotenv": "^17.2.3",
         "http-proxy-middleware": "^3.0.5",
         "node-fetch": "^3.3.2",
         "prettier": "^3.4.1"
     },
     "devDependencies": {
+        "@usebruno/cli": "^2.15.1",
         "concurrently": "^9.1.2",
         "dotenv-cli": "^8.0.0",
         "nodemon": "^3.1.9",

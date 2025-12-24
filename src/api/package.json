@@ -4,7 +4,7 @@
   "description": "description",
   "main": "app.js",
   "scripts": {
-    "dev": "npm run decrypt-env && export NODE_TLS_REJECT_UNAUTHORIZED='0' && export PORT=3001 && export DELEGATED_STORAGE_METHOD=STANDALONE && npm run dev-nodemon",
+    "dev": "npm run decrypt-env && export NODE_TLS_REJECT_UNAUTHORIZED='0' && export PORT=3001 && export DELEGATED_STORAGE_METHOD=DISTANT_BACKEND && npm run dev-nodemon",
     "dev-nodemon": "nodemon --watch \"src/**\" --ext \"ts,json\" --ignore \"src/**/*.spec.ts\" --exec \"ts-node server.ts\"",
     "start": "node dist/server.js",
     "build": "tsc && mkdir dist/images/ && cp images/* dist/images/",

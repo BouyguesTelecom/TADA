@@ -51,6 +51,52 @@ curl http://localhost:3002/readiness-check
 # Réponse attendue : "Serveur OK"
 ```
 
+## ☸️ Déploiement sur Kubernetes
+
+### Prérequis pour Kubernetes
+- Kubernetes cluster (local ou distant)
+- kubectl configuré
+- Helm 3+
+- Docker
+
+### Lancer avec Kubernetes
+
+Depuis la **racine du projet TADA**, utilisez le Makefile :
+
+```bash
+# Déployer le distant-backend sur Kubernetes
+make start-distant-backend
+```
+
+Cette commande va :
+1. 🐳 Installer le NGINX Ingress Controller
+2. 🏗️ Démarrer un registry Docker local
+3. 📦 Build l'image Docker du distant-backend
+4. 🚀 Pousser l'image vers le registry local
+5. ⚙️ Déployer le service via Helm
+6. 🖥️ Lancer le Kubernetes Dashboard
+
+### Vérification du déploiement
+
+```bash
+# Vérifier que les pods sont lancés
+kubectl get pods
+
+# Tester le service (si ingress configuré)
+curl http://localhost/distant-backend/readiness-check
+
+# Ou via port-forward
+kubectl port-forward svc/distant-backend-service 3002:3002
+curl http://localhost:3002/readiness-check
+```
+
+### Arrêter le déploiement
+
+```bash
+# Depuis la racine du projet
+make stop
+```
+
 ## 📡 API Routes
 
 Cet exemple implémente les routes définies dans [server3.ts](server3.ts) :

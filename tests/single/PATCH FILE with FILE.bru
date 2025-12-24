@@ -10,12 +10,16 @@ patch {
   auth: bearer
 }
 
+headers {
+  Authorization: Bearer token
+}
+
 auth:bearer {
   token: {{AUTH_TOKEN}}
 }
 
 body:multipart-form {
+  file: @file(/Users/myvart/Downloads/download.webp)
   namespace: DEV
-  file: @file(/tmp/images/error.webp)
-  toWebp: false
+  toWebp: true
 }

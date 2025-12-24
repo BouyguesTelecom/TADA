@@ -1,4 +1,4 @@
-.PHONY: all ask-context use-context start-registry build-image push-image helm-install helm-install-standalone helm-install-s3 helm-install-distant-backend clean helm-uninstall volume dashboard start start-standalone start-s3 start-distant-backend stop install-nginx run-tests
+.PHONY: all ask-context use-context start-registry build-image build-image-distant-backend push-image push-image-distant-backend helm-install helm-install-standalone helm-install-s3 helm-install-distant-backend helm-install-distant-backend-2 clean helm-uninstall volume dashboard start start-standalone start-s3 start-distant-backend start-distant-backend-2 deploy-distant-backend-2 stop install-nginx run-tests
 
 PROJECT_ROOT := $(shell git rev-parse --show-toplevel)
 
@@ -9,16 +9,24 @@ all: start-registry build-image push-image helm-install run-tests
 # - make start-standalone    : Deploy with STANDALONE storage (no external dependencies)
 # - make start-s3           : Deploy with S3 storage (MinIO)
 # - make start-distant-backend : Deploy with DISTANT_BACKEND storage
+# - make start-distant-backend-2 : Deploy with DISTANT_BACKEND storage using new Helm configuration
+# - make deploy-distant-backend-2 : Deploy only distant-backend-2 service (quick deployment)
 
 start-registry:
-	@if [ $$(docker ps -aq -f name=local-registry) != "" ]; then docker stop local-registry && docker rm local-registry; fi
+	@if [ "$$(docker ps -aq -f name=local-registry)" != "" ]; then docker stop local-registry && docker rm local-registry; fi
 	@docker run -d -p 5001:5000 --name local-registry registry:2 || true
 
 build-image:
 	@docker build -t localhost:5001/media-api:latest src/api
 
+build-image-distant-backend:
+	@docker build -t localhost:5001/distant-backend:latest examples/distant-backend
+
 push-image:
 	@docker push localhost:5001/media-api:latest
+
+push-image-distant-backend:
+	@docker push localhost:5001/distant-backend:latest
 
 helm-install: helm-install-s3
 
@@ -31,8 +39,10 @@ helm-install-s3:
 	@helm upgrade --install media-release opensource/. -f opensource/values.local-s3.yaml
 
 helm-install-distant-backend:
-	@echo "Installing or upgrading Helm chart with DISTANT_BACKEND storage..."
-	@helm upgrade --install media-release opensource/. -f opensource/values.local-distant-backend.yaml
+	@helm dependency update ./examples/distant-backend/helms/Products
+	@helm dependency build ./examples/distant-backend/helms/Products
+	@echo "Installing or upgrading distant-backend service..."
+	@helm upgrade --install distant-backend-release examples/distant-backend/helms/Products/. -f examples/distant-backend/helms/Products/values.yaml
 
 install-nginx:
 	@nginx_existence=$$(kubectl get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx --ignore-not-found) && \
@@ -113,7 +123,9 @@ start-standalone: install-nginx start-registry build-image push-image helm-insta
 
 start-s3: install-nginx start-registry build-image push-image helm-install-s3 dashboard run-tests
 
-start-distant-backend: install-nginx start-registry build-image push-image helm-install-distant-backend dashboard run-tests
+start-distant-backend: install-nginx start-registry build-image-distant-backend push-image-distant-backend helm-install-distant-backend dashboard 
+
+deploy-distant-backend-2: start-registry build-image-distant-backend push-image-distant-backend helm-install-distant-backend-2
 
 stop: helm-uninstall
 
@@ -126,7 +138,7 @@ run-tests:
 	fi
 	@echo "Running tests with bru..."
 	@sleep 5;
-	@cd "$(PROJECT_ROOT)/tests" && bru run flows/ --env K8S -r --bail;
+	@cd "$(PROJECT_ROOT)/tests" && npx bru run flows/ --env K8S -r --bail;
 	TESTS_EXIT_CODE=$$?; \
 	if [ $$TESTS_EXIT_CODE -ne 0 ]; then \
 		echo "Tests failed. Aborting."; \

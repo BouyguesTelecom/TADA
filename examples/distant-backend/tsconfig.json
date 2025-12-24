@@ -6,8 +6,13 @@
     "moduleResolution": "node",
     "sourceMap": true,
     "outDir": "dist",
-    "jsx": "react"
+    "rootDir": "src",
+    "jsx": "react",
+    "strict": false,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
   "lib": ["es2022"],
-  "include": ["server.ts", "app.ts", "controllers", "routes", "middleware", "utils", "images"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

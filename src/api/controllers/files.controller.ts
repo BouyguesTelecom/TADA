@@ -14,9 +14,11 @@ export const postAssets = async (_req: Request, res: Response) => {
     const files = [];
     for (const file of validFiles) {
         const isImageFile = !['application/pdf', 'image/svg+xml'].includes(file.mimetype);
+        console.log("generateStream", _saveOriginal , isImageFile);
         const { stream: originalStream } = _saveOriginal && isImageFile && (await generateStream(file, false, true));
+        console.log("Bonjour", file.toWebp, file);
         const { stream, file: newFile } = await generateStream(file, file.toWebp);
-
+        console.log("stream", originalStream, stream)
         _deleteTmpFolder(file.path);
 
         if (!stream) files.push({ ...file, message: 'Failed to generate stream' });
