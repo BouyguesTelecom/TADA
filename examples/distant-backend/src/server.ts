@@ -1,10 +1,9 @@
 import dotenv from 'dotenv';
-
-dotenv.config();
-
 import express from 'express';
-// import filesRoutes from './routes/files'
-import fileRoutes from './routes/file.route'
+import { manyRouter, oneRouter } from './routes/file.route';
+import path from 'path';
+
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
 const port = 3002;
@@ -12,14 +11,23 @@ const port = 3002;
 app.use(express.json());
 
 app.get('/readiness-check', (req: any, res: any) => {
-    console.log('Serveur OK');
-    return res.send('Serveur OK');
+    console.log('Readiness check received');
+    return res.send('OK');
 });
 
-// app.use('/files', filesRoutes)
-app.use('/files', fileRoutes)
+if (!process.env.UPLOAD_DIR) {
+    console.error('❌ Env variable UPLOAD_DIR must be set');
+    process.exit(1);
+}
 
+app.use((req, res, next) => {
+    console.log(`\n[${new Date().toISOString()}] - ${req.method} - ${req.url}`);
+    next();
+});
+
+app.use('/file', oneRouter);
+app.use('/files', manyRouter);
 
 app.listen(port, () => {
-    console.log('Serveur démarré sur http://localhost:' + port);
+    console.log('⚡️ Server ready and available on http://localhost:' + port);
 });

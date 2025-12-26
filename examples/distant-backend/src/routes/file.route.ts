@@ -1,25 +1,13 @@
 import { Router } from 'express';
-import fs, { read } from 'fs';
-import path from 'path';
 import { verifyToken } from '../middleware/auth';
-import { upload, uploadMemoire, UPLOAD_DIR } from '../config/multer';
-import { addFiles, addFile, deleteFile, deleteFiles, overrideFiles, overrideFile, readFile } from '../controllers/file.controller';
-import { checkFiles } from '../middleware/file';
+import { upload } from '../services/multer.service';
+import { addFile, addManyFiles, getFile } from '../controllers/file.controller';
 
-const router = Router()
+const oneRouter = Router();
+oneRouter.post('/', verifyToken, upload, addFile);
+oneRouter.get('/', verifyToken, getFile);
 
-router.post('/', verifyToken, checkFiles, upload, addFile);
+const manyRouter = Router();
+manyRouter.post('/', verifyToken, upload, addManyFiles);
 
-router.get('/', verifyToken, readFile);
-
-router.delete('/', verifyToken, deleteFile);
-
-router.patch('/', verifyToken, uploadMemoire, overrideFile)
-
-router.post('/', verifyToken, upload, addFiles)
-
-router.patch('/', verifyToken, overrideFiles)
-
-router.delete('/', verifyToken, uploadMemoire, deleteFiles)
-
-export default router
+export { oneRouter, manyRouter };
