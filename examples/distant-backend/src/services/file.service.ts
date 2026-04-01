@@ -77,9 +77,6 @@ export const checkFilesUploaded = (filePaths: string[]): { success: string[]; fa
 };
 
 export const replaceFileContent = (currentImage: string, newFile: string[]): ResponseProps => {
-    console.log('oldfile (unique_name):', currentImage);
-    console.log('newfile (paths):', newFile);
-
     if (!newFile || newFile.length === 0) {
         return {
             data: null,

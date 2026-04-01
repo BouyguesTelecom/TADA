@@ -61,7 +61,6 @@ export const deleteFile = (req, res) => {
         });
     }
 
-    console.log('File deleted successfully:', filePath);
     return res.status(200).json({
         status: 'success',
         message: 'File deleted successfully'
@@ -117,7 +116,6 @@ export const patchFile = (req, res) => {
 export const patchFiles = (req: ReqProps, res) => {
     const uploadedFiles = req.metadata?.files || [];
 
-    console.log("test du console.log", uploadedFiles);
     process.stdout.write('test du console.log\n');
 
     const { cleaned, errors } = cleanupOldFilesInDirectories(uploadedFiles);
@@ -125,8 +123,6 @@ export const patchFiles = (req: ReqProps, res) => {
     if (errors.length > 0) {
         console.log('Cleaning errors:', errors);
     }
-
-    console.log('File deleted', cleaned);
 
     return res.status(200).json({
         status: 'success',

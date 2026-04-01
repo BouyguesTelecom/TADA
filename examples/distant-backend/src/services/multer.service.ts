@@ -5,7 +5,6 @@ import { getOrCreateDestinationDir } from '../utils/file';
 
 const stockage = multer.diskStorage({
     destination: (req: ReqProps, file, callback) => {
-        console.log('[multer stockage] destination called, body:', req.body);
         let uniqueName: string | undefined;
 
         const fileIndex = req.metadata?.files?.length || 0;
@@ -20,8 +19,6 @@ const stockage = multer.diskStorage({
         } else {
             uniqueName = req.body.unique_name;
         }
-
-        console.log('[multer stockage] uniqueName:', uniqueName);
 
         const fileDir = getOrCreateDestinationDir(uniqueName, true);
         if (!fileDir) {
