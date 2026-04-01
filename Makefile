@@ -44,6 +44,12 @@ helm-install-distant-backend:
 	@echo "Installing or upgrading distant-backend service..."
 	@helm upgrade --install distant-backend-release examples/distant-backend/helms/Products/. -f examples/distant-backend/helms/Products/values.yaml
 
+helm-install-distant-backend-2:
+	@echo "Installing or upgrading distant-backend-2 service..."
+	@helm upgrade --install distant-backend examples/distant-backend/helms/products/. -f examples/distant-backend/helms/products/values.yaml
+
+start-distant-backend-2: install-nginx start-registry build-image build-image-distant-backend push-image push-image-distant-backend helm-install-s3 helm-install-distant-backend-2 dashboard
+
 install-nginx:
 	@nginx_existence=$$(kubectl get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx --ignore-not-found) && \
 	if [ -z "$$nginx_existence" ]; then \

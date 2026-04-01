@@ -10,17 +10,29 @@ export const retrieveFileNameFromPath = (path: string) => {
     return path.split('/').pop() || '';
 };
 
-export const getOrCreateDestinationDir = (givenPath: string) => {
+export const getOrCreateDestinationDir = (givenPath: string, createIfNotExist: boolean = false): string | null => {
     if (!givenPath) {
         return null;
     }
-    const fileDir = path.join(process.env.UPLOAD_DIR, retrieveFileDirFromPath(givenPath));
+    const dirPath = path.join(process.env.UPLOAD_DIR, retrieveFileDirFromPath(givenPath));
 
-    if (!fs.existsSync(fileDir)) {
-        if (!createDir(fileDir)) {
-            console.log('Cannot create directory');
-            return null;
+    if (!fs.existsSync(dirPath)) {
+        if (createIfNotExist) {
+            if (!createDir(dirPath)) {
+                console.log('Cannot create directory');
+                return null;
+            }
+            return dirPath;
         }
+        return null;
     }
-    return fileDir;
+    return dirPath;
+};
+
+export const removeOneFileFromFs = (fileDirPath: string) => {
+    if (!fs.existsSync(fileDirPath)) {
+        return false;
+    }
+    fs.rmSync(fileDirPath, { recursive: true, force: true });
+    return true;
 };

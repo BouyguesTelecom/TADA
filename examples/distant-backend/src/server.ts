@@ -8,7 +8,13 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 const app = express();
 const port = 3002;
 
-app.use(express.json());
+app.use((req, res, next) => {
+    const contentType = req.headers['content-type'] || '';
+    if (contentType.includes('multipart/form-data')) {
+        return next();
+    }
+    express.json()(req, res, next);
+});
 
 app.get('/readiness-check', (req: any, res: any) => {
     console.log('Readiness check received');
@@ -27,6 +33,11 @@ app.use((req, res, next) => {
 
 app.use('/file', oneRouter);
 app.use('/files', manyRouter);
+
+app.use((err: any, req: any, res: any, next: any) => {
+    console.error('[ERROR MIDDLEWARE]', err.message, err.stack);
+    res.status(500).json({ error: err.message });
+});
 
 app.listen(port, () => {
     console.log('⚡️ Server ready and available on http://localhost:' + port);

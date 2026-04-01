@@ -19,7 +19,11 @@ auth:bearer {
 }
 
 body:multipart-form {
-  file: @file(/Users/myvart/Downloads/download.webp)
+  file: @file(/Users/myvart/Downloads/download (3).jpeg)
   namespace: DEV
   toWebp: true
+}
+
+vars:pre-request {
+  IMAGE_ID: d0029e181acc3675d106a6865c491466
 }

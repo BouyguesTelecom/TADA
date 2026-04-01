@@ -5,9 +5,27 @@ import { getOrCreateDestinationDir } from '../utils/file';
 
 const stockage = multer.diskStorage({
     destination: (req: ReqProps, file, callback) => {
-        const fileData = req.body.file_0 ? JSON.parse(req.body.file_0).catalogItem : req.body;
-        const fileDir = getOrCreateDestinationDir(fileData.unique_name);
+        console.log('[multer stockage] destination called, body:', req.body);
+        let uniqueName: string | undefined;
+
+        const fileIndex = req.metadata?.files?.length || 0;
+
+        if (req.body[`file_${fileIndex}`]) {
+            uniqueName = JSON.parse(req.body[`file_${fileIndex}`]).catalogItem.unique_name;
+        } else if (req.body.file_0) {
+            uniqueName = JSON.parse(req.body.file_0).catalogItem.unique_name;
+        } else if (req.body.unique_names) {
+            const uniqueNames = req.body.unique_names.split(',');
+            uniqueName = uniqueNames[fileIndex];
+        } else {
+            uniqueName = req.body.unique_name;
+        }
+
+        console.log('[multer stockage] uniqueName:', uniqueName);
+
+        const fileDir = getOrCreateDestinationDir(uniqueName, true);
         if (!fileDir) {
+            console.log('[multer stockage] Cannot create directory');
             return callback(new Error('Cannot create directory'), '');
         }
 
@@ -22,5 +40,5 @@ const stockage = multer.diskStorage({
     }
 });
 
+
 export const upload = multer({ storage: stockage }).any();
-export const uploadMemoire = multer({ storage: multer.memoryStorage() }).any();

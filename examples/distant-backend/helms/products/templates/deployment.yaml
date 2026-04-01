@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: distant-backend
+  labels:
+    app: distant-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: distant-backend
+  template:
+    metadata:
+      labels:
+        app: distant-backend
+    spec:
+      containers:
+        - name: distant-backend
+          image: localhost:5001/distant-backend:latest
+          ports:
+            - containerPort: 3002
+          env:
+            - name: PORT
+              value: "3002"
+            - name: TOKEN
+              value: "token"
+            - name: UPLOAD_DIR
+              value: "uploads"
+            - name: DELEGATED_STORAGE_HOST
+              value: "http://distant-backend"
