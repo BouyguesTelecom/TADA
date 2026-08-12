@@ -8,7 +8,7 @@ script:pre-request {
   const fs = require('fs');
   const path = require('path');
   
-  const srcDir = path.resolve(__dirname, '../local/images');
+  const srcDir = path.resolve(bru.cwd(), '../local/images');
   const destDir = '/tmp/images';
   
   const copyFiles = (src, dest) => {

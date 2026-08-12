@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import path from 'path';
 import app from '../app';
 import { FileProps } from '../props/catalog';
+import { isNonTransformableMimetype } from './mimetypes';
 
 export const calculateSHA256 = (buffer: Buffer) => {
     return crypto.createHash('sha256').update(buffer).digest('hex');
@@ -54,8 +55,7 @@ export const formatItemForCatalog = async (
     if (!process.env.PUBLIC_URL) {
         console.warn(`⚠️  PUBLIC_URL not set, using fallback: ${publicUrl}`);
     }
-    const mimeTypeRequiredOriginalUrl = ['application/pdf', 'image/svg+xml']
-    const accessUrl = `${publicUrl}${baseUrl}/${mimeTypeRequiredOriginalUrl.includes(transformedFile.mimetype) ? 'original' : 'full'}${unique_name}`
+    const accessUrl = `${publicUrl}${baseUrl}/${isNonTransformableMimetype(transformedFile.mimetype) ? 'original' : 'full'}${unique_name}`
     return {
         uuid: newUUID,
         version: 1,
