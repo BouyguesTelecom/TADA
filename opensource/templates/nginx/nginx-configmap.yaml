@@ -68,6 +68,11 @@ data:
                     deny all;
                 }
 
+                # Rejette les URL media sans extension de fichier (evite de solliciter l'API pour des appels errones)
+                if ($uri !~* "\.(webp|jpe?g|png|svg|svgz|gif|pdf|xml)$") {
+                    return 404;
+                }
+
                 {{- if .Values.nginx.cdn.enabled }} 
                 expires {{ .Values.nginx.cdn.expires }};
                 add_header Cache-Control "public, max-age={{ .Values.nginx.cdn.maxAge }}";
