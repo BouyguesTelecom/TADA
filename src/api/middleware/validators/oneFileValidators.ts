@@ -44,12 +44,12 @@ export const validatorFileCatalog = async (req: Request, res: Response, next: Ne
         if (req.method === 'PATCH' && file) {
             const imageMimeTypes = ['image/png', 'image/jpeg', 'image/webp'];
 
-            const isOriginalImageOrPdfSvg = isNonTransformableMimetype(itemFound.original_mimetype);
+            const isOriginalNonTransformable = isNonTransformableMimetype(itemFound.original_mimetype);
             const isOriginalWithoutConversion = itemFound.mimetype === itemFound.original_mimetype;
             const isReplacementImage = imageMimeTypes.includes(file.mimetype);
             const canConvertToWebp = req.body.toWebp !== 'false';
 
-            if (isOriginalImageOrPdfSvg) {
+            if (isOriginalNonTransformable) {
                 if (file.mimetype !== itemFound.original_mimetype || (!canConvertToWebp && itemFound.mimetype === 'image/webp')) {
                     return sendResponse({
                         res,

@@ -2,7 +2,6 @@
     "scripts": {
         "format": "prettier --write .",
         "dev:api": "cd src/api && npm run dev",
-        "docker:dev": "docker compose -f docker-compose.dev.yml up --build -d",
         "docker": "docker compose up --build -d",
         "dev-distant-backend-up": "cd local/compose && docker compose -f docker-compose.dev.distant-backend.yml --env-file .env.distant-backend up -d",
         "dev-s3-up": "cd local/compose && docker compose -f docker-compose.dev.s3.yml --env-file .env.s3 up -d",

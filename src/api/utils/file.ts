@@ -79,7 +79,7 @@ export const stripMetadata = async (imagePath: string, mimetype: string) => {
         case 'image/svg+xml':
             return removeUnusedData(imagePath);
         case 'image/gif':
-            return fs.readFileSync(imagePath);
+            return await fs.promises.readFile(imagePath);
         default:
             return;
     }
