@@ -5,15 +5,15 @@ HOST="${DELEGATED_STORAGE_HOST}"
 BACKUP_PATH="${URL_TO_GET_BACKUP}"
 TOKEN="${DELEGATED_STORAGE_TOKEN}"
 
-# Fonction pour télécharger le fichier dump distant
+# Function to download the remote dump file
 download_dump() {
   local dump_file_name="$1"
   local url="$HOST$BACKUP_PATH/$dump_file_name?format=rdb"
 
   echo "Attempting to download: $url"
-  echo "Using token: ${TOKEN:0:10}..." # Affiche seulement les 10 premiers caractères du token
+  echo "Using token: ${TOKEN:0:10}..." # Only display the first 10 characters of the token
 
-  # Utiliser une variable temporaire pour capturer les détails de l'erreur
+  # Use a temporary variable to capture error details
   local temp_file=$(mktemp)
   local http_code
 
@@ -32,7 +32,7 @@ download_dump() {
     echo "   Error details:" >&2
     cat "$temp_file" >&2
 
-    # Diagnostics supplémentaires
+    # Additional diagnostics
     case $curl_exit_code in
       6)  echo "   → Couldn't resolve host: $HOST" >&2 ;;
       7)  echo "   → Failed to connect to host" >&2 ;;
@@ -41,11 +41,11 @@ download_dump() {
       *)  echo "   → Unknown curl error" >&2 ;;
     esac
 
-    # Vérifier si le fichier de destination existe et sa taille
+    # Check whether the destination file exists and its size
     if [ -f "${DUMP_FILE_PATH}" ]; then
       local file_size=$(stat -c%s "${DUMP_FILE_PATH}" 2>/dev/null || echo "unknown")
       echo "   → Partial file created (size: $file_size bytes)" >&2
-      rm -f "${DUMP_FILE_PATH}" # Nettoyer le fichier partiel
+      rm -f "${DUMP_FILE_PATH}" # Clean up the partial file
     fi
   else
     echo "✅ Successfully downloaded: $dump_file_name"
@@ -57,7 +57,7 @@ download_dump() {
   return $curl_exit_code
 }
 
-# Vérifier la présence de dump.rdb pour déterminer la stratégie
+# Check for the presence of dump.rdb to determine the strategy
 if [ -f "${DUMP_FILE_PATH}" ]; then
   echo "🔍 Dump found. Proceeding with restart."
 

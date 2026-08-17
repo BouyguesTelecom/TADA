@@ -81,14 +81,14 @@ jobs:
             patch=$((patch + 1))
           fi
           
-          # Construire new_version APRÈS avoir défini major/minor/patch
+          # Build new_version AFTER defining major/minor/patch
           if [[ "$branch_name" == "main" ]]; then
             new_version="$major.$minor.$patch"
           else
             new_version="$major.$minor.$patch-${branch_name}"
           fi
           
-          # Vérifier si le tag existe déjà et incrémenter si nécessaire
+          # Check whether the tag already exists and increment if necessary
           while git rev-parse "refs/tags/$new_version" >/dev/null 2>&1; do
             patch=$((patch + 1))
             if [[ "$branch_name" == "main" ]]; then

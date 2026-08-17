@@ -1,153 +1,153 @@
-# TADA - Contexte agent
+# TADA - Agent context
 
-## Role du projet
+## Project role
 
-TADA (Transform And Deliver Assets) est un service open source de gestion, stockage, transformation et diffusion de fichiers media. Il expose une API Express/TypeScript, un catalogue Redis, un stockage delegue et une couche Nginx de cache.
+TADA (Transform And Deliver Assets) is an open source service for managing, storing, transforming and delivering media files. It exposes an Express/TypeScript API, a Redis catalog, a delegated storage and an Nginx caching layer.
 
-TADA est independant de toute application cliente ou infrastructure proprietaire. Un consommateur peut l'utiliser seul, derriere un CMS, dans une application web ou comme service media partage.
+TADA is independent from any client application or proprietary infrastructure. A consumer can use it on its own, behind a CMS, in a web application or as a shared media service.
 
 ## Architecture
 
 ```text
 Client / CMS / application
           |
-          | HTTP multipart et HTTP GET
+          | HTTP multipart and HTTP GET
           v
-Nginx public (cache court)
+Public Nginx (short cache)
           |
           v
 TADA API (Express)
       |          |
-      |          +--> Redis (catalogue et metadonnees)
+      |          +--> Redis (catalog and metadata)
       |
-      +--> stockage delegue
-            |-- filesystem standalone
+      +--> delegated storage
+            |-- standalone filesystem
             |-- S3 / MinIO
-            +-- backend HTTP distant
+            +-- remote HTTP backend
 ```
 
-Nginx peut etre deploye en deux couches : une couche publique avec un cache court et une couche interne capable de purger le cache. La topologie peut etre simplifiee pour un environnement de developpement.
+Nginx can be deployed as two layers: a public layer with a short cache and an internal layer able to purge the cache. The topology can be simplified for a development environment.
 
-## API et contrat d'integration
+## API and integration contract
 
-- `POST /file`, `POST /files` : upload simple ou multiple en multipart.
-- `PATCH /file/:uuid`, `PATCH /files` : remplacement ou mise a jour (necessite l'UUID retourne a l'upload pour le fichier simple).
-- `DELETE /file/:uuid`, `DELETE /files` : suppression.
-- `GET /catalog`, `GET /catalog/:id` : catalogue des fichiers exposes, ou un item precis.
-- `POST /catalog`, `PATCH /catalog` (ou `/catalog/:uuid`), `DELETE /catalog` (ou `/catalog/:uuid`) : gestion directe d'entrees de catalogue, independamment de l'upload de fichier.
-- `GET /assets/media/:format/*` : lecture et transformation d'un fichier (`format` = `original`, `full` ou `optimise/{w}x{h}`).
-- `GET /readiness-check` (path configurable via `HEALTHCHECK_ROUTE`) : health check.
+- `POST /file`, `POST /files`: single or multiple multipart upload.
+- `PATCH /file/:uuid`, `PATCH /files`: replacement or update (requires the UUID returned at upload for a single file).
+- `DELETE /file/:uuid`, `DELETE /files`: deletion.
+- `GET /catalog`, `GET /catalog/:id`: catalog of exposed files, or a specific item.
+- `POST /catalog`, `PATCH /catalog` (or `/catalog/:uuid`), `DELETE /catalog` (or `/catalog/:uuid`): direct management of catalog entries, independently of file upload.
+- `GET /assets/media/:format/*`: read and transform a file (`format` = `original`, `full` or `optimise/{w}x{h}`).
+- `GET /readiness-check` (path configurable via `HEALTHCHECK_ROUTE`): health check.
 
-Un client doit fournir au minimum un namespace et un fichier. Il peut aussi fournir `external_id`, `destination`, `filename`, `information`, `expiration_date` et `toWebp`. Le champ `external_id` permet de relier l'item TADA a l'identifiant du systeme appelant.
+A client must provide at least a namespace and a file. It can also provide `external_id`, `destination`, `filename`, `information`, `expiration_date` and `toWebp`. The `external_id` field links the TADA item to the identifier of the calling system.
 
-### Deux notions de "dump" a ne pas confondre
+### Two notions of "dump" not to be confused
 
-1. **API de dump exposee par TADA a ses clients** (namespace `/catalog/...`), definie dans `src/api/routes/dumps.routes.ts` :
-   - `POST /catalog/create-dump` : cree un dump JSON+RDB du catalogue Redis.
-   - `GET /catalog/get-dump/:version` (`:version` peut etre `latest` ou un nom de fichier, `?format=json|rdb`) : recupere un dump.
-   - `POST /catalog/restore-dump/:version` : restaure le catalogue depuis un dump.
-2. **Contrat sortant vers le stockage delegue** (utilise seulement si `DELEGATED_STORAGE_METHOD=DISTANT_BACKEND`), configure via `URL_TO_GET_BACKUP` et `URL_TO_POST_BACKUP` (voir `src/api/delegated-storage/distant-backend/utils.ts`). Ces variables pointent vers des routes exposees par le backend delegue lui-meme (typiquement `/get-dump` et `/save-dump` cote Palpatine_Media), qui n'ont pas besoin de s'appeler pareil que les routes internes `/catalog/...dump...` de TADA.
+1. **Dump API exposed by TADA to its clients** (namespace `/catalog/...`), defined in `src/api/routes/dumps.routes.ts`:
+   - `POST /catalog/create-dump`: creates a JSON+RDB dump of the Redis catalog.
+   - `GET /catalog/get-dump/:version` (`:version` can be `latest` or a file name, `?format=json|rdb`): retrieves a dump.
+   - `POST /catalog/restore-dump/:version`: restores the catalog from a dump.
+2. **Outgoing contract to the delegated storage** (used only if `DELEGATED_STORAGE_METHOD=DISTANT_BACKEND`), configured via `URL_TO_GET_BACKUP` and `URL_TO_POST_BACKUP` (see `src/api/delegated-storage/distant-backend/utils.ts`). These variables point to routes exposed by the delegated backend itself (typically `/get-dump` and `/save-dump` on the Palpatine_Media side), which do not need to be named the same as TADA's internal `/catalog/...dump...` routes.
 
-Ne pas documenter ces deux ensembles de routes comme un seul contrat : le premier est l'API publique de TADA, le second est un detail d'implementation du backend `DISTANT_BACKEND`.
+Do not document these two sets of routes as a single contract: the first is TADA's public API, the second is an implementation detail of the `DISTANT_BACKEND` backend.
 
-## Options de stockage
+## Storage options
 
 ### Standalone
 
-Le filesystem local est adapte au developpement, aux tests et aux petites installations. Il n'offre pas automatiquement la haute disponibilite ni le partage entre replicas.
+The local filesystem is suited to development, tests and small installations. It does not automatically provide high availability nor sharing between replicas.
 
-### S3 ou MinIO
+### S3 or MinIO
 
-Le stockage objet est recommande pour la production et les deploiements distribues. Configurer l'endpoint, le port, les identifiants et le bucket via les valeurs Helm ou les variables d'environnement correspondantes.
+Object storage is recommended for production and distributed deployments. Configure the endpoint, port, credentials and bucket via the corresponding Helm values or environment variables.
 
-### Backend HTTP distant
+### Remote HTTP backend
 
-Cette option permet de deleguer les fichiers a un service externe. Le backend doit implementer les routes de fichier simple, fichier multiple, lecture, mise a jour et suppression configurees dans TADA. Le meme mecanisme est utilise pour les dumps du catalogue.
+This option allows delegating files to an external service. The backend must implement the single file, multiple file, read, update and delete routes configured in TADA. The same mechanism is used for catalog dumps.
 
-## Formats et transformation
+## Formats and transformation
 
-- PNG et JPEG peuvent etre convertis en WebP selon `toWebp` et `CONVERT_TO_WEBP`.
-- SVG, GIF et PDF doivent conserver leur format d'origine et etre servis via `/original`.
-- Les GIF animes ne doivent pas passer dans un pipeline de redimensionnement qui les rasteriserait en WebP.
-- `VALID_MIMETYPES` definit les types acceptes a l'upload.
-- Si un bloc Nginx `types {}` est utilise, chaque type doit etre declare, par exemple `image/gif gif;`.
-- Le traitement des metadonnees doit toujours retourner un flux valide pour les formats non transformables.
+- PNG and JPEG can be converted to WebP depending on `toWebp` and `CONVERT_TO_WEBP`.
+- SVG, GIF and PDF must keep their original format and be served via `/original`.
+- Animated GIFs must not go through a resizing pipeline that would rasterize them into WebP.
+- `VALID_MIMETYPES` defines the types accepted at upload.
+- If an Nginx `types {}` block is used, each type must be declared, for example `image/gif gif;`.
+- Metadata processing must always return a valid stream for non-transformable formats.
 
-Le set central des formats non transformables est dans `src/api/utils/mimetypes.ts`. Toute evolution de format doit reutiliser ce helper au lieu de recreer des listes locales.
+The central set of non-transformable formats is in `src/api/utils/mimetypes.ts`. Any format change must reuse this helper instead of recreating local lists.
 
-## Configuration essentielle
+## Essential configuration
 
-- `DELEGATED_STORAGE_METHOD` : `S3`, `STANDALONE` ou `DISTANT_BACKEND`.
-- `DELEGATED_STORAGE_HOST`, `DELEGATED_STORAGE_SINGLE_PATH`/`DELEGATED_STORAGE_MULTI_PATH` : contrat avec le stockage delegue (voir `src/api/delegated-storage/distant-backend/utils.ts`).
-- `DELEGATED_STORAGE_TOKEN` : Bearer token envoye au backend delegue.
-- `DELEGATED_STORAGE_READINESS_CHECK` : path de health check du backend delegue.
-- `URL_TO_GET_BACKUP` / `URL_TO_POST_BACKUP` : routes du backend delegue pour les dumps (voir section dump ci-dessus).
-- `VALID_MIMETYPES` : filtre d'upload.
-- `CONVERT_TO_WEBP`, `USE_STRIPMETADATA`, `SAVE_ORIGINAL_FILE`, `COMPRESS_WEBP` : traitement, compression et conservation de l'original.
-- `NAMESPACES` : namespaces autorises.
-- `PUBLIC_URL`, `API_PREFIX`, `DEV_ENV` (ajoute un prefixe `DEV/` au catalogue) : construction des URLs et namespace de dev.
-- `MEDIA_TOKEN`, `ORIGINS_ALLOWED`, `METHODS_ALLOWED` : securite et acces HTTP.
-- `PAYLOAD_MAX_SIZE`, `REQUEST_TIMEOUT`, `BASE_TIMEOUT_MS` : capacite et timeouts du service.
-- `DELEGATED_STORAGE_RATE_LIMIT_WINDOW` / `DELEGATED_STORAGE_RATE_LIMIT` : rate limiting specifique aux appels vers le stockage delegue.
-- `REDIS_SERVICE`, `PORT`, `NODE_ENV` : configuration serveur et catalogue.
-- `NGINX_SERVICE` : URL du Nginx interne, utilisee pour la purge de cache.
-- Stockage S3/MinIO : `S3_ENDPOINT`, `S3_PORT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET_NAME`.
-- `DUMP_FOLDER_PATH` : chemin local des dumps RDB (defaut `/dumps`).
+- `DELEGATED_STORAGE_METHOD`: `S3`, `STANDALONE` or `DISTANT_BACKEND`.
+- `DELEGATED_STORAGE_HOST`, `DELEGATED_STORAGE_SINGLE_PATH`/`DELEGATED_STORAGE_MULTI_PATH`: contract with the delegated storage (see `src/api/delegated-storage/distant-backend/utils.ts`).
+- `DELEGATED_STORAGE_TOKEN`: Bearer token sent to the delegated backend.
+- `DELEGATED_STORAGE_READINESS_CHECK`: health check path of the delegated backend.
+- `URL_TO_GET_BACKUP` / `URL_TO_POST_BACKUP`: delegated backend routes for dumps (see the dump section above).
+- `VALID_MIMETYPES`: upload filter.
+- `CONVERT_TO_WEBP`, `USE_STRIPMETADATA`, `SAVE_ORIGINAL_FILE`, `COMPRESS_WEBP`: processing, compression and preservation of the original.
+- `NAMESPACES`: allowed namespaces.
+- `PUBLIC_URL`, `API_PREFIX`, `DEV_ENV` (adds a `DEV/` prefix to the catalog): URL construction and dev namespace.
+- `MEDIA_TOKEN`, `ORIGINS_ALLOWED`, `METHODS_ALLOWED`: HTTP security and access.
+- `PAYLOAD_MAX_SIZE`, `REQUEST_TIMEOUT`, `BASE_TIMEOUT_MS`: service capacity and timeouts.
+- `DELEGATED_STORAGE_RATE_LIMIT_WINDOW` / `DELEGATED_STORAGE_RATE_LIMIT`: rate limiting specific to calls toward the delegated storage.
+- `REDIS_SERVICE`, `PORT`, `NODE_ENV`: server and catalog configuration.
+- `NGINX_SERVICE`: URL of the internal Nginx, used for cache purge.
+- S3/MinIO storage: `S3_ENDPOINT`, `S3_PORT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET_NAME`.
+- `DUMP_FOLDER_PATH`: local path of RDB dumps (default `/dumps`).
 
-Un middleware de queue (`src/api/middleware/queues/queuesMiddleware.ts`) serialise les operations de dump (create/restore) pour eviter les acces concurrents a Redis.
+A queue middleware (`src/api/middleware/queues/queuesMiddleware.ts`) serializes dump operations (create/restore) to avoid concurrent access to Redis.
 
-## Hebergement
+## Hosting
 
 ### Docker Compose
 
-Utiliser Docker Compose avec Redis, un stockage S3/MinIO ou un volume filesystem, TADA API et Nginx. Cette option convient au developpement et aux environnements simples.
+Use Docker Compose with Redis, an S3/MinIO storage or a filesystem volume, TADA API and Nginx. This option is suited to development and simple environments.
 
-### Kubernetes avec Helm
+### Kubernetes with Helm
 
-Le chart est dans `opensource/`. Il permet de configurer TADA API, Redis, Nginx, le stockage, les probes, les ressources, le HPA, l'ingress et les jobs de dump. Un consommateur peut utiliser le chart comme dependance OCI ou l'installer localement avec un fichier de valeurs.
+The chart is in `opensource/`. It allows configuring TADA API, Redis, Nginx, the storage, the probes, the resources, the HPA, the ingress and the dump jobs. A consumer can use the chart as an OCI dependency or install it locally with a values file.
 
-Exemple generique :
+Generic example:
 
 ```sh
 helm dependency update ./opensource
 helm upgrade --install tada ./opensource -f values.yaml --namespace media --create-namespace
 ```
 
-### Image Docker
+### Docker image
 
-L'image API est construite depuis `src/api/Dockerfile`. Un deploiement doit pinner un tag versionne plutot que `latest` en production. Les versions de l'image et du chart doivent rester alignes pour faciliter les rollbacks.
+The API image is built from `src/api/Dockerfile`. A deployment must pin a versioned tag rather than `latest` in production. The image and chart versions must stay aligned to ease rollbacks.
 
-## Developpement et tests
+## Development and tests
 
-Depuis `src/api` :
+From `src/api`:
 
 ```sh
 npm install
 npm run dev
 ```
 
-Les tests Bruno sont dans `tests/`, les environnements dans `tests/environments/` et les fichiers d'exemple dans `local/images/`. Les tests doivent couvrir les uploads, le catalogue, la lecture, les remplacements, les suppressions et les formats non transformables.
+Bruno tests are in `tests/`, the environments in `tests/environments/` and the sample files in `local/images/`. Tests must cover uploads, the catalog, reads, replacements, deletions and non-transformable formats.
 
-Pour tester un format : verifier le statut HTTP, `mimetype`, `original_mimetype`, `public_url`, le contenu binaire retourne et le header `Content-Type`.
+To test a format: check the HTTP status, `mimetype`, `original_mimetype`, `public_url`, the binary content returned and the `Content-Type` header.
 
-## Debug methodique
+## Methodical debugging
 
-1. Verifier le health check et les variables d'environnement effectives.
-2. Verifier le rejet MIME, la taille et le namespace.
-3. Verifier l'item du catalogue et sa signature.
-4. Verifier le stockage delegue, le chemin, la version et les logs.
-5. Verifier Nginx, le cache, la route `/original` ou `/full` et le Content-Type.
+1. Check the health check and the effective environment variables.
+2. Check the MIME rejection, the size and the namespace.
+3. Check the catalog item and its signature.
+4. Check the delegated storage, the path, the version and the logs.
+5. Check Nginx, the cache, the `/original` or `/full` route and the Content-Type.
 
-Un fichier absent du catalogue peut venir d'un echec de persistance, d'une signature invalide, d'une expiration ou d'un stockage delegue inaccessible. Diagnostiquer ces causes avant de modifier la transformation d'image.
+A file missing from the catalog can come from a persistence failure, an invalid signature, an expiration or an unreachable delegated storage. Diagnose these causes before modifying image transformation.
 
-## Integration avec une application cliente
+## Integration with a client application
 
-Une application cliente doit :
+A client application must:
 
-1. Choisir un namespace et un backend de stockage.
-2. Configurer l'URL de l'API, l'URL publique et l'authentification.
-3. Envoyer les fichiers via les routes `/file` ou `/files`.
-4. Conserver `uuid`, `external_id`, `public_url` et les informations de version retournes par le catalogue.
-5. Utiliser `/original` pour les formats qui ne doivent pas etre transformes et `/full` ou les routes de transformation pour les images compatibles.
+1. Choose a namespace and a storage backend.
+2. Configure the API URL, the public URL and the authentication.
+3. Send files via the `/file` or `/files` routes.
+4. Keep `uuid`, `external_id`, `public_url` and the version information returned by the catalog.
+5. Use `/original` for formats that must not be transformed and `/full` or the transformation routes for compatible images.
 
-Ne jamais commiter de tokens, secrets, fichiers `.env` chiffres ou dumps contenant des donnees reelles.
+Never commit tokens, secrets, encrypted `.env` files or dumps containing real data.

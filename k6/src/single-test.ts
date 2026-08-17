@@ -21,7 +21,7 @@ export const options: Options = {
 
 const file = open('../../local/images/default.webp', 'b');
 
-// Fonction helper pour afficher les erreurs
+// Helper function to display errors
 function logErrorResponse(response: any, testName: string): void {
     if (response.status >= 400) {
         console.log(`❌ ${testName} - Status: ${response.status}`);
@@ -35,7 +35,7 @@ function logErrorResponse(response: any, testName: string): void {
 }
 
 export default function (): void {
-    console.log('🧪 Tests Single TADA API');
+    console.log('🧪 Single tests TADA API');
     console.log(`API: ${ENV.apiUrl}`);
     console.log(`Token: ${ENV.bearerToken}`);
     console.log('');
@@ -80,14 +80,14 @@ export default function (): void {
                     const catalog = JSON.parse(catalogResponse.body as string);
                     console.log(`   Items: ${catalog.length}`);
                 } catch (e) {
-                    console.log('   ⚠️ Réponse non-JSON');
+                    console.log('   ⚠️ Non-JSON response');
                 }
             }
             logErrorResponse(catalogResponse, 'Catalog');
         });
 
-        group('3. Authentification - Route protégée sans token', () => {
-            console.log('🔐 Test authentification sans token');
+        group('3. Authentication - Protected route without token', () => {
+            console.log('🔐 Test authentication without token');
             const noTokenResponse = http.post(`${ENV.apiUrl}/file`, { namespace: ENV.namespace, destination: 'test' }, { timeout: '10s' });
 
             check(noTokenResponse, {
@@ -100,8 +100,8 @@ export default function (): void {
             }
         });
 
-        group('4. Authentification - Route protégée avec token mais sans fichier', () => {
-            console.log('🔐 Test authentification avec token, sans fichier');
+        group('4. Authentication - Protected route with token but without file', () => {
+            console.log('🔐 Test authentication with token, without file');
             const noFileResponse = http.post(
                 `${ENV.apiUrl}/file`,
                 { namespace: ENV.namespace, destination: 'test' },
@@ -131,8 +131,8 @@ export default function (): void {
     });
 
     group('Routes file.routes.ts (Single File)', () => {
-        group('5. POST /file - Upload fichier', () => {
-            console.log('📤 Test upload fichier single');
+        group('5. POST /file - Upload file', () => {
+            console.log('📤 Test single file upload');
             const uploadResponse = http.post(
                 `${ENV.apiUrl}/file`,
                 {
@@ -181,22 +181,22 @@ export default function (): void {
                 try {
                     const responseData = JSON.parse(uploadResponse.body as string);
                     fileUuid = responseData.data[0].uuid;
-                    console.log(`   ✅ Fichier uploadé - UUID: ${fileUuid}`);
+                    console.log(`   ✅ File uploaded - UUID: ${fileUuid}`);
                 } catch (e) {
-                    console.log('   ❌ Erreur parsing réponse upload');
+                    console.log('   ❌ Error parsing upload response');
                 }
             } else {
                 logErrorResponse(uploadResponse, 'Single Upload');
             }
         });
 
-        group('6. PATCH /file/:uuid - Mise à jour fichier', () => {
+        group('6. PATCH /file/:uuid - Update file', () => {
             if (!fileUuid) {
-                console.log("   ⚠️ Pas d'UUID disponible pour le test PATCH");
+                console.log("   ⚠️ No UUID available for the PATCH test");
                 return;
             }
 
-            console.log(`📝 Test mise à jour fichier single: ${fileUuid}`);
+            console.log(`📝 Test single file update: ${fileUuid}`);
             const patchResponse = http.patch(
                 `${ENV.apiUrl}/file/${fileUuid}`,
                 {
@@ -244,13 +244,13 @@ export default function (): void {
             }
         });
 
-        group('7. DELETE /file/:uuid - Suppression fichier', () => {
+        group('7. DELETE /file/:uuid - Delete file', () => {
             if (!fileUuid) {
-                console.log("   ⚠️ Pas d'UUID disponible pour le test DELETE");
+                console.log("   ⚠️ No UUID available for the DELETE test");
                 return;
             }
 
-            console.log(`🗑️ Test suppression fichier single: ${fileUuid}`);
+            console.log(`🗑️ Test single file deletion: ${fileUuid}`);
             const deleteResponse = http.del(`${ENV.apiUrl}/file/${fileUuid}`, JSON.stringify({ namespace: ENV.namespace }), {
                 headers: {
                     'Content-Type': 'application/json',
@@ -279,5 +279,5 @@ export default function (): void {
     });
 
     console.log('');
-    console.log('🏁 Tests single terminés');
+    console.log('🏁 Single tests finished');
 }

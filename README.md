@@ -396,7 +396,7 @@ transform-and-deliver-assets:
     # SEE BELOW ALL VALUES
 ```
 
-| Clé                                         | Description                                | Exemples de Valeurs       |
+| Key                                         | Description                                | Example Values            |
 | ------------------------------------------- | ------------------------------------------ | ------------------------- |
 | local                                       | Enable or disable the local mode           | true / false              |
 | redis.service                               | Redis service name                         | 'redis-service'           |

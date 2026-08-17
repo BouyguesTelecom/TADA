@@ -68,7 +68,7 @@ data:
                     deny all;
                 }
 
-                # Rejette les URL media sans extension de fichier (evite de solliciter l'API pour des appels errones)
+                # Reject files without extensions (avoids unnecessary API calls)
                 if ($uri !~* "\.(webp|jpe?g|png|svg|svgz|gif|pdf|xml)$") {
                     return 404;
                 }
