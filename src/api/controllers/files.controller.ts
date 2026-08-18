@@ -6,6 +6,7 @@ import { generateStream } from '../utils/file';
 import { calculateSHA256, formatItemForCatalog } from '../utils/catalog';
 import { addCatalogItem, deleteCatalogItem, getCatalogItem, updateCatalogItem } from '../catalog';
 import { _deleteTmpFolder } from './file.controller';
+import { isNonTransformableMimetype } from '../utils/mimetypes';
 
 const _saveOriginal = process.env.SAVE_ORIGINAL_FILE;
 
@@ -13,7 +14,7 @@ export const postAssets = async (_req: Request, res: Response) => {
     const { validFiles, invalidFiles } = res.locals;
     const files = [];
     for (const file of validFiles) {
-        const isImageFile = !['application/pdf', 'image/svg+xml'].includes(file.mimetype);
+        const isImageFile = !isNonTransformableMimetype(file.mimetype);
         const { stream: originalStream } = _saveOriginal && isImageFile && (await generateStream(file, false, true));
         const { stream, file: newFile } = await generateStream(file, file.toWebp);
 

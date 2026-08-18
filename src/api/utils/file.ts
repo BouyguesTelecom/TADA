@@ -6,7 +6,6 @@ import path from 'path';
 import { convertToWebp, optimizeWebp } from './imageOptimization';
 
 require('dotenv').config();
-
 export const returnDefaultImage = (res, uniqueName) => {
     res.setHeader('Content-Type', 'image/svg+xml');
     const rootPath = process.env.NODE_ENV !== 'production' ? path.resolve(__dirname, '../images') : '/tmp/images';
@@ -79,6 +78,8 @@ export const stripMetadata = async (imagePath: string, mimetype: string) => {
             return await removeMetadataImage(imagePath);
         case 'image/svg+xml':
             return removeUnusedData(imagePath);
+        case 'image/gif':
+            return await fs.promises.readFile(imagePath);
         default:
             return;
     }

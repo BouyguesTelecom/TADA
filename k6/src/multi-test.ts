@@ -79,7 +79,7 @@ export default function (): void {
                     const catalog = JSON.parse(catalogResponse.body as string);
                     console.log(`   Items: ${catalog.length}`);
                 } catch (e) {
-                    console.log('   ⚠️ Réponse non-JSON');
+                    console.log('   ⚠️ Non-JSON response');
                 }
             }
             logErrorResponse(catalogResponse, 'Catalog');
@@ -89,8 +89,8 @@ export default function (): void {
     group('Routes files.routes.ts (Multi Files)', () => {
         let multiFileUuids: string[] = [];
 
-        group('8. POST /files - Upload multiple fichiers', () => {
-            console.log('📤 Test upload fichiers multiples');
+        group('8. POST /files - Upload multiple files', () => {
+            console.log('📤 Test multiple files upload');
 
             const multiUploadResponse = http.post(
                 `${ENV.apiUrl}/files`,
@@ -140,22 +140,22 @@ export default function (): void {
                 try {
                     const responseData = JSON.parse(multiUploadResponse.body as string);
                     multiFileUuids = responseData.data.map((item: any) => item.uuid);
-                    console.log(`   ✅ Fichiers uploadés - UUIDs: ${multiFileUuids.join(', ')}`);
+                    console.log(`   ✅ Files uploaded - UUIDs: ${multiFileUuids.join(', ')}`);
                 } catch (e) {
-                    console.log('   ❌ Erreur parsing réponse upload multi');
+                    console.log('   ❌ Error parsing multi upload response');
                 }
             } else {
                 logErrorResponse(multiUploadResponse, 'Multi Upload');
             }
         });
 
-        group('9. PATCH /files - Mise à jour multiple fichiers', () => {
+        group('9. PATCH /files - Update multiple files', () => {
             if (multiFileUuids.length === 0) {
-                console.log("   ⚠️ Pas d'UUIDs disponibles pour le test PATCH multi");
+                console.log("   ⚠️ No UUIDs available for the multi PATCH test");
                 return;
             }
 
-            console.log(`📝 Test mise à jour fichiers multiples: ${multiFileUuids.join(', ')}`);
+            console.log(`📝 Test multiple files update: ${multiFileUuids.join(', ')}`);
 
             const multiPatchResponse = http.patch(
                 `${ENV.apiUrl}/files`,
@@ -194,20 +194,20 @@ export default function (): void {
             console.log(`   Status: ${multiPatchResponse.status}`);
             if (multiPatchResponse.status !== 200) {
                 logErrorResponse(multiPatchResponse, 'Multi Patch');
-                console.log(`   📋 Payload envoyé:`);
+                console.log(`   📋 Payload sent:`);
                 console.log(`      - UUIDs: ${multiFileUuids.join(', ')}`);
                 console.log(`      - Namespace: ${ENV.namespace}`);
                 console.log(`      - Files: files[0], files[1]`);
             }
         });
 
-        group('10. DELETE /files - Suppression multiple fichiers', () => {
+        group('10. DELETE /files - Delete multiple files', () => {
             if (multiFileUuids.length === 0) {
-                console.log("   ⚠️ Pas d'UUIDs disponibles pour le test DELETE multi");
+                console.log("   ⚠️ No UUIDs available for the multi DELETE test");
                 return;
             }
 
-            console.log(`🗑️ Test suppression fichiers multiples: ${multiFileUuids.join(', ')}`);
+            console.log(`🗑️ Test multiple files deletion: ${multiFileUuids.join(', ')}`);
 
             const deletePayload = [{
                 uuids: multiFileUuids.join(','),
@@ -237,11 +237,11 @@ export default function (): void {
             console.log(`   Status: ${multiDeleteResponse.status}`);
             if (multiDeleteResponse.status !== 200) {
                 logErrorResponse(multiDeleteResponse, 'Multi Delete');
-                console.log(`   📋 Payload envoyé: ${JSON.stringify(deletePayload, null, 2)}`);
+                console.log(`   📋 Payload sent: ${JSON.stringify(deletePayload, null, 2)}`);
             }
         });
     });
 
     console.log('');
-    console.log('🏁 Tests multi terminés');
+    console.log('🏁 Multi tests finished');
 }

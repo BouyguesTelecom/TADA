@@ -1,6 +1,7 @@
 import { logger } from './logs/winston';
 import sharp from 'sharp';
 import fs from 'fs';
+import { isNonTransformableMimetype } from './mimetypes';
 
 const calculateTargetDimensions = (width: number, height: number, config: any) => {
     const aspectRatio = width / height;
@@ -429,7 +430,7 @@ export const optimizeWebp = async (fileObject: any, removeMetadata = true) => {
 };
 
 export const isImageMimetype = (mimetype: string): boolean => {
-    return mimetype.startsWith('image/') && !mimetype.includes('svg');
+    return mimetype.startsWith('image/') && !isNonTransformableMimetype(mimetype);
 };
 
 export const getProcessedFilename = (originalFilename: string, width?: string, height?: string, quality?: string): string => {

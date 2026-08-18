@@ -37,10 +37,10 @@ helm-install-distant-backend:
 install-nginx:
 	@nginx_existence=$$(kubectl get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx --ignore-not-found) && \
 	if [ -z "$$nginx_existence" ]; then \
-		echo "Installation du NGINX Ingress Controller..."; \
+		echo "Installing the NGINX Ingress Controller..."; \
 		kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml; \
 	else \
-		echo "NGINX Ingress Controller existe déjà."; \
+		echo "NGINX Ingress Controller already exists."; \
 	fi
 
 clean:
@@ -72,39 +72,39 @@ helm-uninstall:
 	fi
 
 dashboard:
-	@read -p "Souhaitez-vous lancer le Kubernetes Dashboard ? (YES/NO) [YES] " response; \
+	@read -p "Do you want to launch the Kubernetes Dashboard? (YES/NO) [YES] " response; \
 	response=$${response:-YES}; \
 	if [ "$$response" = "YES" ]; then \
-		echo "Ajout du dépôt Kubernetes Dashboard..."; \
+		echo "Adding the Kubernetes Dashboard repository..."; \
 		helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/ && \
-		echo "Installation du Kubernetes Dashboard..."; \
+		echo "Installing the Kubernetes Dashboard..."; \
 		helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard && \
 		if ! kubectl get clusterrolebinding dashboard-user > /dev/null 2>&1; then \
-			echo "Création du clusterrolebinding 'dashboard-user'..."; \
+			echo "Creating the clusterrolebinding 'dashboard-user'..."; \
 			kubectl apply -f local/helms/local-conf/dashboard-clusterrolebinding.yaml; \
 		else \
-			echo "clusterrolebinding 'dashboard-user' existe déjà."; \
+			echo "clusterrolebinding 'dashboard-user' already exists."; \
 		fi; \
 		if ! kubectl get serviceaccount dashboard-user -n kubernetes-dashboard > /dev/null 2>&1; then \
-			echo "Création du serviceaccount 'dashboard-user'..."; \
+			echo "Creating the serviceaccount 'dashboard-user'..."; \
 			kubectl apply -f local/helms/local-conf/dashboard-user.yaml; \
 		else \
-			echo "serviceaccount 'dashboard-user' existe déjà."; \
+			echo "serviceaccount 'dashboard-user' already exists."; \
 		fi; \
-		echo "Génération du token 'dashboard-user'..."; \
+		echo "Generating the 'dashboard-user' token..."; \
 		TOKEN=$$(kubectl -n kubernetes-dashboard create token dashboard-user); \
 		echo ""; \
 		echo "🔥"; \
-		echo "TOKEN ADMIN ⬇️"; \
+		echo "ADMIN TOKEN ⬇️"; \
 		echo ""; \
 		echo "$$TOKEN"; \
 		echo ""; \
 		echo "🔥"; \
 		echo ""; \
-		echo "Ouvrez un autre terminal et lancez la commande suivante : kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard-kong-proxy 8443:443"; \
-		echo "Ensuite, rendez-vous sur : https://localhost:8443/ et renseignez le token admin généré ci-dessus."; \
+		echo "Open another terminal and run the following command: kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard-kong-proxy 8443:443"; \
+		echo "Then go to: https://localhost:8443/ and enter the admin token generated above."; \
 	else \
-		echo "Kubernetes Dashboard non lancé."; \
+		echo "Kubernetes Dashboard not launched."; \
 	fi
 
 start: start-s3

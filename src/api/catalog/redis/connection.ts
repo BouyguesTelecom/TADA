@@ -93,7 +93,7 @@ export const initializeCache = async () => {
                 }
             });
         }
-        logger.info(`Cache initialisé: ${memoryCache.size} fichiers en ${Date.now() - start}ms`);
+        logger.info(`Cache initialized: ${memoryCache.size} files in ${Date.now() - start}ms`);
     } catch (err) {
         logger.error(`Error listing items: ${err}`);
     }

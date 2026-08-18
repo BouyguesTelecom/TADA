@@ -27,7 +27,7 @@ export default function (): void {
     console.log(`Token: ${ENV.bearerToken}`);
     console.log('');
 
-    console.log('🌐 Test 1: Connectivité serveur');
+    console.log('🌐 Test 1: Server connectivity');
     try {
         const healthResponse = http.get(ENV.apiUrl + '/readiness-check', { timeout: '5s' });
         console.log(`   Status: ${healthResponse.status}`);
@@ -43,7 +43,7 @@ export default function (): void {
         });
 
     } catch (e) {
-        console.log(`   ❌ Erreur de connexion: ${e}`);
+        console.log(`   ❌ Connection error: ${e}`);
     }
     console.log('');
 
@@ -66,7 +66,7 @@ export default function (): void {
     });
 
     if (catalogResponse.status === 500) {
-        console.log('   ❌ Erreur 500 - Problème serveur interne');
+        console.log('   ❌ Error 500 - Internal server problem');
         console.log(`   Error body: ${catalogResponse.body}`);
         const catalogWithHeaders = http.get(`${ENV.apiUrl}/catalog`, {
             headers: {
@@ -75,19 +75,19 @@ export default function (): void {
             },
             timeout: '10s'
         });
-        console.log(`   GET /catalog (avec headers) - Status: ${catalogWithHeaders.status}`);
+        console.log(`   GET /catalog (with headers) - Status: ${catalogWithHeaders.status}`);
     } else if (catalogResponse.status === 200) {
         console.log('   ✅ Catalog accessible');
         try {
             const catalog = JSON.parse(catalogResponse.body as string);
             console.log(`   Items: ${Array.isArray(catalog) ? catalog.length : 'unknown'}`);
         } catch (e) {
-            console.log(`   ⚠️  Réponse non-JSON`);
+            console.log(`   ⚠️  Non-JSON response`);
         }
     }
     console.log('');
 
-    console.log('📤 Test 3: Upload sans fichier & 🔐 Authentification');
+    console.log('📤 Test 3: Upload without file & 🔐 Authentication');
 
     const emptyUpload = http.post(
         `${ENV.apiUrl}/file`,
@@ -102,7 +102,7 @@ export default function (): void {
             timeout: '10s'
         }
     );
-    console.log(`   POST /file (sans fichier) - Status: ${emptyUpload.status}`);
+    console.log(`   POST /file (without file) - Status: ${emptyUpload.status}`);
     console.log(`   Response: ${emptyUpload.body?.toString().substring(0, 200)}`);
 
     check(emptyUpload, {
@@ -134,7 +134,7 @@ export default function (): void {
 
     const responseBody = JSON.parse(fileUpload.body as string);
     console.log(typeof fileUpload.body, responseBody);
-    console.log(`   POST /file (avec fichier) - Status: ${fileUpload.status}`);
+    console.log(`   POST /file (with file) - Status: ${fileUpload.status}`);
     console.log(`   Response: ${fileUpload.body?.toString().substring(0, 200)}`);
 
     check(fileUpload, {
@@ -200,7 +200,7 @@ export default function (): void {
             timeout: '10s'
         }
     );
-    console.log(`   POST /file (avec fichier existant) - Status: ${fileUploadBis.status}`);
+    console.log(`   POST /file (with existing file) - Status: ${fileUploadBis.status}`);
     console.log(`   Response: ${fileUploadBis.body?.toString().substring(0, 200)}`);
 
     check(fileUploadBis, {
@@ -279,7 +279,7 @@ export default function (): void {
     });
 
     console.log('');
-    console.log('🏁 Diagnostic terminé');
+    console.log('🏁 Diagnosis finished');
 
     check(catalogResponse, {
         'diagnostic completed successfully': (r) => r.status !== undefined

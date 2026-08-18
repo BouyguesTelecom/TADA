@@ -76,7 +76,7 @@ spec:
                         -   name: NAMESPACES
                             value: "{{ default "DEV" .Values.NAMESPACES_ALLOWED }}"
                         -   name: VALID_MIMETYPES
-                            value: "image/png,image/jpeg,application/pdf,image/jpg,image/webp,image/svg+xml"
+                            value: "image/png,image/jpeg,application/pdf,image/jpg,image/webp,image/svg+xml,image/gif"
                         {{- if .Values.dev}}
                         -   name: DEV_ENV
                             value: "true"

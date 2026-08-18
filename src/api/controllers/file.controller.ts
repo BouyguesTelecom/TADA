@@ -10,6 +10,7 @@ import { deleteFileBackup, getBackup, patchFileBackup, postFileBackup, postFiles
 import { addCatalogItem, deleteCatalogItem, updateCatalogItem } from '../catalog';
 import { PassThrough } from 'stream';
 import { getProcessedFilename, isImageMimetype, processImageOnTheFly } from '../utils/imageOptimization';
+import { isNonTransformableMimetype } from '../utils/mimetypes';
 import path from 'path';
 import fs from 'fs';
 
@@ -92,7 +93,7 @@ export const _deleteTmpFolder = (filepath) => {
 export const postAsset = async (_req: Request, res: Response) => {
     const { uniqueName, fileInfo, toWebp, namespace, file } = res.locals;
     try {
-        const isImageFile = !['application/pdf', 'image/svg+xml'].includes(file.mimetype);
+        const isImageFile = !isNonTransformableMimetype(file.mimetype);
         const { stream: originalStream } = _saveOriginal && isImageFile ? await generateStream(file, false, true) : { stream: null };
         const { stream, file: newFile } = await generateStream(file, toWebp);
 

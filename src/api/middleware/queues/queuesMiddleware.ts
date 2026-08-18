@@ -23,9 +23,9 @@ export const queueMiddleware = (handler: (req: Request, res: Response) => Promis
             try {
                 await withTimeout(handler(req, res), parseInt(process.env.REQUEST_TIMEOUT || '', 10) || 120000);
             } catch (err) {
-                logger.error('Job timeout ou erreur :', err);
+                logger.error('Job timeout or error:', err);
                 if (!res.headersSent) {
-                    res.status(500).json({ error: 'Erreur ou timeout dans le traitement de la requête' });
+                    res.status(500).json({ error: 'Error or timeout while processing the request' });
                 }
             }
         });

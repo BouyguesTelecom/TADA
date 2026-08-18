@@ -40,6 +40,7 @@ data:
                 image/jpeg jpeg jpg;
                 image/png png;
                 image/webp webp;
+                image/gif gif;
               }
 
               location = /favicon.ico {
@@ -62,7 +63,7 @@ data:
                 proxy_pass http://tada-{{ .Release.Name }}-nginx-purge-service;
               }
 
-              location ~ ^{{ if hasKey .Values.mediaApi "apiPrefix" }}{{ .Values.mediaApi.apiPrefix }}{{ .Values.mediaApi.routes.file.get }}{{ else }}{{ .Values.mediaApi.routes.file.get }}{{ end }} {
+              location ~ ^{{ if hasKey .Values.mediaApi "apiPrefix" }}{{ .Values.mediaApi.apiPrefix }}{{ .Values.mediaApi.routes.file.get }}{{ else }}{{ .Values.mediaApi.routes.file.get }}{{ end }}.+\.[^/]+$ {
                 limit_except GET {
                     deny all;
                 }
@@ -75,6 +76,11 @@ data:
 
                 add_header X-Cache-Status $upstream_cache_status;
                 proxy_pass http://tada-{{ .Release.Name }}-nginx-purge-service;
+                }
+
+              # Reject asset requests without a file extension (avoids unnecessary API calls)
+              location ~ ^{{ if hasKey .Values.mediaApi "apiPrefix" }}{{ .Values.mediaApi.apiPrefix }}{{ .Values.mediaApi.routes.file.get }}{{ else }}{{ .Values.mediaApi.routes.file.get }}{{ end }} {
+                return 404;
                 }
                 location ~ /purge(/.*) {
                    limit_except GET {

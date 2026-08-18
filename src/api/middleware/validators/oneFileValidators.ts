@@ -7,6 +7,7 @@ import { deleteFile, returnDefaultImage } from '../../utils/file';
 import { checkMissingParam, checkNamespace, fileIsTooLarge, generateUniqueName, sendResponse } from './utils';
 import { isFileNameInvalid, storage } from './utils/multer';
 import { logger } from '../../utils/logs/winston';
+import { isNonTransformableMimetype } from '../../utils/mimetypes';
 
 export const validatorNamespace = async (req: Request, res: Response, next: NextFunction) => {
     const namespace = req.body.namespace;
@@ -43,12 +44,12 @@ export const validatorFileCatalog = async (req: Request, res: Response, next: Ne
         if (req.method === 'PATCH' && file) {
             const imageMimeTypes = ['image/png', 'image/jpeg', 'image/webp'];
 
-            const isOriginalImageOrPdfSvg = ['application/pdf', 'image/svg+xml'].includes(itemFound.original_mimetype);
+            const isOriginalNonTransformable = isNonTransformableMimetype(itemFound.original_mimetype);
             const isOriginalWithoutConversion = itemFound.mimetype === itemFound.original_mimetype;
             const isReplacementImage = imageMimeTypes.includes(file.mimetype);
             const canConvertToWebp = req.body.toWebp !== 'false';
 
-            if (isOriginalImageOrPdfSvg) {
+            if (isOriginalNonTransformable) {
                 if (file.mimetype !== itemFound.original_mimetype || (!canConvertToWebp && itemFound.mimetype === 'image/webp')) {
                     return sendResponse({
                         res,
@@ -197,7 +198,7 @@ export const validatorGetAsset = async (req: Request, res: Response, next: NextF
     try {
         const file = await findCatalogItem(uniqueName);
         const isOriginalRoute = req.url.includes('/original/');
-        const isImageFile = !['application/pdf', 'image/svg+xml'].includes(file?.mimetype);
+        const isImageFile = !isNonTransformableMimetype(file?.mimetype);
         if (file && (!isOriginalRoute || !isImageFile || !file.original_signature) && checkNamespace(file.namespace)) {
             res.locals = {
                 ...res.locals,
