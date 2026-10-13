@@ -30,7 +30,12 @@ const removeUnusedData = (svgFilePath) => {
     const cleanedSvgData3 = cleanedSvgData2.replace(metadataRegex, '');
 
     // Delete unused attributes
-    const elementsToRemove = ['title', 'desc', 'defs'];
+    // NOTE: 'defs' must NOT be removed here: it is a reusable resources container
+    // (patterns, clipPaths, gradients, embedded images via <use>/xlink:href, ...)
+    // referenced elsewhere in the document (fill="url(#id)", clip-path="url(#id)", <use xlink:href="#id">).
+    // Stripping it silently breaks any SVG relying on those references (e.g. logos
+    // embedded as a <pattern> + base64 <image> inside <defs>).
+    const elementsToRemove = ['title', 'desc'];
     const elementRegex = new RegExp(`<(${elementsToRemove.join('|')})>[\\s\\S]*?<\/\\1>`, 'g');
     const cleanedSvgData4 = cleanedSvgData3.replace(elementRegex, '');
 
