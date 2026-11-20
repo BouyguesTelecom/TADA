@@ -42,7 +42,7 @@ delegatedStorage:
         multi: /files
 
 nginx:
-    imageName: bitnami/nginx:latest
+    imageName: nginx:1.30.7-alpine
     serviceName: nginx-service
     resources:
         requests:

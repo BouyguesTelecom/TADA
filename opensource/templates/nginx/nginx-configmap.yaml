@@ -5,9 +5,15 @@ metadata:
 data:
     proxy-body-size: 10m
     nginx.conf: |
+        pid /tmp/nginx.pid;
         events {}
 
         http {
+            client_body_temp_path /tmp/client_temp;
+            proxy_temp_path /tmp/proxy_temp;
+            fastcgi_temp_path /tmp/fastcgi_temp;
+            uwsgi_temp_path /tmp/uwsgi_temp;
+            scgi_temp_path /tmp/scgi_temp;
             log_format json escape=json
             '{'
             '"access_time":"$time_iso8601",'
@@ -24,7 +30,7 @@ data:
             '"request_source":"$http_x_request_source"'
             '}';
 
-            proxy_cache_path /opt/bitnami/nginx/cache levels=1:2 keys_zone=zone1:10m max_size=1g inactive=24h use_temp_path=off;
+            proxy_cache_path /tmp/cache levels=1:2 keys_zone=zone1:10m max_size=1g inactive=24h use_temp_path=off;
             server {
               listen 8080;
               server_name tada-{{ .Release.Name }}-nginx-service;

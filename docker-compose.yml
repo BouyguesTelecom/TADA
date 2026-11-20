@@ -118,11 +118,11 @@ services:
         depends_on:
             - images-provider
     nginx:
-        image: bitnami/nginx:latest
+        image: nginx:1.30.7-alpine
         ports:
             - 8080:8080
         volumes:
-            - ./local/nginx/nginx.conf:/opt/bitnami/nginx/conf/nginx.conf
+            - ./local/nginx/nginx.conf:/etc/nginx/nginx.conf
         networks:
             - media_network
         depends_on:

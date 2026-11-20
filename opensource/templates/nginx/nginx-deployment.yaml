@@ -21,9 +21,9 @@ spec:
                         -   containerPort: 8080
                     volumeMounts:
                         -   name: nginx-cache
-                            mountPath: /opt/bitnami/nginx/cache
+                            mountPath: /tmp/cache
                         -   name: nginx-config-volume
-                            mountPath: /opt/bitnami/nginx/conf/nginx.conf
+                            mountPath: /etc/nginx/nginx.conf
                             subPath: nginx.conf
                     resources:
                         requests:
