@@ -78,11 +78,11 @@ services:
         networks:
             - media_network
     nginx:
-        image: bitnami/nginx:latest
+        image: nginx:1.30.7-alpine
         ports:
             - 8080:8080
         volumes:
-            - ../nginx/nginx.dev.conf:/opt/bitnami/nginx/conf/nginx.conf
+            - ../nginx/nginx.dev.conf:/etc/nginx/nginx.conf
         networks:
             - media_network
 
