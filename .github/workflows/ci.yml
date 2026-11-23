@@ -3,7 +3,7 @@ name: CI Docker and Helm
 on:
   push:
     branches:
-      - main
+      - fix/patch-skip-non-scalar-formdata
 
 env:
   IMAGE_NAME: bouyguestelecom/tada
@@ -152,7 +152,12 @@ jobs:
         run: |
           new_version=${{ needs.determine-version.outputs.new_version }}
           echo "Docker api with version $new_version"
-          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:${new_version} -t ${{ env.IMAGE_NAME }}:latest --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src/api
+          # Only tag :latest from main, never from test branches
+          latest_tag=""
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            latest_tag="-t ${{ env.IMAGE_NAME }}:latest"
+          fi
+          docker buildx build --platform linux/amd64,linux/arm64 --push -t ${{ env.IMAGE_NAME }}:${new_version} ${latest_tag} --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max ./src/api
   publish-helm-chart:
     runs-on: ubuntu-latest
     needs:
