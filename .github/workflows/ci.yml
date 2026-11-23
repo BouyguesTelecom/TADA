@@ -3,7 +3,7 @@ name: CI Docker and Helm
 on:
   push:
     branches:
-      - main
+      - fix/patch-skip-non-scalar-formdata
 
 env:
   IMAGE_NAME: bouyguestelecom/tada
