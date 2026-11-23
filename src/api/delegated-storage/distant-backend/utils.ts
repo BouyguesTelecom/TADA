@@ -40,13 +40,18 @@ const generateUrl: any = (pathType = 'SINGLE') => {
     return `${process.env.DELEGATED_STORAGE_HOST}${delegatedStoragePath}`;
 };
 
+// form-data does not support arrays/objects: skip them (they stay in the catalog, only the backup form is filtered)
+const appendScalarFields = (form, info) => {
+    for (const key in info) {
+        const value = info[key];
+        if (!info.hasOwnProperty(key) || !value || typeof value === 'object') continue;
+        form.append(key, value);
+    }
+};
+
 const generateFormDataWithFile = (stream, file, info) => {
     const form = new FormData();
-    for (const key in info) {
-        if (info.hasOwnProperty(key) && info[key]) {
-            form.append(key, info[key]);
-        }
-    }
+    appendScalarFields(form, info);
     form.append('file', stream, file);
     return form;
 };
@@ -328,11 +333,7 @@ export const updates = async (files): Promise<BackupProps> => {
         const fileInfo = files[0].fileInfo;
         form.append('unique_names', files.map((file) => file.catalogItem.unique_name).join(','));
         form.append('public_urls', files.map((file) => file.catalogItem.public_url).join(','));
-        for (const key in fileInfo) {
-            if (fileInfo.hasOwnProperty(key) && fileInfo[key]) {
-                form.append(key, fileInfo[key]);
-            }
-        }
+        appendScalarFields(form, fileInfo);
         for (const file of files) {
             form.append('files', file.stream, {
                 filename: file.catalogItem.filename,
