@@ -35,7 +35,7 @@ delegatedStorage:
     storageMethod: 'STANDALONE'
 
 nginx:
-    imageName: nginx:1.30.7-alpine
+    imageName: nginx:1.31.9-alpine
     serviceName: nginx-service
     resources:
         requests:

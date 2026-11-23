@@ -118,7 +118,7 @@ services:
         depends_on:
             - images-provider
     nginx:
-        image: nginx:1.30.7-alpine
+        image: nginx:1.31.9-alpine
         ports:
             - 8080:8080
         volumes:
