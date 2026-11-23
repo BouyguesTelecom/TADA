@@ -9,7 +9,7 @@ env:
   IMAGE_NAME: bouyguestelecom/tada
 
 jobs:
-   tests:
+  tests:
      runs-on: ubuntu-latest
      steps:
        -   name: Checkout repository
