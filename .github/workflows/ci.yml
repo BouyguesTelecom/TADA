@@ -49,7 +49,7 @@ jobs:
         id: get_latest_tag
         run: |
           git fetch --tags
-          latest_tag=$(git tag -l --sort=-v:refname | head -n 1)
+          latest_tag=$(git tag -l --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
           if [ -z "$latest_tag" ]; then
             latest_tag="0.0.0"
           fi
